@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tabulator Example</title>
+  <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet">
+</head>
+<body>
+  <h1>My Tabulator Table</h1>
+  <div id="table"></div>
+
+  <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
+  <script>
+    fetch('data.json')
+      .then(response => response.json())
+      .then(data => {
+        new Tabulator("#table", {
+          data: data,
+          layout: "fitColumns",
+          columns: [
+            { title: "Name", field: "name", headerFilter: true },
+            { title: "Age", field: "age", headerFilter: "number" },
+            { title: "City", field: "city", headerFilter: true }
+          ]
+        });
+      });
+  </script>
+</body>
+</html>
