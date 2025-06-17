@@ -33,20 +33,22 @@
         });
 
         new Tabulator("#stats-table", {
-          data: flattened,
+          data: data, // your flattened JSON array
           layout: "fitDataStretch",
           pagination: "local",
           paginationSize: 10,
+
           columns: [
-            { title: "Participant ID", field: "participantFileId" },
-            { title: "Gender", field: "Gender" },
-            { title: "Age", field: "Age" },
-            { title: "Ethnicity", field: "Ethnicity" },
-            { title: "Surgery", field: "FacialSurgery" },
-            { title: "Measurement", field: "MeasurementName" },
-            { title: "Value", field: "Value" }
+            { title: "Participant ID", field: "participantFileId", headerFilter: "input" },
+            { title: "Gender", field: "Gender", headerFilter: "select", headerFilterParams: { values: true } },
+            { title: "Age", field: "Age", headerFilter: "number" },
+            { title: "Ethnicity", field: "Ethnicity", headerFilter: "select", headerFilterParams: { values: true } },
+            { title: "Facial Surgery", field: "FacialSurgery", headerFilter: "select", headerFilterParams: { values: true } },
+            { title: "Landmark Name", field: "LandmarkName", headerFilter: "input" },
+            { title: "Value", field: "Value", headerFilter: "number" }
           ]
         });
+
       });
 
 
