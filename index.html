@@ -22,13 +22,38 @@
   <h2>3D Facial Landmark Query Tool</h2>
   <div class="filter-row">
     <label>Gender
-      <select id="genderFilter" multiple></select>
+      <select id="genderFilter" multiple>
+        <option value="Female">Female</option>
+        <option value="Male">Male</option>
+        <option value="Prefer not to say">Prefer not to say</option>
+        <option value="Other">Other</option>
+      </select>
     </label>
     <label>Ethnicity
-      <select id="ethnicityFilter" multiple></select>
+      <select id="ethnicityFilter" multiple>
+        <option value="White">White</option>
+        <option value="Black or African American">Black or African American</option>
+        <option value="American Indian or Alaska Native">American Indian or Alaska Native</option>
+        <option value="Asian">Asian</option>
+        <option value="Native Hawaiian or Other Pacific Islander">Native Hawaiian or Other Pacific Islander</option>
+        <option value="Hispanic">Hispanic</option>
+      </select>
     </label>
     <label>Facial Surgery
-      <select id="surgeryFilter" multiple></select>
+      <select id="surgeryFilter" multiple>
+        <option value="No Facial Surgery">No Facial Surgery</option>
+        <option value="Brow/forehead lift">Brow/forehead lift</option>
+        <option value="Ear pinning">Ear pinning</option>
+        <option value="Chin, cheek, or jaw reshaping">Chin, cheek, or jaw reshaping</option>
+        <option value="Eyelid lift">Eyelid lift</option>
+        <option value="Facelift">Facelift</option>
+        <option value="Facial implants">Facial implants</option>
+        <option value="Hair replacement surgery">Hair replacement surgery</option>
+        <option value="Lip augmentation">Lip augmentation</option>
+        <option value="Rhinoplasty">Rhinoplasty</option>
+        <option value="Other">Other</option>
+        <option value="Prefer not to specify">Prefer not to specify</option>
+      </select>
     </label>
     <label>Age Start
       <input type="number" id="ageMin" placeholder="Min Age" />
@@ -55,14 +80,10 @@
     const ethnicityChoices = new Choices('#ethnicityFilter', { removeItemButton: true });
     const surgeryChoices = new Choices('#surgeryFilter', { removeItemButton: true });
 
-    fetch('data.json')
+    fetch('data_flattened.json')
       .then(res => res.json())
       .then(data => {
         originalData = data;
-
-        populateChoices(genderChoices, getUnique(data, 'Gender'));
-        populateChoices(ethnicityChoices, getUnique(data, 'Ethnicity'));
-        populateChoices(surgeryChoices, getUnique(data, 'FacialSurgery'));
 
         table = new Tabulator("#stats-table", {
           data: data,
@@ -80,17 +101,6 @@
           ]
         });
       });
-
-    function getUnique(data, field) {
-      return [...new Set(data.map(d => d[field]).filter(Boolean))].sort();
-    }
-
-    function populateChoices(choicesInstance, options) {
-      choicesInstance.setChoices(
-        options.map(opt => ({ value: opt, label: opt })),
-        'value', 'label', true
-      );
-    }
 
     function applyFilters() {
       const genders = genderChoices.getValue(true);
