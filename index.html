@@ -18,11 +18,19 @@
         new Tabulator("#stats-table", {
           data: data,
           layout: "fitDataStretch",
-          autoColumns: true,
           pagination: "local",
           paginationSize: 10,
-          height: "500px"
-        });
+          height: "500px",
+          columns: [
+            { title: "Participant ID", field: "participantFileId" },
+            { title: "Gender", field: "Gender" },
+            { title: "Age", field: "Age" },
+            { title: "Ethnicity", field: "Ethnicity" },
+            { title: "Facial Surgery", field: "FacialSurgery" }
+
+  ]
+});
+
       });
   </script>
 </body>
