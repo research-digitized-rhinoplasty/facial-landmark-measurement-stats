@@ -1,63 +1,116 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Facial Measurement Stats</title>
+  <meta charset="UTF-8">
+  <title>3D Facial Landmark Stats</title>
   <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" rel="stylesheet" />
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    .filter-section { margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 1rem; }
+    .filter-section label { display: flex; flex-direction: column; font-weight: bold; }
+    #stats-table { margin-top: 20px; }
+    .choices__inner { min-width: 200px; }
+  </style>
 </head>
 <body>
-  <h2>Facial Landmark Measurement Stats</h2>
+  <h2>3D Facial Landmark Query Tool</h2>
+  <div class="filter-section">
+    <label>Gender
+      <select id="genderFilter" multiple></select>
+    </label>
+    <label>Ethnicity
+      <select id="ethnicityFilter" multiple></select>
+    </label>
+    <label>Facial Surgery
+      <select id="surgeryFilter" multiple></select>
+    </label>
+    <label>Age Range
+      <input type="number" id="ageMin" placeholder="Min Age" style="width: 80px;" />
+      <input type="number" id="ageMax" placeholder="Max Age" style="width: 80px; margin-top: 4px;" />
+    </label>
+    <button onclick="applyFilters()">Apply Filters</button>
+    <button onclick="clearFilters()">Clear</button>
+  </div>
+
   <div id="stats-table"></div>
 
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
   <script>
-    // Load JSON data (update the path to your real JSON file if needed)
-    fetch('data.json')
-      .then(response => response.json())
+    let table;
+    let originalData = [];
+
+    // Initialize filters
+    const genderChoices = new Choices('#genderFilter', { removeItemButton: true });
+    const ethnicityChoices = new Choices('#ethnicityFilter', { removeItemButton: true });
+    const surgeryChoices = new Choices('#surgeryFilter', { removeItemButton: true });
+
+    fetch('data_flattened.json')
+      .then(res => res.json())
       .then(data => {
-        // Assume top-level array of participants
-        const flattened = [];
+        originalData = data;
 
-        data.forEach(participant => {
-          participant.ParticipantMeasurements?.forEach(measurement => {
-            flattened.push({
-              participantFileId: participant.participantFileId,
-              Gender: participant.Gender,
-              Age: participant.Age,
-              Ethnicity: participant.Ethnicity,
-              FacialSurgery: participant.FacialSurgery,
-              MeasurementName: measurement.MeasurementName,
-              Value: measurement.Value
-            });
-          });
-        });
+        // Populate filter options dynamically
+        populateChoices(genderChoices, getUnique(data, 'Gender'));
+        populateChoices(ethnicityChoices, getUnique(data, 'Ethnicity'));
+        populateChoices(surgeryChoices, getUnique(data, 'FacialSurgery'));
 
-        new Tabulator("#stats-table", {
-          data: data, // your flattened JSON array
+        // Initialize Tabulator
+        table = new Tabulator("#stats-table", {
+          data: data,
           layout: "fitDataStretch",
           pagination: "local",
           paginationSize: 10,
-
           columns: [
-            { title: "Participant ID", field: "participantFileId", headerFilter: "input" },
-            { title: "Gender", field: "Gender", headerFilter: "select", headerFilterParams: { values: true } },
-            { title: "Age", field: "Age", headerFilter: "number" },
-            { title: "Ethnicity", field: "Ethnicity", headerFilter: "select", headerFilterParams: { values: true } },
-            { title: "Facial Surgery", field: "FacialSurgery", headerFilter: "select", headerFilterParams: { values: true } },
-            { title: "Landmark Name", field: "LandmarkName", headerFilter: "input" },
-            { title: "Value", field: "Value", headerFilter: "number" }
+            { title: "Participant ID", field: "participantFileId" },
+            { title: "Gender", field: "Gender" },
+            { title: "Age", field: "Age", sorter: "number" },
+            { title: "Ethnicity", field: "Ethnicity" },
+            { title: "Facial Surgery", field: "FacialSurgery" },
+            { title: "Landmark", field: "LandmarkName" },
+            { title: "Value", field: "Value", sorter: "number" }
           ]
         });
-
       });
 
+    function getUnique(data, field) {
+      return [...new Set(data.map(d => d[field]).filter(Boolean))].sort();
+    }
 
+    function populateChoices(choicesInstance, options) {
+      choicesInstance.setChoices(
+        options.map(opt => ({ value: opt, label: opt })),
+        'value', 'label', true
+      );
+    }
 
+    function applyFilters() {
+      const genders = genderChoices.getValue(true);
+      const ethnicities = ethnicityChoices.getValue(true);
+      const surgeries = surgeryChoices.getValue(true);
+      const ageMin = parseInt(document.getElementById('ageMin').value) || 0;
+      const ageMax = parseInt(document.getElementById('ageMax').value) || 200;
 
+      const filtered = originalData.filter(row => {
+        const age = parseInt(row.Age);
+        return (!genders.length || genders.includes(row.Gender)) &&
+               (!ethnicities.length || ethnicities.includes(row.Ethnicity)) &&
+               (!surgeries.length || surgeries.includes(row.FacialSurgery)) &&
+               (!isNaN(age) && age >= ageMin && age <= ageMax);
+      });
 
+      table.setData(filtered);
+    }
 
-
-
+    function clearFilters() {
+      genderChoices.clearStore();
+      ethnicityChoices.clearStore();
+      surgeryChoices.clearStore();
+      document.getElementById('ageMin').value = '';
+      document.getElementById('ageMax').value = '';
+      table.setData(originalData);
+    }
   </script>
 </body>
 </html>
