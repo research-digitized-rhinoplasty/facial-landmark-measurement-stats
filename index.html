@@ -55,7 +55,7 @@
     const ethnicityChoices = new Choices('#ethnicityFilter', { removeItemButton: true });
     const surgeryChoices = new Choices('#surgeryFilter', { removeItemButton: true });
 
-    fetch('data_flattened.json')
+    fetch('data.json')
       .then(res => res.json())
       .then(data => {
         originalData = data;
