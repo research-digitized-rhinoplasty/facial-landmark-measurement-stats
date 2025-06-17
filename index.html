@@ -15,23 +15,47 @@
     fetch('data.json')
       .then(response => response.json())
       .then(data => {
+        // Assume top-level array of participants
+        const flattened = [];
+
+        data.forEach(participant => {
+          participant.ParticipantMeasurements?.forEach(measurement => {
+            flattened.push({
+              participantFileId: participant.participantFileId,
+              Gender: participant.Gender,
+              Age: participant.Age,
+              Ethnicity: participant.Ethnicity,
+              FacialSurgery: participant.FacialSurgery,
+              MeasurementName: measurement.MeasurementName,
+              Value: measurement.Value
+            });
+          });
+        });
+
         new Tabulator("#stats-table", {
-          data: data,
+          data: flattened,
           layout: "fitDataStretch",
           pagination: "local",
           paginationSize: 10,
-          height: "500px",
           columns: [
             { title: "Participant ID", field: "participantFileId" },
             { title: "Gender", field: "Gender" },
             { title: "Age", field: "Age" },
             { title: "Ethnicity", field: "Ethnicity" },
-            { title: "Facial Surgery", field: "FacialSurgery" }
-
-  ]
-});
-
+            { title: "Surgery", field: "FacialSurgery" },
+            { title: "Measurement", field: "MeasurementName" },
+            { title: "Value", field: "Value" }
+          ]
+        });
       });
+
+
+
+
+
+
+
+
   </script>
 </body>
 </html>
