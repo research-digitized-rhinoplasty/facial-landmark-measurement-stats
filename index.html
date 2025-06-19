@@ -4,9 +4,6 @@
   <meta charset="UTF-8" />
   <title>3D Facial Landmark Query Tool</title>
 
-  <!-- Tabulator CSS if you still need it; can be removed if not using Tabulator -->
-  <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet">
-
   <!-- Choices.js CSS -->
   <link href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" rel="stylesheet" />
 
@@ -50,9 +47,9 @@
     <label>Gender
       <select id="genderFilter" multiple>
         <option value="All">All</option>
-        <option value="Female">Female</option>
         <option value="Male">Male</option>
-        <option value="Prefer not to say">Prefer not to say</option>
+        <option value="Female">Female</option>
+        <option value="Prefer Not To Say">Prefer Not To Say</option>
         <option value="Other">Other</option>
       </select>
     </label>
@@ -71,7 +68,7 @@
 
     <label>Facial Surgery
       <select id="surgeryFilter" multiple>
-        <option value="All">All</option>
+        <option value="Any">Any</option>
         <option value="No Facial Surgery">No Facial Surgery</option>
         <option value="Brow/forehead lift">Brow/forehead lift</option>
         <option value="Ear pinning">Ear pinning</option>
@@ -119,23 +116,21 @@
     </tbody>
   </table>
 
-  <!-- Tabulator JS if needed -->
-  <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
   <!-- Choices.js -->
   <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
   <script>
     let originalData = [];
 
-    // set up Choices.js instances
+    // initialize multi-selects
     const genderChoices    = new Choices('#genderFilter',    { removeItemButton: true });
     const ethnicityChoices = new Choices('#ethnicityFilter', { removeItemButton: true });
     const surgeryChoices   = new Choices('#surgeryFilter',   { removeItemButton: true });
 
-    // helper to render any data array into the HTML table
+    // helper: render JS array into the HTML table
     function renderResultsTable(dataArray) {
       const tbody = document.querySelector('#results-table tbody');
-      tbody.innerHTML = ''; // clear
+      tbody.innerHTML = ''; // clear any existing rows
 
       dataArray.forEach(row => {
         const tr = document.createElement('tr');
@@ -152,7 +147,7 @@
       });
     }
 
-    // load the JSON once on page load
+    // load data.json on start
     fetch('data.json')
       .then(res => res.json())
       .then(data => {
@@ -161,20 +156,19 @@
       })
       .catch(err => console.error('Failed to load data.json:', err));
 
-    // apply filtering logic
+    // Apply Filters button
     document.getElementById('applyBtn').addEventListener('click', () => {
-      const selGenders    = genderChoices.getValue(true);
-      const selEthnic     = ethnicityChoices.getValue(true);
-      const selSurgeries  = surgeryChoices.getValue(true);
-      const ageMin        = parseInt(document.getElementById('ageMin').value) || 0;
-      const ageMax        = parseInt(document.getElementById('ageMax').value) || Infinity;
+      const selGenders     = genderChoices.getValue(true);
+      const selEthnicities = ethnicityChoices.getValue(true);
+      const selSurgeries   = surgeryChoices.getValue(true);
+      const ageMin         = parseInt(document.getElementById('ageMin').value) || 0;
+      const ageMax         = parseInt(document.getElementById('ageMax').value) || Infinity;
 
-      // treat “All” as wildcard → no filter
-      const filterGenders    = selGenders.includes('All')    ? [] : selGenders;
-      const filterEthnicities= selEthnic.includes('All')     ? [] : selEthnic;
-      const filterSurgeries  = selSurgeries.includes('All')  ? [] : selSurgeries;
+      // treat "All" as wildcard for gender/ethnicity, "Any" for surgery
+      const filterGenders     = selGenders.includes('All')    ? [] : selGenders;
+      const filterEthnicities = selEthnicities.includes('All')? [] : selEthnicities;
+      const filterSurgeries   = selSurgeries.includes('Any')  ? [] : selSurgeries;
 
-      // perform the filter
       const filtered = originalData.filter(r => {
         const age = parseInt(r.Age) || 0;
         return (
@@ -188,13 +182,18 @@
       renderResultsTable(filtered);
     });
 
-    // clear only selections and inputs, then show all data
+    // Clear button
     document.getElementById('clearBtn').addEventListener('click', () => {
+      // clear only selected items (keeps all <option>s)
       genderChoices.removeActiveItems();
       ethnicityChoices.removeActiveItems();
       surgeryChoices.removeActiveItems();
+
+      // reset age inputs
       document.getElementById('ageMin').value = '';
       document.getElementById('ageMax').value = '';
+
+      // show all rows again
       renderResultsTable(originalData);
     });
   </script>
