@@ -107,7 +107,6 @@
         <th>Age</th>
         <th>Ethnicity</th>
         <th>Facial Surgery</th>
-
       </tr>
     </thead>
     <tbody>
@@ -126,10 +125,10 @@
     const ethnicityChoices = new Choices('#ethnicityFilter', { removeItemButton: true });
     const surgeryChoices   = new Choices('#surgeryFilter',   { removeItemButton: true });
 
-    // helper: render JS array into the HTML table
+    // helper: render JS array into the HTML table (without Landmark/Value)
     function renderResultsTable(dataArray) {
       const tbody = document.querySelector('#results-table tbody');
-      tbody.innerHTML = ''; // clear any existing rows
+      tbody.innerHTML = '';
 
       dataArray.forEach(row => {
         const tr = document.createElement('tr');
@@ -139,7 +138,6 @@
           <td>${row.Age}</td>
           <td>${row.Ethnicity}</td>
           <td>${row.FacialSurgery}</td>
-
         `;
         tbody.appendChild(tr);
       });
@@ -154,7 +152,7 @@
       })
       .catch(err => console.error('Failed to load data.json:', err));
 
-    // Apply Filters button
+    // Apply Filters
     document.getElementById('applyBtn').addEventListener('click', () => {
       const selGenders     = genderChoices.getValue(true);
       const selEthnicities = ethnicityChoices.getValue(true);
@@ -162,7 +160,6 @@
       const ageMin         = parseInt(document.getElementById('ageMin').value) || 0;
       const ageMax         = parseInt(document.getElementById('ageMax').value) || Infinity;
 
-      // treat "All" as wildcard for gender/ethnicity, "Any" for surgery
       const filterGenders     = selGenders.includes('All')    ? [] : selGenders;
       const filterEthnicities = selEthnicities.includes('All')? [] : selEthnicities;
       const filterSurgeries   = selSurgeries.includes('Any')  ? [] : selSurgeries;
@@ -180,18 +177,13 @@
       renderResultsTable(filtered);
     });
 
-    // Clear button
+    // Clear Filters
     document.getElementById('clearBtn').addEventListener('click', () => {
-      // clear only selected items (keeps all <option>s)
       genderChoices.removeActiveItems();
       ethnicityChoices.removeActiveItems();
       surgeryChoices.removeActiveItems();
-
-      // reset age inputs
       document.getElementById('ageMin').value = '';
       document.getElementById('ageMax').value = '';
-
-      // show all rows again
       renderResultsTable(originalData);
     });
   </script>
