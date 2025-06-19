@@ -79,62 +79,66 @@
 
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
-   <script>
-    let table;
-    let originalData = [];
+  <script>
+  let table;
 
-    const genderChoices = new Choices('#genderFilter', { removeItemButton: true });
-    const ethnicityChoices = new Choices('#ethnicityFilter', { removeItemButton: true });
-    const surgeryChoices = new Choices('#surgeryFilter', { removeItemButton: true });
+  // initialize Choices.js
+  const genderChoices    = new Choices('#genderFilter',    { removeItemButton: true });
+  const ethnicityChoices = new Choices('#ethnicityFilter', { removeItemButton: true });
+  const surgeryChoices   = new Choices('#surgeryFilter',   { removeItemButton: true });
 
-    fetch('data_flattened.json')
-      .then(res => res.json())
-      .then(data => {
-        originalData = data;
-
-        table = new Tabulator("#stats-table", {
-          data: data,
-          layout: "fitDataStretch",
-          pagination: "local",
-          paginationSize: 10,
-          columns: [
-            { title: "Participant ID", field: "participantFileId" },
-            { title: "Gender", field: "Gender" },
-            { title: "Age", field: "Age", sorter: "number" },
-            { title: "Ethnicity", field: "Ethnicity" },
-            { title: "Facial Surgery", field: "FacialSurgery" },
-            { title: "Landmark", field: "LandmarkName" },
-            { title: "Value", field: "Value", sorter: "number" }
-          ]
-        });
+  // build the table once
+  fetch('data.json')
+    .then(res => res.json())
+    .then(data => {
+      table = new Tabulator("#stats-table", {
+        data: data,
+        layout: "fitDataStretch",
+        pagination: "local",
+        paginationSize: 10,
+        columns: [
+          { title: "Participant ID", field: "participantFileId" },
+          { title: "Gender",         field: "Gender" },
+          { title: "Age",            field: "Age", sorter: "number" },
+          { title: "Ethnicity",      field: "Ethnicity" },
+          { title: "Facial Surgery", field: "FacialSurgery" },
+          { title: "Landmark",       field: "LandmarkName" },
+          { title: "Value",          field: "Value", sorter: "number" },
+        ],
       });
+    });
 
-    function applyFilters() {
-      const genders = genderChoices.getValue(true);
-      const ethnicities = ethnicityChoices.getValue(true);
-      const surgeries = surgeryChoices.getValue(true);
-      const ageMin = parseInt(document.getElementById('ageMin').value) || 0;
-      const ageMax = parseInt(document.getElementById('ageMax').value) || 200;
+  function applyFilters() {
+    const selGenders   = genderChoices.getValue(true),
+          selEthnic    = ethnicityChoices.getValue(true),
+          selSurgeries = surgeryChoices.getValue(true),
+          ageMinRaw    = document.getElementById('ageMin').value,
+          ageMaxRaw    = document.getElementById('ageMax').value;
 
-      const filtered = originalData.filter(row => {
-        const age = parseInt(row.Age);
-        return (!genders.length || genders.includes(row.Gender)) &&
-               (!ethnicities.length || ethnicities.includes(row.Ethnicity)) &&
-               (!surgeries.length || surgeries.includes(row.FacialSurgery)) &&
-               (!isNaN(age) && age >= ageMin && age <= ageMax);
-      });
+    table.clearFilter(true);
 
-      table.setData(filtered);
-    }
+    function shouldFilter(arr) { return arr.length && !arr.includes('All'); }
 
-    function clearFilters() {
-      genderChoices.clearStore();
-      ethnicityChoices.clearStore();
-      surgeryChoices.clearStore();
-      document.getElementById('ageMin').value = '';
-      document.getElementById('ageMax').value = '';
-      table.setData(originalData);
-    }
-  </script>
+    if (shouldFilter(selGenders))   table.addFilter("Gender",      "in", selGenders);
+    if (shouldFilter(selEthnic))    table.addFilter("Ethnicity",   "in", selEthnic);
+    if (shouldFilter(selSurgeries)) table.addFilter("FacialSurgery", "in", selSurgeries);
+
+    const ageMin = parseInt(ageMinRaw), ageMax = parseInt(ageMaxRaw);
+    if (!isNaN(ageMin)) table.addFilter("Age", ">=", ageMin);
+    if (!isNaN(ageMax)) table.addFilter("Age", "<=", ageMax);
+  }
+
+  function clearFilters() {
+    genderChoices.removeActiveItems();
+    ethnicityChoices.removeActiveItems();
+    surgeryChoices.removeActiveItems();
+    document.getElementById('ageMin').value = '';
+    document.getElementById('ageMax').value = '';
+    table.clearFilter(true);
+  }
+</script>
+
+        
+
 </body>
 </html>
