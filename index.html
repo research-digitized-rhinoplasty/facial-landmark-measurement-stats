@@ -152,30 +152,44 @@
       })
       .catch(err => console.error('Failed to load data.json:', err));
 
-    // Apply Filters
-    document.getElementById('applyBtn').addEventListener('click', () => {
-      const selGenders     = genderChoices.getValue(true);
-      const selEthnicities = ethnicityChoices.getValue(true);
-      const selSurgeries   = surgeryChoices.getValue(true);
-      const ageMin         = parseInt(document.getElementById('ageMin').value) || 0;
-      const ageMax         = parseInt(document.getElementById('ageMax').value) || Infinity;
+document.getElementById('applyBtn').addEventListener('click', () => {
+    // 1) get raw selections
+    const selGenders     = genderChoices.getValue(true);   // e.g. ["Male"] or ["Female"]
+    const selEthnicities = ethnicityChoices.getValue(true);
+    const selSurgeries   = surgeryChoices.getValue(true);
+    const ageMin         = parseInt(document.getElementById('ageMin').value) || 0;
+    const ageMax         = parseInt(document.getElementById('ageMax').value) || Infinity;
 
-      const filterGenders     = selGenders.includes('All')    ? [] : selGenders;
-      const filterEthnicities = selEthnicities.includes('All')? [] : selEthnicities;
-      const filterSurgeries   = selSurgeries.includes('Any')  ? [] : selSurgeries;
-
-      const filtered = originalData.filter(r => {
-        const age = parseInt(r.Age) || 0;
-        return (
-          (filterGenders.length === 0     || filterGenders.includes(r.Gender))        &&
-          (filterEthnicities.length === 0 || filterEthnicities.includes(r.Ethnicity)) &&
-          (filterSurgeries.length === 0   || filterSurgeries.includes(r.FacialSurgery)) &&
-          age >= ageMin && age <= ageMax
-        );
+    // 2) map “Male” → “M”, “Female” → “F”, leave others unchanged:
+    const mappedGenders = selGenders
+      .filter(v => v !== 'All')      // drop “All” (we’ll treat it as wildcard)
+      .map(v => {
+        if (v === 'Male')   return 'M';
+        if (v === 'Female') return 'F';
+        return v;                // e.g. “Other”, “Prefer Not To Say”
       });
 
-      renderResultsTable(filtered);
+    // 3) decide if we actually filter gender at all
+    const filterGenders = selGenders.includes('All') ? [] : mappedGenders;
+
+    // 4) same wildcard logic for the others
+    const filterEthnicities = selEthnicities.includes('All') ? [] : selEthnicities;
+    const filterSurgeries   = selSurgeries.includes('Any')    ? [] : selSurgeries;
+
+    // 5) do the filtering
+    const filtered = originalData.filter(r => {
+      const age = parseInt(r.Age) || 0;
+      return (
+        (filterGenders.length === 0      || filterGenders.includes(r.Gender))        &&
+        (filterEthnicities.length === 0  || filterEthnicities.includes(r.Ethnicity)) &&
+        (filterSurgeries.length === 0    || filterSurgeries.includes(r.FacialSurgery)) &&
+        age >= ageMin && age <= ageMax
+      );
     });
+
+    // 6) render the table
+    renderResultsTable(filtered);
+  });
 
     // Clear Filters
     document.getElementById('clearBtn').addEventListener('click', () => {
