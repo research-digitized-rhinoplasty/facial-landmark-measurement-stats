@@ -1,95 +1,201 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Filter Test</title>
+  <meta charset="UTF-8" />
+  <title>3D Facial Landmark Query Tool</title>
+
+  <!-- Tabulator CSS if you still need it; can be removed if not using Tabulator -->
   <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet">
+
+  <!-- Choices.js CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" rel="stylesheet" />
+
   <style>
-    body { font-family: Arial; padding: 20px; }
-    .filter-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 20px; }
-    label { display: flex; flex-direction: column; }
+    body {
+      font-family: Arial;
+      padding: 20px;
+    }
+    .filter-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1rem;
+      margin-bottom: 20px;
+    }
+    label {
+      display: flex;
+      flex-direction: column;
+      font-weight: bold;
+    }
+    #results-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+    }
+    #results-table th,
+    #results-table td {
+      border: 1px solid #666;
+      padding: 6px;
+      text-align: left;
+    }
+    #results-table th {
+      background: #eee;
+    }
   </style>
 </head>
+
 <body>
-  <h2>Filter Test</h2>
+  <h2>3D Facial Landmark Query Tool</h2>
+
   <div class="filter-row">
-    <label>
-      Gender
-      <select id="gender">
-        <option>All</option>
-        <option>Male</option>
-        <option>Female</option>
+    <label>Gender
+      <select id="genderFilter" multiple>
+        <option value="All">All</option>
+        <option value="Female">Female</option>
+        <option value="Male">Male</option>
+        <option value="Prefer not to say">Prefer not to say</option>
+        <option value="Other">Other</option>
       </select>
     </label>
-    <label>
-      Min Age
-      <input type="number" id="minAge" placeholder="0" />
+
+    <label>Ethnicity
+      <select id="ethnicityFilter" multiple>
+        <option value="All">All</option>
+        <option value="White">White</option>
+        <option value="Black or African American">Black or African American</option>
+        <option value="American Indian or Alaska Native">American Indian or Alaska Native</option>
+        <option value="Asian">Asian</option>
+        <option value="Native Hawaiian or Other Pacific Islander">Native Hawaiian or Other Pacific Islander</option>
+        <option value="Hispanic">Hispanic</option>
+      </select>
     </label>
-    <label>
-      Max Age
-      <input type="number" id="maxAge" placeholder="200" />
+
+    <label>Facial Surgery
+      <select id="surgeryFilter" multiple>
+        <option value="All">All</option>
+        <option value="No Facial Surgery">No Facial Surgery</option>
+        <option value="Brow/forehead lift">Brow/forehead lift</option>
+        <option value="Ear pinning">Ear pinning</option>
+        <option value="Chin, cheek, or jaw reshaping">Chin, cheek, or jaw reshaping</option>
+        <option value="Eyelid lift">Eyelid lift</option>
+        <option value="Facelift">Facelift</option>
+        <option value="Facial implants">Facial implants</option>
+        <option value="Hair replacement surgery">Hair replacement surgery</option>
+        <option value="Lip augmentation">Lip augmentation</option>
+        <option value="Rhinoplasty">Rhinoplasty</option>
+        <option value="Other">Other</option>
+        <option value="Prefer not to specify">Prefer not to specify</option>
+      </select>
     </label>
-    <div style="align-self:flex-end">
-      <button id="apply">Apply</button>
-      <button id="clear">Clear</button>
-    </div>
+
+    <label>Age Start
+      <input type="number" id="ageMin" placeholder="Min Age" />
+    </label>
+
+    <label>Age End
+      <input type="number" id="ageMax" placeholder="Max Age" />
+    </label>
   </div>
 
-  <div id="table"></div>
+  <div style="margin-bottom: 16px;">
+    <button id="applyBtn">Apply Filters</button>
+    <button id="clearBtn">Clear</button>
+  </div>
 
+  <h3>Filtered Results</h3>
+  <table id="results-table">
+    <thead>
+      <tr>
+        <th>Participant ID</th>
+        <th>Gender</th>
+        <th>Age</th>
+        <th>Ethnicity</th>
+        <th>Facial Surgery</th>
+        <th>Landmark</th>
+        <th>Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- injected rows go here -->
+    </tbody>
+  </table>
+
+  <!-- Tabulator JS if needed -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
+  <!-- Choices.js -->
+  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      let table;
+    let originalData = [];
 
-      // 1) build table
-      fetch("data.json")
-        .then(r => r.json())
-        .then(data => {
-          table = new Tabulator("#table", {
-            data,
-            layout: "fitColumns",
-            columns: [
-              { title: "ID",     field: "participantFileId" },
-              { title: "Gender", field: "Gender" },
-              { title: "Age",    field: "Age", sorter: "number" },
-            ],
-          });
-        })
-        .catch(err => console.error("Fetch error:", err));
+    // set up Choices.js instances
+    const genderChoices    = new Choices('#genderFilter',    { removeItemButton: true });
+    const ethnicityChoices = new Choices('#ethnicityFilter', { removeItemButton: true });
+    const surgeryChoices   = new Choices('#surgeryFilter',   { removeItemButton: true });
 
-      // 2) apply button
-      document.getElementById("apply").addEventListener("click", () => {
-        if (!table) return console.warn("Table not ready yet");
+    // helper to render any data array into the HTML table
+    function renderResultsTable(dataArray) {
+      const tbody = document.querySelector('#results-table tbody');
+      tbody.innerHTML = ''; // clear
 
-        // clear old filters
-        table.clearFilter(true);
+      dataArray.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${row.participantFileId}</td>
+          <td>${row.Gender}</td>
+          <td>${row.Age}</td>
+          <td>${row.Ethnicity}</td>
+          <td>${row.FacialSurgery}</td>
+          <td>${row.LandmarkName}</td>
+          <td>${row.Value}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
 
-        // gather inputs
-        const g = document.getElementById("gender").value;
-        const min = parseInt(document.getElementById("minAge").value);
-        const max = parseInt(document.getElementById("maxAge").value);
+    // load the JSON once on page load
+    fetch('data.json')
+      .then(res => res.json())
+      .then(data => {
+        originalData = data;
+        renderResultsTable(originalData);
+      })
+      .catch(err => console.error('Failed to load data.json:', err));
 
-        // gender
-        if (g !== "All") {
-          table.addFilter("Gender", "=", g);
-        }
-        // age
-        if (!isNaN(min)) {
-          table.addFilter("Age", ">=", min);
-        }
-        if (!isNaN(max)) {
-          table.addFilter("Age", "<=", max);
-        }
+    // apply filtering logic
+    document.getElementById('applyBtn').addEventListener('click', () => {
+      const selGenders    = genderChoices.getValue(true);
+      const selEthnic     = ethnicityChoices.getValue(true);
+      const selSurgeries  = surgeryChoices.getValue(true);
+      const ageMin        = parseInt(document.getElementById('ageMin').value) || 0;
+      const ageMax        = parseInt(document.getElementById('ageMax').value) || Infinity;
+
+      // treat “All” as wildcard → no filter
+      const filterGenders    = selGenders.includes('All')    ? [] : selGenders;
+      const filterEthnicities= selEthnic.includes('All')     ? [] : selEthnic;
+      const filterSurgeries  = selSurgeries.includes('All')  ? [] : selSurgeries;
+
+      // perform the filter
+      const filtered = originalData.filter(r => {
+        const age = parseInt(r.Age) || 0;
+        return (
+          (filterGenders.length === 0     || filterGenders.includes(r.Gender))        &&
+          (filterEthnicities.length === 0 || filterEthnicities.includes(r.Ethnicity)) &&
+          (filterSurgeries.length === 0   || filterSurgeries.includes(r.FacialSurgery)) &&
+          age >= ageMin && age <= ageMax
+        );
       });
 
-      // 3) clear button
-      document.getElementById("clear").addEventListener("click", () => {
-        document.getElementById("gender").value = "All";
-        document.getElementById("minAge").value = "";
-        document.getElementById("maxAge").value = "";
-        if (table) table.clearFilter(true);
-      });
+      renderResultsTable(filtered);
+    });
+
+    // clear only selections and inputs, then show all data
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      genderChoices.removeActiveItems();
+      ethnicityChoices.removeActiveItems();
+      surgeryChoices.removeActiveItems();
+      document.getElementById('ageMin').value = '';
+      document.getElementById('ageMax').value = '';
+      renderResultsTable(originalData);
     });
   </script>
 </body>
