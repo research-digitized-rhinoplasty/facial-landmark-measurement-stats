@@ -4,8 +4,11 @@
   <meta charset="UTF-8" />
   <title>3D Facial Landmark Query Tool</title>
 
-  <!-- Choices.js CSS for multi-selects -->
-  <link href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" rel="stylesheet" />
+  <!-- Choices.js CSS -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"
+    rel="stylesheet"
+  />
 
   <style>
     body { font-family: Arial; padding: 20px; }
@@ -20,6 +23,10 @@
       flex-direction: column;
       font-weight: bold;
     }
+    select, input {
+      padding: 8px;
+      font-size: 14px;
+    }
     #results-table {
       width: 100%;
       border-collapse: collapse;
@@ -30,10 +37,13 @@
       border: 1px solid #666;
       padding: 6px;
       text-align: left;
+      cursor: pointer;
     }
     #results-table th {
       background: #eee;
     }
+    #results-table th.sorted-asc::after  { content: " ▲"; }
+    #results-table th.sorted-desc::after { content: " ▼"; }
   </style>
 </head>
 
@@ -99,32 +109,36 @@
   <table id="results-table">
     <thead>
       <tr>
-        <th>Participant ID</th>
-        <th>Gender</th>
-        <th>Age</th>
-        <th>Ethnicity</th>
-        <th>Facial Surgery</th>
+        <th data-field="participantFileId">Participant ID</th>
+        <th data-field="Gender">Gender</th>
+        <th data-field="Age">Age</th>
+        <th data-field="Ethnicity">Ethnicity</th>
+        <th data-field="FacialSurgery">Facial Surgery</th>
       </tr>
     </thead>
-    <tbody><!-- rows injected here --></tbody>
+    <tbody></tbody>
   </table>
 
-  <!-- Choices.js -->
+  <!-- Choices.js & our script -->
   <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
   <script>
+  document.addEventListener('DOMContentLoaded', () => {
     let originalData = [];
+    let displayData  = [];
+    const sortState  = {};
 
-    // initialize Choices.js multi-selects
+    // 1) Initialize Choices.js on your selects
     const genderChoices    = new Choices('#genderFilter',    { removeItemButton: true });
     const ethnicityChoices = new Choices('#ethnicityFilter', { removeItemButton: true });
     const surgeryChoices   = new Choices('#surgeryFilter',   { removeItemButton: true });
 
-    // helper to render a JS array of rows into our HTML table
-    function renderResultsTable(dataArray) {
+    // 2) Helper to render rows
+    function renderTable(rows) {
+      displayData = rows.slice();
       const tbody = document.querySelector('#results-table tbody');
       tbody.innerHTML = '';
-      dataArray.forEach(r => {
+      rows.forEach(r => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${r.participantFileId}</td>
@@ -137,60 +151,91 @@
       });
     }
 
-    // load data.json on page load
+    // 3) Load data.json
     fetch('data.json')
-      .then(res => res.json())
+      .then(r => r.json())
       .then(data => {
         originalData = data;
-        renderResultsTable(originalData);
+        renderTable(data);
       })
-      .catch(err => console.error('Failed to load data.json:', err));
+      .catch(e => console.error('Could not load data.json:', e));
 
-    // Apply Filters
+    // 4) Apply filter logic
     document.getElementById('applyBtn').addEventListener('click', () => {
-      const selGenders     = genderChoices.getValue(true);
-      const selEthnicities = ethnicityChoices.getValue(true);
-      const selSurgeries   = surgeryChoices.getValue(true);
-      const ageMin         = parseInt(document.getElementById('ageMin').value) || 0;
-      const ageMax         = parseInt(document.getElementById('ageMax').value) || Infinity;
+      const selG = genderChoices.getValue(true);
+      const selE = ethnicityChoices.getValue(true);
+      const selS = surgeryChoices.getValue(true);
+      const minA = parseInt(document.getElementById('ageMin').value);
+      const maxA = parseInt(document.getElementById('ageMax').value);
 
-      // map dropdown labels → actual codes in data
-      const mappedGenders = selGenders
-        .filter(v => v !== 'All')
-        .map(v => {
-          if (v === 'Male')   return 'M';
-          if (v === 'Female') return 'F';
-          return v; // e.g. "Other", "Prefer Not To Say"
-        });
+      // map Male/Female → M/F
+      const genders = selG.includes('All')
+        ? []
+        : selG.map(v => v === 'Male' ? 'M' : v === 'Female' ? 'F' : v);
 
-      // treat All/Any as wildcard (empty filter arr)
-      const filterGenders     = selGenders.includes('All') ? [] : mappedGenders;
-      const filterEthnicities = selEthnicities.includes('All') ? [] : selEthnicities;
-      const filterSurgeries   = selSurgeries.includes('Any')  ? [] : selSurgeries;
+      const ethnicities = selE.includes('All') ? [] : selE;
+      const surgeries   = selS.includes('Any') ? [] : selS;
 
-      // filter the data
       const filtered = originalData.filter(r => {
-        const age = parseInt(r.Age) || 0;
+        const age = parseInt(r.Age);
         return (
-          (filterGenders.length === 0     || filterGenders.includes(r.Gender))        &&
-          (filterEthnicities.length === 0 || filterEthnicities.includes(r.Ethnicity)) &&
-          (filterSurgeries.length === 0   || filterSurgeries.includes(r.FacialSurgery)) &&
-          age >= ageMin && age <= ageMax
+          (genders.length === 0     || genders.includes(r.Gender))        &&
+          (ethnicities.length === 0 || ethnicities.includes(r.Ethnicity)) &&
+          (surgeries.length === 0   || surgeries.includes(r.FacialSurgery)) &&
+          (isNaN(minA) || age >= minA) &&
+          (isNaN(maxA) || age <= maxA)
         );
       });
 
-      renderResultsTable(filtered);
+      renderTable(filtered);
     });
 
-    // Clear Filters
+    // 5) Clear filters
     document.getElementById('clearBtn').addEventListener('click', () => {
       genderChoices.removeActiveItems();
       ethnicityChoices.removeActiveItems();
       surgeryChoices.removeActiveItems();
       document.getElementById('ageMin').value = '';
       document.getElementById('ageMax').value = '';
-      renderResultsTable(originalData);
+      renderTable(originalData);
+
+      // reset sorting UI
+      document.querySelectorAll('#results-table th')
+        .forEach(th => th.classList.remove('sorted-asc','sorted-desc'));
+      Object.keys(sortState).forEach(f => delete sortState[f]);
     });
+
+    // 6) Sorting on header click
+    document.querySelectorAll('#results-table th').forEach(th => {
+      th.addEventListener('click', () => {
+        const field = th.dataset.field;
+        const current = sortState[field] || 'none';
+        const next = current === 'asc' ? 'desc' : 'asc';
+        sortState[field] = next;
+
+        // update header arrows
+        document.querySelectorAll('#results-table th')
+          .forEach(h => h.classList.remove('sorted-asc','sorted-desc'));
+        th.classList.add(next === 'asc' ? 'sorted-asc':'sorted-desc');
+
+        // sort and re-render
+        displayData.sort((a,b) => {
+          let va = a[field], vb = b[field];
+          const na = parseFloat(va), nb = parseFloat(vb);
+          if (!isNaN(na) && !isNaN(nb)) {
+            va = na; vb = nb;
+          } else {
+            va = va.toString().toLowerCase();
+            vb = vb.toString().toLowerCase();
+          }
+          if (va<vb) return next==='asc'?-1:1;
+          if (va>vb) return next==='asc'?1:-1;
+          return 0;
+        });
+        renderTable(displayData);
+      });
+    });
+  });
   </script>
 </body>
 </html>
