@@ -40,7 +40,7 @@
     .then(r => r.json())
     .then(data => {
       const table = new Tabulator("#stats-table", {
-        data: data,               // ← still data.json
+        data: data,             
         layout: "fitColumns",
         pagination: "local",
         paginationSize: 10,
@@ -175,7 +175,7 @@
         table.clearHeaderFilter();
       });
     })
-    .catch(console.error);
+    .catch(err => console.error(err));
 </script>
 </body>
 </html>
