@@ -36,16 +36,20 @@
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
 
   <script>
-  fetch('data.json')
-    .then(r => r.json())
+  fetch('./data.json')
+    .then(res => {
+      if (!res.ok) throw new Error("Failed to fetch data.json: " + res.status);
+      return res.json();
+    })
     .then(data => {
+      console.log("Loaded JSON:", data);  // <— verify this logs your participant objects
+
       const table = new Tabulator("#stats-table", {
-        data: data,             
+        data: data,
         layout: "fitColumns",
         pagination: "local",
         paginationSize: 10,
         responsiveLayout: "collapse",
-
         columns: [
           {
             formatter: "responsiveCollapse",
