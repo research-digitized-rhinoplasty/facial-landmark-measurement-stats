@@ -59,15 +59,27 @@
                 }
               },
             },
-            {
-              title: 'Gender',
-              field: 'Gender',
-              headerFilter: 'select',
+            { 
+              title: "Gender",
+              field: "Gender",
+              headerFilter: "select",
               headerFilterParams: {
-                values: {'M':'Male','F':'Female','Other':'Other'}, // map codes to labels
+                // force these exact options (label:value)
+                values: {
+                  "All":    "All",
+                  "M":      "M",
+                  "F":      "F",
+                  "Other":  "Other",
+                }
               },
-              headerFilterPlaceholder: 'All',
+              headerFilterPlaceholder: "All", // shows “All” when nothing’s selected
+              headerFilterFunc: function(headerValue, rowValue) {
+                // headerValue will be "All" or "M"/"F"/"Other"
+                if (headerValue === "All") return true;      // no filtering
+                return rowValue === headerValue;
+              }
             },
+
             {
               title: 'Age',
               field: 'Age',
