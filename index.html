@@ -1,155 +1,140 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>3D Facial Landmark Query Tool</title>
-
-  <!-- Tabulator CSS -->
-  <link
-    href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css"
-    rel="stylesheet"
-  />
-  <!-- Choices.js CSS (for your multi-select filters above, if you still need them) -->
-  <link
-    href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"
-    rel="stylesheet"
-  />
-
-  <style>
-    body { font-family: Arial; padding: 20px; }
-    #stats-table { margin-top: 20px; }
-    .button-row { margin: 10px 0; }
-  </style>
-</head>
-<body>
-  <h2>3D Facial Landmark Query Tool</h2>
-
-  <!-- (Your existing multi-select / age inputs go here, if you still want them) -->
-  <div class="button-row">
-    <button id="clearFilters">Clear All Column Filters</button>
-  </div>
-
-  <!-- This is where Tabulator will render -->
-  <div id="stats-table"></div>
-
-  <!-- Tabulator JS -->
-  <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
-
-  <script>
-    // 1) Fetch your data.json
-    fetch('data.json')
-      .then(r => r.json())
-      .then(data => {
-        // 2) Create the Tabulator
-        const table = new Tabulator("#stats-table", {
-          data: data,
-          layout: "fitColumns",
-          pagination: "local",
-          paginationSize: 10,
-          columns: [
-            { title: "Participant ID", field: "participantFileId" },
-
-            // Min Age filter
-            {
-              title: "Age Min",
-              field: "Age",
-              sorter: "number",
-              headerFilter: "input",
-              headerFilterPlaceholder: "Min…",
-              headerFilterFunc: ">=",
-              headerFilterLiveFilter: true,
+<script>
+  fetch('data.json')
+    .then(r => r.json())
+    .then(data => {
+      const table = new Tabulator("#stats-table", {
+        data: data,
+        layout: "fitColumns",
+        pagination: "local",
+        paginationSize: 10,
+        responsiveLayout: "collapse",
+        columns: [
+          {
+            formatter: "responsiveCollapse",
+            titleFormatter: "responsiveCollapse",
+            width: 40,
+            hozAlign: "center",
+            resizable: false,
+            cellClick: (e, cell) => cell.getRow().toggleDetail(),
+          },
+          { title: "Participant ID", field: "participantFileId" },
+          {
+            title: "Age Min",
+            field: "Age",
+            sorter: "number",
+            headerFilter: "input",
+            headerFilterPlaceholder: "Min…",
+            headerFilterFunc: ">=",
+            headerFilterLiveFilter: true,
+          },
+          {
+            title: "Age Max",
+            field: "Age",
+            sorter: "number",
+            headerFilter: "input",
+            headerFilterPlaceholder: "Max…",
+            headerFilterFunc: "<=",
+            headerFilterLiveFilter: true,
+          },
+          {
+            title: "Gender",
+            field: "Gender",
+            headerFilter: "select",
+            headerFilterParams: {
+              values: { All:"All", M:"M", F:"F", Other:"Other" }
             },
-
-            // Max Age filter
-            {
-              title: "Age Max",
-              field: "Age",
-              sorter: "number",
-              headerFilter: "input",
-              headerFilterPlaceholder: "Max…",
-              headerFilterFunc: "<=",
-              headerFilterLiveFilter: true,
-            },
-
-            { 
-              title: "Gender",
-              field: "Gender",
-              headerFilter: "select",
-              headerFilterParams: {
-                // force these exact options (label:value)
-                values: {
-                  "All":    "All",
-                  "M":      "M",
-                  "F":      "F",
-                  "Other":  "Other",
-                }
-              },
-              headerFilterPlaceholder: "All", // shows “All” when nothing’s selected
-              headerFilterFunc: function(headerValue, rowValue) {
-                // headerValue will be "All" or "M"/"F"/"Other"
-                if (headerValue === "All") return true;      // no filtering
-                return rowValue === headerValue;
+            headerFilterPlaceholder: "All",
+            headerFilterFunc: (hv, rv) => hv === "All" ? true : rv === hv,
+          },
+          {
+            title: "Ethnicity",
+            field: "Ethnicity",
+            headerFilter: "select",
+            headerFilterParams: {
+              values: {
+                All:"All",
+                White:"White",
+                "Black or African American":"Black or African American",
+                "American Indian or Alaska Native":"American Indian or Alaska Native",
+                Asian:"Asian",
+                "Native Hawaiian or Other Pacific Islander":"Native Hawaiian or Other Pacific Islander",
+                Hispanic:"Hispanic",
+                "Prefer not to specify":"Prefer not to specify",
               }
             },
-
-            
-            {
-              title: "Ethnicity",
-              field: "Ethnicity",
-              headerFilter: "select",
-              headerFilterParams: {
-                // force exactly these entries in the dropdown
-                values: {
-                  All: "All",
-                  White: "White",
-                  "Black or African American": "Black or African American",
-                  "American Indian or Alaska Native": "American Indian or Alaska Native",
-                  Asian: "Asian",
-                  "Native Hawaiian or Other Pacific Islander": "Native Hawaiian or Other Pacific Islander",
-                  Hispanic: "Hispanic",
-                  "Prefer not to specify" : "Prefer not to specify",
-                }
-              },
-              headerFilterPlaceholder: "All",
-              headerFilterFunc: function(headerValue, rowValue) {
-                // "All" means no filtering
-                if (headerValue === "All") return true;
-                return rowValue === headerValue;
+            headerFilterPlaceholder: "All",
+            headerFilterFunc: (hv, rv) => hv === "All" ? true : rv === hv,
+          },
+          {
+            title: "Facial Surgery",
+            field: "FacialSurgery",
+            headerFilter: "select",
+            headerFilterParams: {
+              values: {
+                "":"Any",
+                "No Facial Surgery":"No Surgery",
+                "Brow/forehead lift":"Brow Lift",
+                "Ear pinning":"Ear Pinning",
+                "Chin, cheek, or jaw reshaping":"Jaw Reshape",
+                "Eyelid lift":"Eyelid Lift",
+                Facelift:"Facelift",
+                "Facial implants":"Implants",
+                "Hair replacement surgery":"Hair Replacement",
+                "Lip augmentation":"Lip Augmentation",
+                Rhinoplasty:"Rhinoplasty",
+                Other:"Other",
+                "Prefer not to specify":"Prefer Not",
               }
             },
+            headerFilterPlaceholder: "Any",
+            headerFilterFunc: (hv, rv) => hv === "" ? true : rv === hv,
+          },
+        ],
+        rowFormatter: function(row) {
+          const holder = document.createElement("div");
+          holder.style.padding = "10px";
+          const p = row.getData();
 
-            {
-              title: 'Facial Surgery',
-              field: 'FacialSurgery',
-              headerFilter: 'select',
-              headerFilterParams: {
-                values: {
-                  '':'Any',
-                  'No Facial Surgery':'No Surgery',
-                  'Brow/forehead lift':'Brow Lift',
-                  'Ear pinning':'Ear Pinning',
-                  'Chin, cheek, or jaw reshaping':'Jaw Reshape',
-                  'Eyelid lift':'Eyelid Lift',
-                  'Facelift':'Facelift',
-                  'Facial implants':'Implants',
-                  'Hair replacement surgery':'Hair Replacement',
-                  'Lip augmentation':'Lip Augmentation',
-                  'Rhinoplasty':'Rhinoplasty',
-                  'Other':'Other',
-                  'Prefer not to specify':'Prefer not to specify'
-                }
-              },
-              headerFilterPlaceholder: 'Any',
-            },
-          ],
-        });
+          holder.appendChild(document.createTextNode("Landmarks:"));
+          const lmDiv = document.createElement("div");
+          lmDiv.style.margin = "8px 0";
+          holder.appendChild(lmDiv);
+          new Tabulator(lmDiv, {
+            data: p.ParticipantLandmarks,
+            layout: "fitColumns",
+            height: "200px",
+            columns: [
+              { title: "Landmark ID", field: "LandmarkID", width: 120 },
+              { title: "Name",        field: "LandmarkName", width: 200 },
+              { title: "X",           field: "xVal", sorter: "number" },
+              { title: "Y",           field: "yVal", sorter: "number" },
+              { title: "Z",           field: "zVal", sorter: "number" },
+            ],
+          });
 
-        // 3) Clear-all button
-        document.getElementById('clearFilters').addEventListener('click', () => {
-          table.clearHeaderFilter(); // resets every column filter
-        });
-      })
-      .catch(console.error);
-  </script>
-</body>
-</html>
+          holder.appendChild(document.createTextNode("Measurements:"));
+          const measDiv = document.createElement("div");
+          measDiv.style.margin = "8px 0";
+          holder.appendChild(measDiv);
+          new Tabulator(measDiv, {
+            data: p.ParticipantMeasurements,
+            layout: "fitColumns",
+            height: "200px",
+            columns: [
+              { title: "Measurement ID",  field: "MeasurementID",   width: 150 },
+              { title: "Name",            field: "MeasurementName", width: 200 },
+              { title: "Type",            field: "MeasurementType", width: 120 },
+              { title: "Value",           field: "Value",           sorter: "number" },
+            ],
+          });
+
+          row.getElement().appendChild(holder);
+        },
+      });
+
+      document.getElementById("clearFilters").addEventListener("click", () => {
+        table.clearHeaderFilter();
+      });
+    })
+    .catch(console.error);
+</script>
