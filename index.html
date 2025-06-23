@@ -41,26 +41,15 @@
       .then(r => r.json())
       .then(data => {
         // 2) Create the Tabulator
-        const table = new Tabulator('#stats-table', {
+        const table = new Tabulator("#stats-table", {
           data: originalData,
           layout: "fitColumns",
           pagination: "local",
           paginationSize: 10,
-          columns:
-[
-            {
-              title: 'Participant ID',
-              field: 'participantFileId',
-              headerFilter: 'select',
-              headerFilterParams: {
-                values: true,         // auto-generate from data
-                listItemFormatter: function(value){
-                  // optional: you can prettify long lists here
-                  return value;
-                }
-              },
-            },
+          columns: [
+            { title: "Participant ID", field: "participantFileId" },
 
+            // Min Age filter
             {
               title: "Age Min",
               field: "Age",
@@ -81,7 +70,6 @@
               headerFilterFunc: "<=",
               headerFilterLiveFilter: true,
             },
-
 
             { 
               title: "Gender",
