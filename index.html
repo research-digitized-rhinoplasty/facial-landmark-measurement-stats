@@ -42,11 +42,11 @@
       .then(data => {
         // 2) Create the Tabulator
         const table = new Tabulator('#stats-table', {
-          data: data,
-          layout: 'fitColumns',
-          pagination: 'local',
+          data: originalData,
+          layout: "fitColumns",
+          pagination: "local",
           paginationSize: 10,
-          columns: [
+          columns:[
             {
               title: 'Participant ID',
               field: 'participantFileId',
@@ -80,12 +80,26 @@
               }
             },
 
+                    // Min Age filter
             {
-              title: 'Age',
-              field: 'Age',
-              sorter: 'number',
-              headerFilter: 'input', // free-text / numeric
-              headerFilterPlaceholder: 'Min…',
+              title: "Age Min",
+              field: "Age",
+              sorter: "number",
+              headerFilter: "input",
+              headerFilterPlaceholder: "Min…",
+              headerFilterFunc: ">=",
+              headerFilterLiveFilter: true,
+            },
+
+            // Max Age filter
+            {
+              title: "Age Max",
+              field: "Age",
+              sorter: "number",
+              headerFilter: "input",
+              headerFilterPlaceholder: "Max…",
+              headerFilterFunc: "<=",
+              headerFilterLiveFilter: true,
             },
             {
               title: "Ethnicity",
