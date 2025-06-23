@@ -88,14 +88,29 @@
               headerFilterPlaceholder: 'Min…',
             },
             {
-              title: 'Ethnicity',
-              field: 'Ethnicity',
-              headerFilter: 'select',
+              title: "Ethnicity",
+              field: "Ethnicity",
+              headerFilter: "select",
               headerFilterParams: {
-                values: true,
+                // force exactly these entries in the dropdown
+                values: {
+                  All: "All",
+                  White: "White",
+                  "Black or African American": "Black or African American",
+                  "American Indian or Alaska Native": "American Indian or Alaska Native",
+                  Asian: "Asian",
+                  "Native Hawaiian or Other Pacific Islander": "Native Hawaiian or Other Pacific Islander",
+                  Hispanic: "Hispanic",
+                }
               },
-              headerFilterPlaceholder: 'All',
+              headerFilterPlaceholder: "All",
+              headerFilterFunc: function(headerValue, rowValue) {
+                // "All" means no filtering
+                if (headerValue === "All") return true;
+                return rowValue === headerValue;
+              }
             },
+
             {
               title: 'Facial Surgery',
               field: 'FacialSurgery',
