@@ -42,7 +42,7 @@
       .then(data => {
         // 2) Create the Tabulator
         const table = new Tabulator("#stats-table", {
-          data: originalData,
+          data: data,
           layout: "fitColumns",
           pagination: "local",
           paginationSize: 10,
