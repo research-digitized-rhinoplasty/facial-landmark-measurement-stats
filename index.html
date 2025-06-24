@@ -198,7 +198,9 @@
     document.getElementById('queryBtn').addEventListener('click', () => {
       const mode     = document.querySelector('input[name="mode"]:checked').value;
       const gender   = document.getElementById('genderFilter').value;
-      const ethnicity = document.getElementById('ethnicityFilter').value;
+
+
+
       const surgery  = document.getElementById('surgeryFilter').value;
       const ageMin   = parseInt(document.getElementById('ageMin').value) || 0;
       const ageMax   = parseInt(document.getElementById('ageMax').value) || Infinity;
@@ -217,10 +219,12 @@
       let rows = [];
       participants.forEach(p => {
         const age = parseInt(p.Age);
-        if ((gender==='All'          || p.Gender===gender) &&
-            (ethnic.includes('All') || ethnic.includes(p.Ethnicity)) &&
-            (surgery==='Any'        || p.FacialSurgery===surgery) &&
-            (!isNaN(age) && age>=ageMin && age<=ageMax)) {
+        if (
+          (gender    === 'All'        || p.Gender      === gender)      &&
+          (ethnicity === 'All'        || p.Ethnicity   === ethnicity)  &&
+          (surgery   === 'Any'        || p.FacialSurgery === surgery) &&
+          (!isNaN(age) && age >= ageMin && age <= ageMax)
+        ) {
 
           if (mode==='measurements') {
             p.ParticipantMeasurements.forEach(m => {
