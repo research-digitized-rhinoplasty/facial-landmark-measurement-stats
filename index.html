@@ -198,7 +198,7 @@
     document.getElementById('queryBtn').addEventListener('click', () => {
       const mode     = document.querySelector('input[name="mode"]:checked').value;
       const gender   = document.getElementById('genderFilter').value;
-      const ethnic   = new Choices('#ethnicityFilter').getValue(true);
+      const ethnicity = document.getElementById('ethnicityFilter').value;
       const surgery  = document.getElementById('surgeryFilter').value;
       const ageMin   = parseInt(document.getElementById('ageMin').value) || 0;
       const ageMax   = parseInt(document.getElementById('ageMax').value) || Infinity;
