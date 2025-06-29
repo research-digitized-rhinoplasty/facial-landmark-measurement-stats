@@ -1,302 +1,156 @@
-<!DOCTYPE html>
+<!DOCTYPE html>More actions
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>3D Facial Landmark Query Tool</title>
-  <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" rel="stylesheet">
+
+  <!-- Tabulator CSS -->
+  <link
+    href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css"
+    rel="stylesheet"
+  />
+  <!-- Choices.js CSS (for your multi-select filters above, if you still need them) -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"
+    rel="stylesheet"
+  />
+
   <style>
     body { font-family: Arial; padding: 20px; }
-    .filter-row {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr) auto;
-      gap: 1rem;
-      margin-bottom: 20px;
-      align-items: end;
-    }
-    label { display: flex; flex-direction: column; font-weight: bold; }
-    .selection-panels { display: flex; gap: 1rem; margin-bottom: 20px; }
-    .panel {
-      flex: 1;
-      border: 1px solid #ccc;
-      padding: 10px;
-    }
-    .panel-header {
-      display: flex;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-    .panel-header h3 {
-      flex: 1;
-      margin: 0;
-      font-size: 1rem;
-      padding-left: .5rem;
-    }
-    .panel-list {
-      height: 200px;
-      overflow: auto;
-      border: 1px solid #ddd;
-      padding: 5px;
-    }
     #stats-table { margin-top: 20px; }
+    .button-row { margin: 10px 0; }
   </style>
 </head>
 <body>
-  <h2>Please make your selections below and then click the “Query” button.</h2>
+  <h2>3D Facial Landmark Query Tool</h2>
 
-  <div class="filter-row">
-    <label>Gender
-      <select id="genderFilter">
-        <option value="All">All</option>
-        <option value="M">Male</option>
-        <option value="F">Female</option>
-        <option value="Other">Other</option>
-        <option value="Prefer not to specify">Prefer not to specify</option>
-      </select>
-    </label>
-
-    <label>Ethnicity
-      <select id="ethnicityFilter">
-        <option value="All">All</option>
-        <option value="White">White</option>
-        <option value="Black or African American">Black or African American</option>
-        <option value="American Indian or Alaska Native">American Indian or Alaska Native</option>
-        <option value="Asian">Asian</option>
-        <option value="Native Hawaiian or Other Pacific Islander">Native Hawaiian or Other Pacific Islander</option>
-        <option value="Hispanic">Hispanic</option>
-      </select>
-    </label>
-
-
-    <label>Facial Surgery
-      <select id="surgeryFilter">
-        <option value="Any">Any</option>
-        <option value="No Facial Surgery">No Facial Surgery</option>
-        <option value="Brow/forehead lift">Brow/forehead lift</option>
-        <option value="Ear pinning">Ear pinning</option>
-        <option value="Chin, cheek, or jaw reshaping">Chin, cheek, or jaw reshaping</option>
-        <option value="Eyelid lift">Eyelid lift</option>
-        <option value="Facelift">Facelift</option>
-        <option value="Facial implants">Facial implants</option>
-        <option value="Hair replacement surgery">Hair replacement surgery</option>
-        <option value="Lip augmentation">Lip augmentation</option>
-        <option value="Rhinoplasty">Rhinoplasty</option>
-        <option value="Other">Other</option>
-        <option value="Prefer not to specify">Prefer not to specify</option>
-      </select>
-    </label>
-
-    <label>Age Start
-      <input type="number" id="ageMin" placeholder="18" value="18">
-    </label>
-    <label>Age End
-      <input type="number" id="ageMax" placeholder="99" value="99">
-    </label>
-
-    <button id="queryBtn">Query</button>
+  <!-- (Your existing multi-select / age inputs go here, if you still want them) -->
+  <div class="button-row">
+    <button id="clearFilters">Clear All Column Filters</button>
   </div>
 
-  <div class="selection-panels">
-    <div class="panel" id="measurementsPanel">
-      <div class="panel-header">
-        <input type="radio" name="mode" value="measurements" id="modeMeasurements" checked>
-        <h3><label for="modeMeasurements">Measurements</label></h3>
-        <button type="button" id="selectAllMeasurements">Select / Deselect All</button>
-      </div>
-      <div class="panel-list" id="measurementsList"></div>
-    </div>
-
-    <div class="panel" id="landmarksPanel">
-      <div class="panel-header">
-        <input type="radio" name="mode" value="landmarks" id="modeLandmarks">
-        <h3><label for="modeLandmarks">Landmarks</label></h3>
-        <button type="button" id="selectAllLandmarks">Select / Deselect All</button>
-      </div>
-      <div class="panel-list" id="landmarksList"></div>
-    </div>
-  </div>
-
+  <!-- This is where Tabulator will render -->
   <div id="stats-table"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+  <!-- Tabulator JS -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
+
   <script>
-    let participants = [];
-    
-
-    // helper to build a labeled checkbox
-    function createCheckbox(id, name, value, labelText) {
-      const wrapper = document.createElement('div');
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.id   = id;
-      cb.name = name;
-      cb.value= value;
-      wrapper.appendChild(cb);
-      const lbl= document.createElement('label');
-      lbl.htmlFor = id;
-      lbl.textContent = labelText;
-      wrapper.appendChild(lbl);
-      return wrapper;
-    }
-
-    // load your nested JSON
+    // 1) Fetch your data.json
     fetch('data.json')
       .then(r => r.json())
       .then(data => {
-        participants = data;
+        // 2) Create the Tabulator
+        const table = new Tabulator("#stats-table", {
+          data: data,
+          layout: "fitColumns",
+          pagination: "local",
+          paginationSize: 10,
+          columns: [
+            { title: "Participant ID", field: "participantFileId" },
 
-        // build measurements grouped by MeasurementType
-        const measMap = {};
-        data.forEach(p => {
-          p.ParticipantMeasurements.forEach(m => {
-            measMap[m.MeasurementType] = measMap[m.MeasurementType] || new Set();
-            measMap[m.MeasurementType].add(m.MeasurementName);
-          });
-        });
-        const measList = document.getElementById('measurementsList');
-        Object.keys(measMap).sort().forEach(type => {
-          const heading = document.createElement('strong');
-          heading.textContent = type;
-          measList.appendChild(heading);
-          Array.from(measMap[type]).sort().forEach((name, i) => {
-            measList.appendChild(createCheckbox(`meas_${i}`, 'measurement', name, name));
-          });
+            // Min Age filter
+            {
+              title: "Age Min",
+              field: "Age",
+              sorter: "number",
+              headerFilter: "input",
+              headerFilterPlaceholder: "Min…",
+              headerFilterFunc: ">=",
+              headerFilterLiveFilter: true,
+            },
+
+            // Max Age filter
+            {
+              title: "Age Max",
+              field: "Age",
+              sorter: "number",
+              headerFilter: "input",
+              headerFilterPlaceholder: "Max…",
+              headerFilterFunc: "<=",
+              headerFilterLiveFilter: true,
+            },
+
+            { 
+              title: "Gender",
+              field: "Gender",
+              headerFilter: "select",
+              headerFilterParams: {
+                // force these exact options (label:value)
+                values: {
+                  "All":    "All",
+                  "M":      "M",
+                  "F":      "F",
+                  "Other":  "Other",
+                }
+              },
+              headerFilterPlaceholder: "All", // shows “All” when nothing’s selected
+              headerFilterFunc: function(headerValue, rowValue) {
+                // headerValue will be "All" or "M"/"F"/"Other"
+                if (headerValue === "All") return true;      // no filtering
+                return rowValue === headerValue;
+              }
+            },
+
+
+            {
+              title: "Ethnicity",
+              field: "Ethnicity",
+              headerFilter: "select",
+              headerFilterParams: {
+                // force exactly these entries in the dropdown
+                values: {
+                  All: "All",
+                  White: "White",
+                  "Black or African American": "Black or African American",
+                  "American Indian or Alaska Native": "American Indian or Alaska Native",
+                  Asian: "Asian",
+                  "Native Hawaiian or Other Pacific Islander": "Native Hawaiian or Other Pacific Islander",
+                  Hispanic: "Hispanic",
+                  "Prefer not to specify" : "Prefer not to specify",
+                }
+              },
+              headerFilterPlaceholder: "All",
+              headerFilterFunc: function(headerValue, rowValue) {
+                // "All" means no filtering
+                if (headerValue === "All") return true;
+                return rowValue === headerValue;
+              }
+            },
+
+            {
+              title: 'Facial Surgery',
+              field: 'FacialSurgery',
+              headerFilter: 'select',
+              headerFilterParams: {
+                values: {
+                  '':'Any',
+                  'No Facial Surgery':'No Surgery',
+                  'Brow/forehead lift':'Brow Lift',
+                  'Ear pinning':'Ear Pinning',
+                  'Chin, cheek, or jaw reshaping':'Jaw Reshape',
+                  'Eyelid lift':'Eyelid Lift',
+                  'Facelift':'Facelift',
+                  'Facial implants':'Implants',
+                  'Hair replacement surgery':'Hair Replacement',
+                  'Lip augmentation':'Lip Augmentation',
+                  'Rhinoplasty':'Rhinoplasty',
+                  'Other':'Other',
+                  'Prefer not to specify':'Prefer Not',
+                  'Prefer not to specify':'Prefer not to specify'
+                }
+              },
+              headerFilterPlaceholder: 'Any',
+            },
+          ],
         });
 
-        // build landmark list
-        const lmSet = new Set();
-        data.forEach(p => p.ParticipantLandmarks.forEach(l => lmSet.add(l.LandmarkName)));
-        const lmList = document.getElementById('landmarksList');
-        Array.from(lmSet).sort().forEach((name, i) => {
-          lmList.appendChild(createCheckbox(`lm_${i}`, 'landmark', name, name));
+        // 3) Clear-all button
+        document.getElementById('clearFilters').addEventListener('click', () => {
+          table.clearHeaderFilter(); // resets every column filter
         });
       })
       .catch(console.error);
-
-    // highlight the active panel
-    document.querySelectorAll('input[name="mode"]').forEach(r => {
-      r.addEventListener('change', e => {
-        document.getElementById('measurementsPanel').style.opacity = e.target.value==='measurements'?1:0.6;
-        document.getElementById('landmarksPanel')   .style.opacity = e.target.value==='landmarks'?1:0.6;
-      });
-    });
-
-    // select/deselect all toggles
-    document.getElementById('selectAllMeasurements').addEventListener('click', () => {
-      const cbs = document.querySelectorAll('#measurementsList input[type="checkbox"]');
-      const all = Array.from(cbs).every(cb=>cb.checked);
-      cbs.forEach(cb=>cb.checked=!all);
-    });
-    document.getElementById('selectAllLandmarks').addEventListener('click', () => {
-      const cbs = document.querySelectorAll('#landmarksList input[type="checkbox"]');
-      const all = Array.from(cbs).every(cb=>cb.checked);
-      cbs.forEach(cb=>cb.checked=!all);
-    });
-
-    // build & show the table when Query is clicked
-    document.getElementById('queryBtn').addEventListener('click', () => {
-      const mode     = document.querySelector('input[name="mode"]:checked').value;
-      const gender   = document.getElementById('genderFilter').value;
-
-
-
-      const surgery  = document.getElementById('surgeryFilter').value;
-      const ageMin   = parseInt(document.getElementById('ageMin').value) || 0;
-      const ageMax   = parseInt(document.getElementById('ageMax').value) || Infinity;
-
-      // collect which names are checked in the active panel
-      let selNames = [];
-      if (mode==='measurements') {
-        selNames = Array.from(document.querySelectorAll('#measurementsList input[name="measurement"]:checked'))
-                        .map(cb=>cb.value);
-      } else {
-        selNames = Array.from(document.querySelectorAll('#landmarksList input[name="landmark"]:checked'))
-                        .map(cb=>cb.value);
-      }
-
-      // flatten & filter
-      let rows = [];
-      participants.forEach(p => {
-        const age = parseInt(p.Age);
-        if (
-          (gender    === 'All'        || p.Gender      === gender)      &&
-          (ethnicity === 'All'        || p.Ethnicity   === ethnicity)  &&
-          (surgery   === 'Any'        || p.FacialSurgery === surgery) &&
-          (!isNaN(age) && age >= ageMin && age <= ageMax)
-        ) {
-
-          if (mode==='measurements') {
-            p.ParticipantMeasurements.forEach(m => {
-              if (!selNames.length || selNames.includes(m.MeasurementName)) {
-                rows.push({
-                  participantFileId: p.participantFileId,
-                  Gender: p.Gender,
-                  Age: p.Age,
-                  Ethnicity: p.Ethnicity,
-                  FacialSurgery: p.FacialSurgery,
-                  MeasurementID: m.MeasurementID,
-                  MeasurementName: m.MeasurementName,
-                  MeasurementType: m.MeasurementType,
-                  Value: m.Value,
-                });
-              }
-            });
-          } else {
-            p.ParticipantLandmarks.forEach(l => {
-              if (!selNames.length || selNames.includes(l.LandmarkName)) {
-                rows.push({
-                  participantFileId: p.participantFileId,
-                  Gender: p.Gender,
-                  Age: p.Age,
-                  Ethnicity: p.Ethnicity,
-                  FacialSurgery: p.FacialSurgery,
-                  LandmarkID: l.LandmarkID,
-                  LandmarkName: l.LandmarkName,
-                  xVal: l.xVal,
-                  yVal: l.yVal,
-                  zVal: l.zVal,
-                });
-              }
-            });
-          }
-        }
-      });
-
-      // choose columns based on mode
-      const baseCols = [
-        {title:"Participant ID", field:"participantFileId"},
-        {title:"Gender",         field:"Gender"},
-        {title:"Age",            field:"Age", sorter:"number"},
-        {title:"Ethnicity",      field:"Ethnicity"},
-        {title:"Facial Surgery", field:"FacialSurgery"},
-      ];
-      const detailCols = mode==='measurements'
-        ? [
-            {title:"Measurement ID",  field:"MeasurementID"},
-            {title:"Name",            field:"MeasurementName"},
-            {title:"Type",            field:"MeasurementType"},
-            {title:"Value",           field:"Value", sorter:"number"},
-          ]
-        : [
-            {title:"Landmark ID",     field:"LandmarkID"},
-            {title:"Name",            field:"LandmarkName"},
-            {title:"X",               field:"xVal", sorter:"number"},
-            {title:"Y",               field:"yVal", sorter:"number"},
-            {title:"Z",               field:"zVal", sorter:"number"},
-          ];
-
-      // render Tabulator
-      const container = document.getElementById('stats-table');
-      container.innerHTML = '';
-      new Tabulator(container, {
-        data: rows,
-        layout: "fitColumns",
-        pagination: "local",
-        paginationSize: 10,
-        columns: baseCols.concat(detailCols),
-      });
-    });
   </script>
 </body>
 </html>
