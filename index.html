@@ -32,8 +32,18 @@
   <!-- This is where Tabulator will render -->
   <div id="stats-table"></div>
 
+
+  <h3>Statistics Histogram</h3> 
+  <canvas id="histogramCanvas" height="200"></canvas>
+
+
   <!-- Tabulator JS -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
 
   <script>
     // 1) Fetch your data.json
@@ -150,6 +160,61 @@
         });
       })
       .catch(console.error);
-  </script>
+
+
+  fetch('data.json')
+    .then(r => r.json())
+    .then(data => {
+      // Extract table data
+      const measurements = data.ParticipantMeasurements.map(m => ({
+        name: m.MeasurementName,
+        value: parseFloat(m.Value)
+      }));
+
+      // Tabulator table
+      const table = new Tabulator("#stats-table", {
+        data: measurements,
+        layout: "fitColumns",
+        columns: [
+          { title: "Name", field: "name", widthGrow: 2 },
+          { title: "Value", field: "value", hozAlign: "left" }
+        ],
+      });
+
+      // Chart.js histogram
+      const ctx = document.getElementById('histogramCanvas').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: measurements.map(m => m.name),
+          datasets: [{
+            label: 'Measurement Value',
+            data: measurements.map(m => m.value),
+            backgroundColor: 'rgba(54, 162, 235, 0.7)'
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            title: { display: true, text: 'Participant Measurement Values' }
+          },
+          scales: {
+            x: { beginAtZero: true },
+            y: {
+              ticks: {
+                autoSkip: false,
+                maxRotation: 90,
+                minRotation: 30
+              }
+            }
+          }
+        }
+      });
+    });
+
+</script>
+
 </body>
 </html>
