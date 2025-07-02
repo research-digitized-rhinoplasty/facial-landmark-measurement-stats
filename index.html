@@ -13,6 +13,11 @@
   <link
     href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"
     rel="stylesheet"
+
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+
+
+
   />
 
   <style>
@@ -46,6 +51,39 @@
 
 
   <script>
+    function multiSelectFilterEditor(cell, onRendered, success, cancel, editorParams){
+      const values = editorParams.values;
+      const el = document.createElement("select");
+      el.setAttribute("multiple", true);
+      
+      Object.entries(values).forEach(([val, label]) => {
+        const opt = document.createElement("option");
+        opt.value = val;
+        opt.textContent = label;
+        el.appendChild(opt);
+      });
+
+      onRendered(() => {
+        new Choices(el, {
+          removeItemButton: true,
+          placeholderValue: 'Filter...',
+          searchEnabled: false
+        });
+      });
+
+      el.addEventListener("change", () => {
+        const selected = Array.from(el.selectedOptions).map(opt => opt.value);
+        success(selected);
+      });
+
+      return el;
+    }
+
+    function multiSelectFilterFunction(headerValue, rowValue) {
+      if (!headerValue || headerValue.length === 0) return true;
+      return headerValue.includes(rowValue);
+    }
+
     // 1) Fetch your data.json
     fetch('data.json')
       .then(r => r.json())
@@ -81,60 +119,43 @@
               headerFilterLiveFilter: true,
             },
 
-            { 
+            {
               title: "Gender",
               field: "Gender",
-              headerFilter: "select",
+              headerFilter: multiSelectFilterEditor,
+              headerFilterFunc: multiSelectFilterFunction,
               headerFilterParams: {
-                // force these exact options (label:value)
                 values: {
-                  "All":    "All",
-                  "M":      "M",
-                  "F":      "F",
-                  "Other":  "Other",
+                  "M": "M",
+                  "F": "F",
+                  "Other": "Other"
                 }
-              },
-              headerFilterPlaceholder: "All", // shows “All” when nothing’s selected
-              headerFilterFunc: function(headerValue, rowValue) {
-                // headerValue will be "All" or "M"/"F"/"Other"
-                if (headerValue === "All") return true;      // no filtering
-                return rowValue === headerValue;
               }
             },
-
-
             {
               title: "Ethnicity",
               field: "Ethnicity",
-              headerFilter: "select",
+              headerFilter: multiSelectFilterEditor,
+              headerFilterFunc: multiSelectFilterFunction,
               headerFilterParams: {
-                // force exactly these entries in the dropdown
                 values: {
-                  All: "All",
-                  White: "White",
+                  "White": "White",
                   "Black or African American": "Black or African American",
                   "American Indian or Alaska Native": "American Indian or Alaska Native",
-                  Asian: "Asian",
+                  "Asian": "Asian",
                   "Native Hawaiian or Other Pacific Islander": "Native Hawaiian or Other Pacific Islander",
-                  Hispanic: "Hispanic",
-                  "Prefer not to specify" : "Prefer not to specify",
+                  "Hispanic": "Hispanic",
+                  "Prefer not to specify": "Prefer not to specify"
                 }
-              },
-              headerFilterPlaceholder: "All",
-              headerFilterFunc: function(headerValue, rowValue) {
-                // "All" means no filtering
-                if (headerValue === "All") return true;
-                return rowValue === headerValue;
               }
             },
-
             {
               title: 'Facial Surgery',
               field: 'FacialSurgery',
-              headerFilter: 'select',
+              headerFilter: multiSelectFilterEditor,
+              headerFilterFunc: multiSelectFilterFunction,
               headerFilterParams: {
                 values: {
-                  '':'Any',
                   'No Facial Surgery':'No Facial Surgery',
                   'Brow/forehead lift':'Brow/forehead lift',
                   'Ear pinning':'Ear Pinning',
@@ -148,9 +169,9 @@
                   'Other':'Other',
                   'Prefer not to specify':'Prefer not to specify'
                 }
-              },
-              headerFilterPlaceholder: 'Any',
-            },
+              }
+            }
+
           ],
         });
 
