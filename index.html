@@ -16,6 +16,7 @@
       height: 100px;
       overflow-y: auto;
       font-size: 12px;
+      width: 100%;
     }
 
     .tabulator-header-filter {
@@ -36,23 +37,25 @@
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
 
   <script>
-    // Multi-select native dropdown filter
     function multiSelectNativeDropdown(field) {
       return function(cell, onRendered, success, cancel) {
         const select = document.createElement("select");
         select.setAttribute("multiple", true);
-        select.style.width = "100%";
         select.style.height = "100px";
+        select.style.width = "100%";
 
-        const data = cell.getTable().getData();
-        const values = [...new Set(data.map(row => row[field]))];
+        // Populate options after table data is ready
+        setTimeout(() => {
+          const tableData = cell.getTable().getData();
+          const values = [...new Set(tableData.map(row => row[field]))];
 
-        values.forEach(val => {
-          const option = document.createElement("option");
-          option.value = val;
-          option.textContent = val;
-          select.appendChild(option);
-        });
+          values.forEach(val => {
+            const option = document.createElement("option");
+            option.value = val;
+            option.textContent = val;
+            select.appendChild(option);
+          });
+        }, 0);
 
         select.addEventListener("change", () => {
           const selected = Array.from(select.selectedOptions).map(opt => opt.value);
@@ -65,7 +68,6 @@
       };
     }
 
-    // Universal filter function for multi-select
     function multiSelectFilterFunc(selected, value) {
       if (!selected || selected.length === 0) return true;
       return selected.includes(value);
@@ -79,6 +81,8 @@
           layout: "fitColumns",
           pagination: "local",
           paginationSize: 10,
+          headerFilterLiveFilterDelay: 300,
+          headerFilterFuncCustom: multiSelectFilterFunc,
           columns: [
             { title: "Participant ID", field: "participantFileId" },
             {
@@ -117,9 +121,7 @@
               headerFilter: multiSelectNativeDropdown("FacialSurgery"),
               headerFilterFunc: "custom"
             }
-          ],
-          headerFilterLiveFilterDelay: 300,
-          headerFilterFuncCustom: multiSelectFilterFunc
+          ]
         });
 
         document.getElementById('clearFilters').addEventListener('click', () => {
