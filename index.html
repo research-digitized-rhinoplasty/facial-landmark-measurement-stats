@@ -2,19 +2,32 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>3D Facial Landmark Query Tool</title>
 
   <!-- Tabulator CSS -->
-  <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet" />
+  <link 
+    href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" 
+    rel="stylesheet" 
+  />
 
   <style>
-    body { font-family: Arial, padding: 20px; }
-    #stats-table, #measurement-table { margin-top: 20px; }
-    .button-row { margin: 10px 0; }
+    body {
+      font-family: Arial;
+      padding: 20px;
+    }
+    #stats-table,
+    #measurement-table {
+      margin-top: 20px;
+    }
+    .button-row {
+      margin: 10px 0;
+    }
   </style>
 </head>
 <body>
   <h2>3D Facial Landmark Query Tool</h2>
+
   <div class="button-row">
     <button id="clearFilters">Clear All Column Filters</button>
   </div>
@@ -29,7 +42,7 @@
   <!-- Tabulator JS -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
   <script>
-    // Helper for exact-match select filters:
+    // exact-match helper for select filters
     function exactMatch(headerValue, rowValue) {
       return headerValue === "All"
           || headerValue === "Any"
@@ -37,9 +50,12 @@
     }
 
     fetch('data.json')
-      .then(r => r.json())
+      .then(res => {
+        if (!res.ok) throw new Error("data.json not found");
+        return res.json();
+      })
       .then(participants => {
-        // Flatten out every ParticipantMeasurements entry upfront:
+        // Flatten ParticipantMeasurements into a single array
         const allMeasurements = participants.flatMap(p =>
           (p.ParticipantMeasurements || []).map(m => ({
             participantFileId: p.participantFileId,
@@ -48,20 +64,20 @@
           }))
         );
 
-        // Build the Measurements table first (empty for now)
+        // 1) Build the Measurements table (initially showing all)
         const measurementTable = new Tabulator("#measurement-table", {
           data: allMeasurements,
           layout: "fitColumns",
           pagination: "local",
           paginationSize: 10,
           columns: [
-            { title: "Participant ID", field: "participantFileId" },
-            { title: "Measurement Name", field: "measurementName" },
-            { title: "Value", field: "value" },
+            { title: "Participant ID",     field: "participantFileId" },
+            { title: "Measurement Name",   field: "measurementName"   },
+            { title: "Value",              field: "value"             },
           ],
         });
 
-        // Build the Stats table
+        // 2) Build the Stats table with native <select> filters
         const statsTable = new Tabulator("#stats-table", {
           data: participants,
           layout: "fitColumns",
@@ -74,7 +90,9 @@
               title: "Gender",
               field: "Gender",
               headerFilter: "select",
-              headerFilterParams: { values: { All:"All", M:"M", F:"F", Other:"Other" } },
+              headerFilterParams: {
+                values: { All:"All", M:"M", F:"F", Other:"Other" },
+              },
               headerFilterPlaceholder: "All",
               headerFilterFunc: exactMatch,
             },
@@ -103,16 +121,16 @@
               field: "Ethnicity",
               headerFilter: "select",
               headerFilterParams: {
-                values:{
-                  All:"All",
-                  White:"White",
-                  "Black or African American":"Black or African American",
-                  "American Indian or Alaska Native":"American Indian or Alaska Native",
-                  Asian:"Asian",
-                  "Native Hawaiian or Other Pacific Islander":"Native Hawaiian or Other Pacific Islander",
-                  Hispanic:"Hispanic",
-                  "Prefer not to specify":"Prefer not to specify"
-                }
+                values: {
+                  All: "All",
+                  White: "White",
+                  "Black or African American": "Black or African American",
+                  "American Indian or Alaska Native": "American Indian or Alaska Native",
+                  Asian: "Asian",
+                  "Native Hawaiian or Other Pacific Islander": "Native Hawaiian or Other Pacific Islander",
+                  Hispanic: "Hispanic",
+                  "Prefer not to specify": "Prefer not to specify",
+                },
               },
               headerFilterPlaceholder: "All",
               headerFilterFunc: exactMatch,
@@ -123,40 +141,38 @@
               field: "FacialSurgery",
               headerFilter: "select",
               headerFilterParams: {
-                values:{
-                  "All": "All",
+                values: {
+                  Any: "Any",
                   "No Facial Surgery": "No Facial Surgery",
                   "Brow/forehead lift": "Brow/forehead lift",
                   "Ear pinning": "Ear Pinning",
                   "Chin, cheek, or jaw reshaping": "Chin, cheek, or jaw reshaping",
                   "Eyelid lift": "Eyelid Lift",
-                  "Facelift": "Facelift",
+                  Facelift: "Facelift",
                   "Facial implants": "Facial implants",
                   "Hair replacement surgery": "Hair Replacement surgery",
                   "Lip augmentation": "Lip Augmentation",
-                  "Rhinoplasty": "Rhinoplasty",
-                  "Other": "Other",
+                  Rhinoplasty: "Rhinoplasty",
+                  Other: "Other",
                   "Prefer not to specify": "Prefer not to specify",
-                }
+                },
               },
-              headerFilterPlaceholder: "All",
+              headerFilterPlaceholder: "Any",
               headerFilterFunc: exactMatch,
-            }
-
-
+            },
           ],
         });
 
-        // Whenever the Stats table data is filtered, rebuild the Measurements table
+        // 3) On stats filter change, rebuild Measurement table data
         statsTable.on("dataFiltered", (filters, rows) => {
           const visibleIDs = rows.map(r => r.getData().participantFileId);
-          const filteredMeasurements = allMeasurements.filter(m =>
+          const filtered = allMeasurements.filter(m =>
             visibleIDs.includes(m.participantFileId)
           );
-          measurementTable.replaceData(filteredMeasurements);
+          measurementTable.replaceData(filtered);
         });
 
-        // Wire up the clear button
+        // 4) Clear button resets all stats filters (and thus measurements)
         document.getElementById('clearFilters').addEventListener('click', () => {
           statsTable.clearHeaderFilter();
         });
@@ -164,7 +180,7 @@
       .catch(err => {
         console.error(err);
         document.getElementById('stats-table').innerHTML =
-          `<p style="color:red">Error loading data.json: ${err.message}</p>`;
+          `<p style="color:red;">Error loading data.json: ${err.message}</p>`;
       });
   </script>
 </body>
