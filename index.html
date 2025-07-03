@@ -5,24 +5,12 @@
   <title>3D Facial Landmark Query Tool</title>
 
   <!-- Tabulator CSS -->
-  <link
-    href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css"
-    rel="stylesheet"
-  />
+  <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet" />
 
   <style>
     body { font-family: Arial; padding: 20px; }
     #stats-table, #measurement-table { margin-top: 20px; }
     .button-row { margin: 10px 0; }
-
-    /* allow the multi-selects to scroll */
-    select[multiple] {
-      width: 100%;
-      height: 100px;
-      overflow-y: auto;
-      font-size: 12px;
-    }
-    .tabulator-header-filter { overflow: visible !important; }
   </style>
 </head>
 <body>
@@ -32,66 +20,51 @@
     <button id="clearFilters">Clear All Column Filters</button>
   </div>
 
-  <!-- 1) STATS TABLE -->
+  <!-- Stats Table -->
   <div id="stats-table"></div>
 
-  <!-- 2) MEASUREMENTS TABLE (unchanged) -->
+  <!-- Measurements Table -->
   <h2>Measurements</h2>
   <div id="measurement-table"></div>
 
   <!-- Tabulator JS -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
-
   <script>
-    // Native multi-select editor
-    function multiSelectNativeDropdown(field) {
-      return function(cell, onRendered, success) {
-        const select = document.createElement("select");
-        select.multiple = true;
-        select.style.width = "100%";
-        select.style.height = "100px";
-
-        onRendered(() => {
-          const data = cell.getTable().getData();
-          const unique = Array.from(new Set(data.map(r => r[field])));
-          unique.forEach(val => {
-            const opt = document.createElement("option");
-            opt.value = val;
-            opt.textContent = val;
-            select.appendChild(opt);
-          });
-        });
-
-        select.addEventListener("change", () => {
-          const chosen = Array.from(select.selectedOptions).map(o => o.value);
-          success(function(cellValue) {
-            return !chosen.length || chosen.includes(cellValue);
-          });
-        });
-
-        return select;
-      };
+    // exact-match filter helper
+    function exactMatch(headerValue, rowValue) {
+      return headerValue === "All" || headerValue === "Any" || rowValue === headerValue;
     }
 
+    // Build Stats Table
     fetch('data.json')
       .then(r => r.json())
       .then(data => {
-        // 1) Stats table with Age Min & Age Max
         const statsTable = new Tabulator("#stats-table", {
           data,
           layout: "fitColumns",
           pagination: "local",
           paginationSize: 10,
           columns: [
-            { title: "Participant ID", field: "participantFileId" }, // no filter
+            { title: "Participant ID", field: "participantFileId" },
 
+            // Gender with exact options
             {
               title: "Gender",
               field: "Gender",
-              headerFilter: multiSelectNativeDropdown("Gender"),
-              headerFilterFunc: true,
-              headerFilterLiveFilter: true,
+              headerFilter: "select",
+              headerFilterParams: {
+                values: {
+                  "All":   "All",
+                  "M":     "M",
+                  "F":     "F",
+                  "Other": "Other"
+                }
+              },
+              headerFilterPlaceholder: "All",
+              headerFilterFunc: exactMatch,
             },
+
+            // Age Min
             {
               title: "Age Min",
               field: "Age",
@@ -101,6 +74,8 @@
               headerFilterFunc: ">=",
               headerFilterLiveFilter: true,
             },
+
+            // Age Max
             {
               title: "Age Max",
               field: "Age",
@@ -110,19 +85,52 @@
               headerFilterFunc: "<=",
               headerFilterLiveFilter: true,
             },
+
+            // Ethnicity (hard-coded list)
             {
               title: "Ethnicity",
               field: "Ethnicity",
-              headerFilter: multiSelectNativeDropdown("Ethnicity"),
-              headerFilterFunc: true,
-              headerFilterLiveFilter: true,
+              headerFilter: "select",
+              headerFilterParams: {
+                values: {
+                  "All": "All",
+                  "White": "White",
+                  "Black or African American": "Black or African American",
+                  "American Indian or Alaska Native": "American Indian or Alaska Native",
+                  "Asian": "Asian",
+                  "Native Hawaiian or Other Pacific Islander": "Native Hawaiian or Other Pacific Islander",
+                  "Hispanic": "Hispanic",
+                  "Prefer not to specify": "Prefer not to specify"
+                }
+              },
+              headerFilterPlaceholder: "All",
+              headerFilterFunc: exactMatch,
             },
+
+            // Facial Surgery (hard-coded list)
             {
               title: "Facial Surgery",
               field: "FacialSurgery",
-              headerFilter: multiSelectNativeDropdown("FacialSurgery"),
-              headerFilterFunc: true,
-              headerFilterLiveFilter: true,
+              headerFilter: "select",
+              headerFilterParams: {
+                values: {
+                  "Any": "Any",
+                  "No Facial Surgery": "No Facial Surgery",
+                  "Brow/forehead lift": "Brow/forehead lift",
+                  "Ear pinning": "Ear Pinning",
+                  "Chin, cheek, or jaw reshaping": "Chin, cheek, or jaw reshaping",
+                  "Eyelid lift": "Eyelid Lift",
+                  "Facelift": "Facelift",
+                  "Facial implants": "Facial implants",
+                  "Hair replacement surgery": "Hair Replacement surgery",
+                  "Lip augmentation": "Lip Augmentation",
+                  "Rhinoplasty": "Rhinoplasty",
+                  "Other": "Other",
+                  "Prefer not to specify": "Prefer not to specify"
+                }
+              },
+              headerFilterPlaceholder: "Any",
+              headerFilterFunc: exactMatch,
             },
           ],
         });
@@ -130,26 +138,24 @@
         document.getElementById('clearFilters').addEventListener('click', () => {
           statsTable.clearHeaderFilter();
         });
+      });
 
-        // 2) Measurements table (unchanged; replace placeholder data/cols as needed)
-        const measurementsData = [
-          /* … your measurement rows … */
-        ];
-        const measurementsTable = new Tabulator("#measurement-table", {
+    // Build Measurements Table
+    fetch('measurements.json')
+      .then(r => r.json())
+      .then(measurementsData => {
+        new Tabulator("#measurement-table", {
           data: measurementsData,
           layout: "fitColumns",
           pagination: "local",
           paginationSize: 10,
           columns: [
-            { title: "Landmark", field: "landmark" },
-            { title: "X", field: "x", sorter: "number" },
-            { title: "Y", field: "y", sorter: "number" },
-            { title: "Z", field: "z", sorter: "number" },
-            // …etc.
+            { title: "Participant ID", field: "participantFileId" },
+            { title: "Measurement Name", field: "measurementName" },
+            { title: "Value", field: "value" },
           ],
         });
-      })
-      .catch(console.error);
+      });
   </script>
 </body>
 </html>
