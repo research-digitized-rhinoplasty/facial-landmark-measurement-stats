@@ -26,10 +26,13 @@
   .button-row { margin: 10px 0; }
 
   .tabulator-header-filter .choices {
-    font-size: 13px;
-  }
+  min-height: 34px;
+  font-size: 13px;
+  line-height: 1.2;
+}
 
-  /* ✅ New Fix Starts Here */
+
+  /* New Fix Starts Here */
   .choices__list--dropdown {
     z-index: 1000 !important;
     position: absolute !important;
@@ -45,14 +48,14 @@
     position: relative;
   }
 
-  /* ✅ Allow dropdown to break out of the header container */
+  /* Allow dropdown to break out of the header container */
 .tabulator .tabulator-header .tabulator-col .tabulator-header-filter {
   overflow: visible !important;
   position: relative !important;
   z-index: 1;
 }
 
-/* ✅ Force Choices dropdown to show above the table */
+/* Force Choices dropdown to show above the table */
 .choices__list--dropdown {
   z-index: 9999 !important;
   position: absolute !important;
@@ -63,7 +66,7 @@
   border: 1px solid #ccc;
 }
 
-/* ✅ Prevent header clipping (for Safari) */
+/* Prevent header clipping (for Safari) */
 .tabulator-col {
   overflow: visible !important;
 }
@@ -96,32 +99,34 @@
     // === Multi-select filter using Choices.js ===
     function multiSelectFilterEditor(cell, onRendered, success, cancel, editorParams){
       const values = editorParams.values;
-      const el = document.createElement("select");
-      el.setAttribute("multiple", true);
+      const select = document.createElement("select");
+      select.setAttribute("multiple", true);
 
-      for (const [val, label] of Object.entries(values)) {
-        const opt = document.createElement("option");
-        opt.value = val;
-        opt.textContent = label;
-        el.appendChild(opt);
+      // Create options
+      for (const val of Object.keys(values)) {
+        const option = document.createElement("option");
+        option.value = val;
+        option.textContent = values[val];
+        select.appendChild(option);
       }
 
+      // Only init Choices after DOM is rendered
       onRendered(() => {
-        const choices = new Choices(el, {
+        const choices = new Choices(select, {
           removeItemButton: true,
           searchEnabled: false,
-          placeholderValue: 'Choose an option below',
           shouldSort: false,
+          placeholder: true,
+          placeholderValue: 'Choose an option below',
           position: 'bottom',
-          renderChoiceLimit: -1,
-          // 👇 Forces the dropdown to be appended directly to <body>
-          appendTo: document.body 
+          // Appending to body and custom positioning
+          appendTo: document.body
         });
 
-        // Sync dropdown position with filter cell
+        // Force correct dropdown position
         const updatePosition = () => {
-          const rect = el.getBoundingClientRect();
-          const dropdown = el.closest('.choices').querySelector('.choices__list--dropdown');
+          const rect = select.getBoundingClientRect();
+          const dropdown = select.closest('.choices').querySelector('.choices__list--dropdown');
           if (dropdown) {
             dropdown.style.position = 'absolute';
             dropdown.style.top = rect.bottom + window.scrollY + 'px';
@@ -131,29 +136,18 @@
           }
         };
 
-        // Run after a delay to ensure DOM is ready
         setTimeout(updatePosition, 0);
-
-        // Update on scroll or resize
         window.addEventListener('scroll', updatePosition, true);
         window.addEventListener('resize', updatePosition);
       });
 
-
-      el.addEventListener("change", () => {
-        const selected = Array.from(el.selectedOptions).map(opt => opt.value);
+      select.addEventListener("change", () => {
+        const selected = Array.from(select.selectedOptions).map(opt => opt.value);
         success(selected);
       });
 
-      return el;
+      return select;
     }
-
-    function multiSelectFilterFunction(selectedValues, rowValue) 
-    {
-      if (!selectedValues || selectedValues.length === 0) return true; // no filtering
-      return selectedValues.includes(rowValue); // keep row if value is in selected list
-    }
-
 
 
     // === Initialize table with filters ===
