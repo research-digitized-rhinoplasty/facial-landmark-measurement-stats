@@ -12,8 +12,17 @@
 
   <style>
     body { font-family: Arial; padding: 20px; }
-    #stats-table { margin-top: 20px; }
+    #stats-table, #measurement-table { margin-top: 20px; }
     .button-row { margin: 10px 0; }
+
+    /* allow the multi-selects to scroll */
+    select[multiple] {
+      width: 100%;
+      height: 100px;
+      overflow-y: auto;
+      font-size: 12px;
+    }
+    .tabulator-header-filter { overflow: visible !important; }
   </style>
 </head>
 <body>
@@ -23,45 +32,68 @@
     <button id="clearFilters">Clear All Column Filters</button>
   </div>
 
+  <!-- 1) STATS TABLE -->
   <div id="stats-table"></div>
+
+  <!-- 2) MEASUREMENTS TABLE (unchanged) -->
+  <h2>Measurements</h2>
+  <div id="measurement-table"></div>
 
   <!-- Tabulator JS -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
+
   <script>
+    // Native multi-select editor
+    function multiSelectNativeDropdown(field) {
+      return function(cell, onRendered, success) {
+        const select = document.createElement("select");
+        select.multiple = true;
+        select.style.width = "100%";
+        select.style.height = "100px";
+
+        onRendered(() => {
+          const data = cell.getTable().getData();
+          const unique = Array.from(new Set(data.map(r => r[field])));
+          unique.forEach(val => {
+            const opt = document.createElement("option");
+            opt.value = val;
+            opt.textContent = val;
+            select.appendChild(opt);
+          });
+        });
+
+        select.addEventListener("change", () => {
+          const chosen = Array.from(select.selectedOptions).map(o => o.value);
+          success(function(cellValue) {
+            return !chosen.length || chosen.includes(cellValue);
+          });
+        });
+
+        return select;
+      };
+    }
+
     fetch('data.json')
       .then(r => r.json())
       .then(data => {
-        const table = new Tabulator("#stats-table", {
+        // 1) Stats table with Age Min & Age Max
+        const statsTable = new Tabulator("#stats-table", {
           data,
           layout: "fitColumns",
           pagination: "local",
           paginationSize: 10,
           columns: [
-            // 1) No filter, just rename header
-            { title: "Participant ID", field: "participantFileId" },
+            { title: "Participant ID", field: "participantFileId" }, // no filter
 
-            // 2) Gender: single-select dropdown
             {
               title: "Gender",
               field: "Gender",
-              headerFilter: "select",
-              headerFilterParams: {
-                values: {
-                  "All": "All",
-                  "M":   "M",
-                  "F":   "F",
-                  "Other": "Other"
-                }
-              },
-              headerFilterPlaceholder: "All",
-              headerFilterFunc: function(headerValue, rowValue) {
-                return headerValue === "All" || rowValue === headerValue;
-              },
+              headerFilter: multiSelectNativeDropdown("Gender"),
+              headerFilterFunc: true,
+              headerFilterLiveFilter: true,
             },
-
-            // 3) Age Min only
             {
-              title: "Age",
+              title: "Age Min",
               field: "Age",
               sorter: "number",
               headerFilter: "input",
@@ -69,62 +101,52 @@
               headerFilterFunc: ">=",
               headerFilterLiveFilter: true,
             },
-
-            // 4) Ethnicity: single-select dropdown
+            {
+              title: "Age Max",
+              field: "Age",
+              sorter: "number",
+              headerFilter: "input",
+              headerFilterPlaceholder: "Max…",
+              headerFilterFunc: "<=",
+              headerFilterLiveFilter: true,
+            },
             {
               title: "Ethnicity",
               field: "Ethnicity",
-              headerFilter: "select",
-              headerFilterParams: {
-                values: {
-                  "All": "All",
-                  "White": "White",
-                  "Black or African American": "Black or African American",
-                  "American Indian or Alaska Native": "American Indian or Alaska Native",
-                  "Asian": "Asian",
-                  "Native Hawaiian or Other Pacific Islander": "Native Hawaiian or Other Pacific Islander",
-                  "Hispanic": "Hispanic",
-                  "Prefer not to specify": "Prefer not to specify"
-                }
-              },
-              headerFilterPlaceholder: "All",
-              headerFilterFunc: function(headerValue, rowValue) {
-                return headerValue === "All" || rowValue === headerValue;
-              },
+              headerFilter: multiSelectNativeDropdown("Ethnicity"),
+              headerFilterFunc: true,
+              headerFilterLiveFilter: true,
             },
-
-            // 5) Facial Surgery: single-select dropdown
             {
               title: "Facial Surgery",
               field: "FacialSurgery",
-              headerFilter: "select",
-              headerFilterParams: {
-                values: {
-                  "Any": "Any",
-                  "No Facial Surgery": "No Facial Surgery",
-                  "Brow/forehead lift": "Brow/forehead lift",
-                  "Ear pinning": "Ear Pinning",
-                  "Chin, cheek, or jaw reshaping": "Chin, cheek, or jaw reshaping",
-                  "Eyelid lift": "Eyelid Lift",
-                  "Facelift": "Facelift",
-                  "Facial implants": "Facial implants",
-                  "Hair replacement surgery": "Hair Replacement surgery",
-                  "Lip augmentation": "Lip Augmentation",
-                  "Rhinoplasty": "Rhinoplasty",
-                  "Other": "Other",
-                  "Prefer not to specify": "Prefer not to specify"
-                }
-              },
-              headerFilterPlaceholder: "Any",
-              headerFilterFunc: function(headerValue, rowValue) {
-                return headerValue === "Any" || rowValue === headerValue;
-              },
+              headerFilter: multiSelectNativeDropdown("FacialSurgery"),
+              headerFilterFunc: true,
+              headerFilterLiveFilter: true,
             },
           ],
         });
 
         document.getElementById('clearFilters').addEventListener('click', () => {
-          table.clearHeaderFilter();
+          statsTable.clearHeaderFilter();
+        });
+
+        // 2) Measurements table (unchanged; replace placeholder data/cols as needed)
+        const measurementsData = [
+          /* … your measurement rows … */
+        ];
+        const measurementsTable = new Tabulator("#measurement-table", {
+          data: measurementsData,
+          layout: "fitColumns",
+          pagination: "local",
+          paginationSize: 10,
+          columns: [
+            { title: "Landmark", field: "landmark" },
+            { title: "X", field: "x", sorter: "number" },
+            { title: "Y", field: "y", sorter: "number" },
+            { title: "Z", field: "z", sorter: "number" },
+            // …etc.
+          ],
         });
       })
       .catch(console.error);
