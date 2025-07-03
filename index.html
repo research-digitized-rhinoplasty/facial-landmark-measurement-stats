@@ -79,6 +79,12 @@
       return el;
     }
 
+    function multiSelectFilterFunction(selectedValues, rowValue) {
+      if (!selectedValues || selectedValues.length === 0) return true; // no filtering
+      return selectedValues.includes(rowValue); // keep row if value is in selected list
+}
+
+
 
     // === Initialize table with filters ===
     fetch('data.json')
