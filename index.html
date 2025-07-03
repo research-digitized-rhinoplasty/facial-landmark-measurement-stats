@@ -13,12 +13,19 @@
     #stats-table, #measurement-table, #landmark-table { margin-top: 20px; }
     .button-row { margin: 10px 0; }
 
+    /* Allow header filters to overflow */
+    .tabulator .tabulator-header .tabulator-col .tabulator-header-filter {
+      overflow: visible !important;
+      position: relative !important;
+      z-index: 1;
+    }
+
     /* Dropdown checkbox list styles */
     .checkbox-dropdown {
       position: absolute;
       top: 100%;
       left: 0;
-      z-index: 100;
+      z-index: 9999;
       background: white;
       border: 1px solid #ccc;
       max-height: 180px;
@@ -73,12 +80,12 @@
       const values = cell.getColumn().getDefinition().headerFilterParams.values;
       const wrapper = document.createElement('div');
       wrapper.style.position = 'relative';
-      
+
       const toggle = document.createElement('div');
       toggle.classList.add('dropdown-toggle');
       toggle.textContent = 'Select...';
       wrapper.appendChild(toggle);
-      
+
       const list = document.createElement('div');
       list.classList.add('checkbox-dropdown');
       list.style.display = 'none';
@@ -95,11 +102,13 @@
         });
       });
       wrapper.appendChild(list);
+
       toggle.addEventListener('click',e=>{
         e.stopPropagation();
         list.style.display = list.style.display==='none'? 'block':'none';
       });
       document.addEventListener('click',()=> list.style.display='none');
+
       onRendered(()=>{});
       return wrapper;
     }
@@ -120,37 +129,17 @@
           (p.ParticipantLandmarks||[]).map(l=>({participantFileId:p.participantFileId,landmarkName:l.LandmarkName,xVal:l.xVal,yVal:l.yVal,zVal:l.zVal}))
         );
 
-        const measurementTable = new Tabulator('#measurement-table',{
-          data: allMeasurements,layout:'fitColumns',pagination:'local',paginationSize:10,
-          columns:[
-            {title:'Participant ID',field:'participantFileId'},
-            {title:'Measurement Name',field:'measurementName'},
-            {title:'Value',field:'value'}
-          ]
-        });
+        const measurementTable = new Tabulator('#measurement-table',{data:allMeasurements,layout:'fitColumns',pagination:'local',paginationSize:10,columns:[{title:'Participant ID',field:'participantFileId'},{title:'Measurement Name',field:'measurementName'},{title:'Value',field:'value'}]});
+        const landmarkTable    = new Tabulator('#landmark-table',{data:allLandmarks,layout:'fitColumns',pagination:'local',paginationSize:10,columns:[{title:'Participant ID',field:'participantFileId'},{title:'Landmark Name',field:'landmarkName'},{title:'X Value',field:'xVal'},{title:'Y Value',field:'yVal'},{title:'Z Value',field:'zVal'}]});
 
-        const landmarkTable = new Tabulator('#landmark-table',{
-          data: allLandmarks,layout:'fitColumns',pagination:'local',paginationSize:10,
-          columns:[
-            {title:'Participant ID',field:'participantFileId'},
-            {title:'Landmark Name',field:'landmarkName'},
-            {title:'X Value',field:'xVal'},
-            {title:'Y Value',field:'yVal'},
-            {title:'Z Value',field:'zVal'}
-          ]
-        });
-
-        const statsTable = new Tabulator('#stats-table',{
-          data: participants,layout:'fitColumns',pagination:'local',paginationSize:10,
-          columns:[
-            {title:'Participant ID',field:'participantFileId'},
-            {title:'Gender',field:'Gender',headerFilter:dropdownMultiCheck,headerFilterFunc:multiSelectFilterFunc,headerFilterParams:{values:['M','F','Other']}},
-            {title:'Age Min',field:'Age',sorter:'number',headerFilter:'input',headerFilterPlaceholder:'Min…',headerFilterFunc:'>=',headerFilterLiveFilter:true},
-            {title:'Age Max',field:'Age',sorter:'number',headerFilter:'input',headerFilterPlaceholder:'Max…',headerFilterFunc:'<=',headerFilterLiveFilter:true},
-            {title:'Ethnicity',field:'Ethnicity',headerFilter:dropdownMultiCheck,headerFilterFunc:multiSelectFilterFunc,headerFilterParams:{values:['White','Black or African American','American Indian or Alaska Native','Asian','Native Hawaiian or Other Pacific Islander','Hispanic','Prefer not to specify']}},
-            {title:'Facial Surgery',field:'FacialSurgery',headerFilter:dropdownMultiCheck,headerFilterFunc:multiSelectFilterFunc,headerFilterParams:{values:['No Facial Surgery','Brow/forehead lift','Ear pinning','Chin, cheek, or jaw reshaping','Eyelid lift','Facelift','Facial implants','Hair replacement surgery','Lip augmentation','Rhinoplasty','Other','Prefer not to specify']}}
-          ]
-        });
+        const statsTable = new Tabulator('#stats-table',{data:participants,layout:'fitColumns',pagination:'local',paginationSize:10,columns:[
+          {title:'Participant ID',field:'participantFileId'},
+          {title:'Gender',field:'Gender',headerFilter:dropdownMultiCheck,headerFilterFunc:multiSelectFilterFunc,headerFilterParams:{values:['M','F','Other']}},
+          {title:'Age Min',field:'Age',sorter:'number',headerFilter:'input',headerFilterPlaceholder:'Min…',headerFilterFunc:'>=',headerFilterLiveFilter:true},
+          {title:'Age Max',field:'Age',sorter:'number',headerFilter:'input',headerFilterPlaceholder:'Max…',headerFilterFunc:'<=',headerFilterLiveFilter:true},
+          {title:'Ethnicity',field:'Ethnicity',headerFilter:dropdownMultiCheck,headerFilterFunc:multiSelectFilterFunc,headerFilterParams:{values:['White','Black or African American','American Indian or Alaska Native','Asian','Native Hawaiian or Other Pacific Islander','Hispanic','Prefer not to specify']}},
+          {title:'Facial Surgery',field:'FacialSurgery',headerFilter:dropdownMultiCheck,headerFilterFunc:multiSelectFilterFunc,headerFilterParams:{values:['No Facial Surgery','Brow/forehead lift','Ear pinning','Chin, cheek, or jaw reshaping','Eyelid lift','Facelift','Facial implants','Hair replacement surgery','Lip augmentation','Rhinoplasty','Other','Prefer not to specify']}}
+        ]});
 
         statsTable.on('dataFiltered',(filters,rows)=>{
           const ids = rows.map(r=>r.getData().participantFileId);
@@ -160,10 +149,7 @@
 
         document.getElementById('clearFilters').addEventListener('click',()=>statsTable.clearHeaderFilter());
       })
-      .catch(err=>{
-        console.error(err);
-        document.querySelector('#stats-table').innerHTML = `<p style="color:red">${err}</p>`;
-      });
+      .catch(err=>{console.error(err);document.querySelector('#stats-table').innerHTML=`<p style="color:red">${err}</p>`;});
   </script>
 </body>
 </html>
