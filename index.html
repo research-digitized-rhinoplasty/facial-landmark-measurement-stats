@@ -3,39 +3,27 @@
 <head>
   <meta charset="UTF-8" />
   <title>3D Facial Landmark Query Tool</title>
-
-  <!-- Tabulator CSS -->
-  <link
-    href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css"
-    rel="stylesheet"
-  />
+  <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet" />
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
+    body { font-family: Arial; padding: 20px; }
     #stats-table, #measurement-table { margin-top: 20px; }
     .button-row { margin: 10px 0; }
   </style>
 </head>
 <body>
   <h2>3D Facial Landmark Query Tool</h2>
-
   <div class="button-row">
     <button id="clearFilters">Clear All Column Filters</button>
   </div>
-
-  <!-- Stats Table -->
   <div id="stats-table"></div>
-
-  <!-- Measurements Table -->
   <h2>Measurements</h2>
   <div id="measurement-table"></div>
 
-  <!-- Tabulator JS -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
   <script>
-    // exact-match helper for select filters
     function exactMatch(headerValue, rowValue) {
-      return headerValue === "All" 
-          || headerValue === "Any" 
+      return headerValue === "All"
+          || headerValue === "Any"
           || rowValue === headerValue;
     }
 
@@ -45,7 +33,7 @@
         return res.json();
       })
       .then(participants => {
-        // 1) Build Stats Table
+        // STATS TABLE
         const statsTable = new Tabulator("#stats-table", {
           data: participants,
           layout: "fitColumns",
@@ -53,14 +41,11 @@
           paginationSize: 10,
           columns: [
             { title: "Participant ID", field: "participantFileId" },
-
             {
               title: "Gender",
               field: "Gender",
               headerFilter: "select",
-              headerFilterParams: {
-                values: { All:"All", M:"M", F:"F", Other:"Other" }
-              },
+              headerFilterParams: { values:{ All:"All", M:"M", F:"F", Other:"Other" } },
               headerFilterPlaceholder: "All",
               headerFilterFunc: exactMatch,
             },
@@ -128,7 +113,7 @@
           ],
         });
 
-        // Flatten all ParticipantMeasurements into one array for the Measurements Table
+        // FLATTEN MEASUREMENTS
         const measurementRecords = participants.flatMap(p =>
           (p.ParticipantMeasurements || []).map(m => ({
             participantFileId: p.participantFileId,
@@ -137,7 +122,7 @@
           }))
         );
 
-        // 2) Build Measurements Table
+        // MEASUREMENTS TABLE
         const measurementTable = new Tabulator("#measurement-table", {
           data: measurementRecords,
           layout: "fitColumns",
@@ -150,17 +135,13 @@
           ],
         });
 
-        // 3) When statsTable is filtered, filter the measurement table by visible IDs
+        // LINK FILTERS: always apply an "in" filter even if the list is empty
         statsTable.on("dataFiltered", (filters, rows) => {
           const visibleIDs = rows.map(r => r.getData().participantFileId);
-          if (visibleIDs.length) {
-            measurementTable.setFilter("participantFileId", "in", visibleIDs);
-          } else {
-            measurementTable.clearFilter();
-          }
+          measurementTable.setFilter("participantFileId", "in", visibleIDs);
         });
 
-        // 4) Clear filters button
+        // CLEAR BUTTON
         document.getElementById('clearFilters').addEventListener('click', () => {
           statsTable.clearHeaderFilter();
         });
