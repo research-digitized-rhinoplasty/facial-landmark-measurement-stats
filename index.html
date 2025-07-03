@@ -5,7 +5,10 @@
   <title>3D Facial Landmark Query Tool</title>
 
   <!-- Tabulator CSS -->
-  <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet" />
+  <link
+    href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css"
+    rel="stylesheet"
+  />
 
   <style>
     body { font-family: Arial; padding: 20px; }
@@ -30,132 +33,138 @@
   <!-- Tabulator JS -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
   <script>
-    // exact-match filter helper
+    // Exact-match filter helper
     function exactMatch(headerValue, rowValue) {
-      return headerValue === "All" || headerValue === "Any" || rowValue === headerValue;
+      return headerValue === "All" 
+          || headerValue === "Any" 
+          || rowValue === headerValue;
     }
 
-    // Build Stats Table
-    fetch('data.json')
-      .then(r => r.json())
-      .then(data => {
-        const statsTable = new Tabulator("#stats-table", {
-          data,
-          layout: "fitColumns",
-          pagination: "local",
-          paginationSize: 10,
-          columns: [
-            { title: "Participant ID", field: "participantFileId" },
+    // Load both JSONs in parallel
+    Promise.all([
+      fetch('data.json').then(r => r.json()),
+      fetch('measurements.json').then(r => r.json())
+    ]).then(([statsData, measurementsData]) => {
+      // 1) Stats Table
+      const statsTable = new Tabulator("#stats-table", {
+        data: statsData,
+        layout: "fitColumns",
+        pagination: "local",
+        paginationSize: 10,
+        columns: [
+          { title: "Participant ID", field: "participantFileId" }, // no filter
 
-            // Gender with exact options
-            {
-              title: "Gender",
-              field: "Gender",
-              headerFilter: "select",
-              headerFilterParams: {
-                values: {
-                  "All":   "All",
-                  "M":     "M",
-                  "F":     "F",
-                  "Other": "Other"
-                }
-              },
-              headerFilterPlaceholder: "All",
-              headerFilterFunc: exactMatch,
+          {
+            title: "Gender",
+            field: "Gender",
+            headerFilter: "select",
+            headerFilterParams: {
+              values: {
+                "All":   "All",
+                "M":     "M",
+                "F":     "F",
+                "Other": "Other"
+              }
             },
+            headerFilterPlaceholder: "All",
+            headerFilterFunc: exactMatch,
+          },
 
-            // Age Min
-            {
-              title: "Age Min",
-              field: "Age",
-              sorter: "number",
-              headerFilter: "input",
-              headerFilterPlaceholder: "Min…",
-              headerFilterFunc: ">=",
-              headerFilterLiveFilter: true,
+          {
+            title: "Age Min",
+            field: "Age",
+            sorter: "number",
+            headerFilter: "input",
+            headerFilterPlaceholder: "Min…",
+            headerFilterFunc: ">=",
+            headerFilterLiveFilter: true,
+          },
+
+          {
+            title: "Age Max",
+            field: "Age",
+            sorter: "number",
+            headerFilter: "input",
+            headerFilterPlaceholder: "Max…",
+            headerFilterFunc: "<=",
+            headerFilterLiveFilter: true,
+          },
+
+          {
+            title: "Ethnicity",
+            field: "Ethnicity",
+            headerFilter: "select",
+            headerFilterParams: {
+              values: {
+                "All": "All",
+                "White": "White",
+                "Black or African American": "Black or African American",
+                "American Indian or Alaska Native": "American Indian or Alaska Native",
+                "Asian": "Asian",
+                "Native Hawaiian or Other Pacific Islander": "Native Hawaiian or Other Pacific Islander",
+                "Hispanic": "Hispanic",
+                "Prefer not to specify": "Prefer not to specify"
+              }
             },
+            headerFilterPlaceholder: "All",
+            headerFilterFunc: exactMatch,
+          },
 
-            // Age Max
-            {
-              title: "Age Max",
-              field: "Age",
-              sorter: "number",
-              headerFilter: "input",
-              headerFilterPlaceholder: "Max…",
-              headerFilterFunc: "<=",
-              headerFilterLiveFilter: true,
+          {
+            title: "Facial Surgery",
+            field: "FacialSurgery",
+            headerFilter: "select",
+            headerFilterParams: {
+              values: {
+                "Any": "Any",
+                "No Facial Surgery": "No Facial Surgery",
+                "Brow/forehead lift": "Brow/forehead lift",
+                "Ear pinning": "Ear Pinning",
+                "Chin, cheek, or jaw reshaping": "Chin, cheek, or jaw reshaping",
+                "Eyelid lift": "Eyelid Lift",
+                "Facelift": "Facelift",
+                "Facial implants": "Facial implants",
+                "Hair replacement surgery": "Hair Replacement surgery",
+                "Lip augmentation": "Lip Augmentation",
+                "Rhinoplasty": "Rhinoplasty",
+                "Other": "Other",
+                "Prefer not to specify": "Prefer not to specify"
+              }
             },
-
-            // Ethnicity (hard-coded list)
-            {
-              title: "Ethnicity",
-              field: "Ethnicity",
-              headerFilter: "select",
-              headerFilterParams: {
-                values: {
-                  "All": "All",
-                  "White": "White",
-                  "Black or African American": "Black or African American",
-                  "American Indian or Alaska Native": "American Indian or Alaska Native",
-                  "Asian": "Asian",
-                  "Native Hawaiian or Other Pacific Islander": "Native Hawaiian or Other Pacific Islander",
-                  "Hispanic": "Hispanic",
-                  "Prefer not to specify": "Prefer not to specify"
-                }
-              },
-              headerFilterPlaceholder: "All",
-              headerFilterFunc: exactMatch,
-            },
-
-            // Facial Surgery (hard-coded list)
-            {
-              title: "Facial Surgery",
-              field: "FacialSurgery",
-              headerFilter: "select",
-              headerFilterParams: {
-                values: {
-                  "Any": "Any",
-                  "No Facial Surgery": "No Facial Surgery",
-                  "Brow/forehead lift": "Brow/forehead lift",
-                  "Ear pinning": "Ear Pinning",
-                  "Chin, cheek, or jaw reshaping": "Chin, cheek, or jaw reshaping",
-                  "Eyelid lift": "Eyelid Lift",
-                  "Facelift": "Facelift",
-                  "Facial implants": "Facial implants",
-                  "Hair replacement surgery": "Hair Replacement surgery",
-                  "Lip augmentation": "Lip Augmentation",
-                  "Rhinoplasty": "Rhinoplasty",
-                  "Other": "Other",
-                  "Prefer not to specify": "Prefer not to specify"
-                }
-              },
-              headerFilterPlaceholder: "Any",
-              headerFilterFunc: exactMatch,
-            },
-          ],
-        });
-
-        document.getElementById('clearFilters').addEventListener('click', () => {
-          statsTable.clearHeaderFilter();
-        });
+            headerFilterPlaceholder: "Any",
+            headerFilterFunc: exactMatch,
+          },
+        ],
       });
 
-    // Build Measurements Table
-    fetch('measurements.json')
-      .then(r => r.json())
-      .then(measurementsData => {
-        new Tabulator("#measurement-table", {
-          data: measurementsData,
-          layout: "fitColumns",
-          pagination: "local",
-          paginationSize: 10,
-          columns: [
-            { title: "Participant ID", field: "participantFileId" },
-            { title: "Measurement Name", field: "measurementName" },
-            { title: "Value", field: "value" },
-          ],
-        });
+      // 2) Measurements Table
+      const measurementTable = new Tabulator("#measurement-table", {
+        data: measurementsData,
+        layout: "fitColumns",
+        pagination: "local",
+        paginationSize: 10,
+        columns: [
+          { title: "Participant ID", field: "participantFileId" },
+          { title: "Measurement Name", field: "measurementName" },
+          { title: "Value", field: "value" },
+        ],
       });
+
+      // 3) Link them: whenever statsTable is filtered, update measurementTable
+      statsTable.on("dataFiltered", (filters, rows) => {
+        const visibleIDs = rows.map(r => r.getData().participantFileId);
+        if (visibleIDs.length) {
+          measurementTable.setFilter("participantFileId", "in", visibleIDs);
+        } else {
+          measurementTable.clearFilter();
+        }
+      });
+
+      // 4) Clear Filters button
+      document.getElementById('clearFilters').addEventListener('click', () => {
+        statsTable.clearHeaderFilter();
+      });
+    }).catch(console.error);
   </script>
 </body>
 </html>
