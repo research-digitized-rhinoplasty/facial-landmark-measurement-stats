@@ -4,43 +4,22 @@
   <meta charset="UTF-8" />
   <title>3D Facial Landmark Query Tool</title>
 
-
   <!-- Tabulator CSS -->
   <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet" />
-  <link href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" rel="stylesheet" />
-  <!-- CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/multi-select-dropdown/dist/style.css" />
-  <!-- JS -->
-  <script src="https://cdn.jsdelivr.net/npm/multi-select-dropdown/dist/script.js"></script>
-
 
   <style>
     body { font-family: Arial; padding: 20px; }
     #stats-table { margin-top: 20px; }
     .button-row { margin: 10px 0; }
 
+    select[multiple] {
+      height: 100px;
+      overflow-y: auto;
+      font-size: 12px;
+    }
+
     .tabulator-header-filter {
       overflow: visible !important;
-      position: relative;
-      z-index: 1;
-    }
-
-    .tabulator-col {
-      overflow: visible !important;
-    }
-
-    .choices__list--dropdown {
-      z-index: 9999 !important;
-      position: absolute !important;
-      max-height: 250px;
-      overflow-y: auto;
-      background-color: white;
-      border: 1px solid #ccc;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    .choices__inner {
-      min-height: 36px;
     }
   </style>
 </head>
@@ -55,71 +34,41 @@
 
   <!-- Tabulator JS -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
   <script>
-    function multiSelectFilterEditor(cell, onRendered, success, cancel, editorParams) {
-      const select = document.createElement("select");
-      select.setAttribute("multiple", true);
+    // Multi-select native dropdown filter
+    function multiSelectNativeDropdown(field) {
+      return function(cell, onRendered, success, cancel) {
+        const select = document.createElement("select");
+        select.setAttribute("multiple", true);
+        select.style.width = "100%";
+        select.style.height = "100px";
 
-      for (const [value, label] of Object.entries(editorParams.values)) {
-        const option = document.createElement("option");
-        option.value = value;
-        option.textContent = label;
-        select.appendChild(option);
-      }
+        const data = cell.getTable().getData();
+        const values = [...new Set(data.map(row => row[field]))];
 
-      onRendered(() => {
-        const choices = new Choices(select, {
-          removeItemButton: true,
-          shouldSort: false,
-          searchEnabled: false,
-          placeholder: true,
-          placeholderValue: 'Choose…',
-          position: 'bottom',
-          appendTo: document.body,
+        values.forEach(val => {
+          const option = document.createElement("option");
+          option.value = val;
+          option.textContent = val;
+          select.appendChild(option);
         });
 
-        const container = select.closest('.choices');
-
-        const updateDropdownPosition = () => {
-          requestAnimationFrame(() => {
-            const rect = select.getBoundingClientRect();
-            const dropdown = container.querySelector('.choices__list--dropdown');
-            if (dropdown) {
-              dropdown.style.position = 'absolute';
-              dropdown.style.top = `${rect.bottom + window.scrollY}px`;
-              dropdown.style.left = `${rect.left + window.scrollX}px`;
-              dropdown.style.width = `${rect.width}px`;
-              dropdown.style.zIndex = '9999';
-              dropdown.style.visibility = 'visible';
-              dropdown.style.display = 'block';
-            }
+        select.addEventListener("change", () => {
+          const selected = Array.from(select.selectedOptions).map(opt => opt.value);
+          success(function(cellValue) {
+            return selected.includes(cellValue);
           });
-        };
-
-        // Open dropdown immediately when header filter is clicked
-        container.addEventListener('click', () => {
-          choices.showDropdown(true);
-          updateDropdownPosition();
         });
 
-        setTimeout(updateDropdownPosition, 10);
-        window.addEventListener('scroll', updateDropdownPosition, true);
-        window.addEventListener('resize', updateDropdownPosition);
-      });
-
-      select.addEventListener("change", () => {
-        const selected = Array.from(select.selectedOptions).map(opt => opt.value);
-        success(selected);
-      });
-
-      return select;
+        return select;
+      };
     }
 
-    function multiSelectFilterFunction(filterVals, rowValue) {
-      if (!filterVals || filterVals.length === 0) return true;
-      return filterVals.includes(rowValue);
+    // Universal filter function for multi-select
+    function multiSelectFilterFunc(selected, value) {
+      if (!selected || selected.length === 0) return true;
+      return selected.includes(value);
     }
 
     fetch('data.json')
@@ -153,56 +102,24 @@
             {
               title: "Gender",
               field: "Gender",
-              headerFilter: multiSelectFilterEditor,
-              headerFilterFunc: multiSelectFilterFunction,
-              headerFilterParams: {
-                values: {
-                  "M": "M",
-                  "F": "F",
-                  "Other": "Other"
-                }
-              }
+              headerFilter: multiSelectNativeDropdown("Gender"),
+              headerFilterFunc: "custom"
             },
             {
               title: "Ethnicity",
               field: "Ethnicity",
-              headerFilter: multiSelectFilterEditor,
-              headerFilterFunc: multiSelectFilterFunction,
-              headerFilterParams: {
-                values: {
-                  White: "White",
-                  "Black or African American": "Black or African American",
-                  "American Indian or Alaska Native": "American Indian or Alaska Native",
-                  Asian: "Asian",
-                  "Native Hawaiian or Other Pacific Islander": "Native Hawaiian or Other Pacific Islander",
-                  Hispanic: "Hispanic",
-                  "Prefer not to specify": "Prefer not to specify"
-                }
-              }
+              headerFilter: multiSelectNativeDropdown("Ethnicity"),
+              headerFilterFunc: "custom"
             },
             {
-              title: 'Facial Surgery',
-              field: 'FacialSurgery',
-              headerFilter: multiSelectFilterEditor,
-              headerFilterFunc: multiSelectFilterFunction,
-              headerFilterParams: {
-                values: {
-                  'No Facial Surgery': 'No Facial Surgery',
-                  'Brow/forehead lift': 'Brow/forehead lift',
-                  'Ear pinning': 'Ear Pinning',
-                  'Chin, cheek, or jaw reshaping': 'Chin, cheek, or jaw reshaping',
-                  'Eyelid lift': 'Eyelid Lift',
-                  'Facelift': 'Facelift',
-                  'Facial implants': 'Facial implants',
-                  'Hair replacement surgery': 'Hair Replacement surgery',
-                  'Lip augmentation': 'Lip Augmentation',
-                  'Rhinoplasty': 'Rhinoplasty',
-                  'Other': 'Other',
-                  'Prefer not to specify': 'Prefer not to specify'
-                }
-              }
+              title: "Facial Surgery",
+              field: "FacialSurgery",
+              headerFilter: multiSelectNativeDropdown("FacialSurgery"),
+              headerFilterFunc: "custom"
             }
-          ]
+          ],
+          headerFilterLiveFilterDelay: 300,
+          headerFilterFuncCustom: multiSelectFilterFunc
         });
 
         document.getElementById('clearFilters').addEventListener('click', () => {
