@@ -60,15 +60,15 @@
       }
 
       onRendered(() => {
-        const choices = new Choices(el, {
-          removeItemButton: true,
-          searchEnabled: false,
-          placeholderValue: 'Choose an option below...',
-          shouldSort: false
-        });
-
-        // Ensure dropdown opens after render
-        setTimeout(() => choices.showDropdown(), 0);
+        // Delay Choices init to ensure select is fully in DOM
+        setTimeout(() => {
+          new Choices(el, {
+            removeItemButton: true,
+            searchEnabled: false,
+            placeholderValue: 'Choose an option below',
+            shouldSort: false
+          });
+        }, 0);
       });
 
       el.addEventListener("change", () => {
@@ -79,10 +79,6 @@
       return el;
     }
 
-    function multiSelectFilterFunction(headerValue, rowValue) {
-      if (!headerValue || headerValue.length === 0) return true;
-      return headerValue.includes(rowValue);
-    }
 
     // === Initialize table with filters ===
     fetch('data.json')
