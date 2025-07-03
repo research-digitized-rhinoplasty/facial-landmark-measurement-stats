@@ -19,16 +19,33 @@
   <!-- Choices.js JS -->
   <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
-  <style>
-    body { font-family: Arial; padding: 20px; }
-    #stats-table { margin-top: 20px; }
-    .button-row { margin: 10px 0; }
 
-    /* Optional: improve dropdown display in headers */
-    .tabulator-header-filter .choices {
-      font-size: 13px;
-    }
-  </style>
+ <style>
+  body { font-family: Arial; padding: 20px; }
+  #stats-table { margin-top: 20px; }
+  .button-row { margin: 10px 0; }
+
+  .tabulator-header-filter .choices {
+    font-size: 13px;
+  }
+
+  /* ✅ New Fix Starts Here */
+  .choices__list--dropdown {
+    z-index: 1000 !important;
+    position: absolute !important;
+    max-height: 200px;
+    overflow-y: auto;
+    background-color: white;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .tabulator-header-filter {
+    overflow: visible !important;
+    position: relative;
+  }
+</style>
+
 </head>
 <body>
   <h2>3D Facial Landmark Query Tool</h2>
