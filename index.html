@@ -9,151 +9,48 @@
     href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css"
     rel="stylesheet"
   />
-
-  <!-- Choices.js CSS -->
+  <!-- Choices.js CSS (for your multi-select filters above, if you still need them) -->
   <link
     href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"
     rel="stylesheet"
   />
 
-  <!-- Choices.js JS -->
-  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
-
-
- <style>
-  body { font-family: Arial; padding: 20px; }
-  #stats-table { margin-top: 20px; }
-  .button-row { margin: 10px 0; }
-
-  .tabulator-header-filter .choices {
-  min-height: 34px;
-  font-size: 13px;
-  line-height: 1.2;
-}
-
-
-  /* New Fix Starts Here */
-  .choices__list--dropdown {
-    z-index: 1000 !important;
-    position: absolute !important;
-    max-height: 200px;
-    overflow-y: auto;
-    background-color: white;
-    border: 1px solid #ccc;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  }
-
-  .tabulator-header-filter {
-    overflow: visible !important;
-    position: relative;
-  }
-
-  /* Allow dropdown to break out of the header container */
-.tabulator .tabulator-header .tabulator-col .tabulator-header-filter {
-  overflow: visible !important;
-  position: relative !important;
-  z-index: 1;
-}
-
-/* Force Choices dropdown to show above the table */
-.choices__list--dropdown {
-  z-index: 9999 !important;
-  position: absolute !important;
-  max-height: 220px;
-  overflow-y: auto;
-  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.2);
-  background-color: white;
-  border: 1px solid #ccc;
-}
-
-/* Prevent header clipping (for Safari) */
-.tabulator-col {
-  overflow: visible !important;
-}
-
-/* Optional: more vertical space in the header filter cell */
-.tabulator-header-filter .choices {
-  min-height: 34px;
-  font-size: 13px;
-}
-
-</style>
-
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    #stats-table { margin-top: 20px; }
+    .button-row { margin: 10px 0; }
+  </style>
 </head>
 <body>
   <h2>3D Facial Landmark Query Tool</h2>
 
+  <!-- (Your existing multi-select / age inputs go here, if you still want them) -->
   <div class="button-row">
     <button id="clearFilters">Clear All Column Filters</button>
   </div>
 
+  <!-- This is where Tabulator will render -->
   <div id="stats-table"></div>
+
+
+  <h3>Dummy Histogram Test</h3>
+  <canvas id="dummyHistogram" height="200"></canvas>
+
 
   <!-- Tabulator JS -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
 
-  <!-- Chart.js (if you need it later) -->
+  <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+
+
   <script>
-    // === Multi-select filter using Choices.js ===
-    function multiSelectFilterEditor(cell, onRendered, success, cancel, editorParams){
-      const values = editorParams.values;
-      const select = document.createElement("select");
-      select.setAttribute("multiple", true);
-
-      // Create options
-      for (const val of Object.keys(values)) {
-        const option = document.createElement("option");
-        option.value = val;
-        option.textContent = values[val];
-        select.appendChild(option);
-      }
-
-      // Only init Choices after DOM is rendered
-      onRendered(() => {
-        const choices = new Choices(select, {
-          removeItemButton: true,
-          searchEnabled: false,
-          shouldSort: false,
-          placeholder: true,
-          placeholderValue: 'Choose an option below',
-          position: 'bottom',
-          // Appending to body and custom positioning
-          appendTo: document.body
-        });
-
-        // Force correct dropdown position
-        const updatePosition = () => {
-          const rect = select.getBoundingClientRect();
-          const dropdown = select.closest('.choices').querySelector('.choices__list--dropdown');
-          if (dropdown) {
-            dropdown.style.position = 'absolute';
-            dropdown.style.top = rect.bottom + window.scrollY + 'px';
-            dropdown.style.left = rect.left + window.scrollX + 'px';
-            dropdown.style.width = rect.width + 'px';
-            dropdown.style.zIndex = 9999;
-          }
-        };
-
-        setTimeout(updatePosition, 0);
-        window.addEventListener('scroll', updatePosition, true);
-        window.addEventListener('resize', updatePosition);
-      });
-
-      select.addEventListener("change", () => {
-        const selected = Array.from(select.selectedOptions).map(opt => opt.value);
-        success(selected);
-      });
-
-      return select;
-    }
-
-
-    // === Initialize table with filters ===
+    // 1) Fetch your data.json
     fetch('data.json')
       .then(r => r.json())
       .then(data => {
+        // 2) Create the Tabulator
         const table = new Tabulator("#stats-table", {
           data: data,
           layout: "fitColumns",
@@ -162,6 +59,7 @@
           columns: [
             { title: "Participant ID", field: "participantFileId" },
 
+            // Min Age filter
             {
               title: "Age Min",
               field: "Age",
@@ -171,6 +69,8 @@
               headerFilterFunc: ">=",
               headerFilterLiveFilter: true,
             },
+
+            // Max Age filter
             {
               title: "Age Max",
               field: "Age",
@@ -180,43 +80,61 @@
               headerFilterFunc: "<=",
               headerFilterLiveFilter: true,
             },
-            {
+
+            { 
               title: "Gender",
               field: "Gender",
-              headerFilter: multiSelectFilterEditor,
-              headerFilterFunc: multiSelectFilterFunction,
+              headerFilter: "select",
               headerFilterParams: {
+                // force these exact options (label:value)
                 values: {
-                  "F": "F",
-                  "M": "M",
-                  "Other": "Other"
+                  "All":    "All",
+                  "M":      "M",
+                  "F":      "F",
+                  "Other":  "Other",
                 }
+              },
+              headerFilterPlaceholder: "All", // shows “All” when nothing’s selected
+              headerFilterFunc: function(headerValue, rowValue) {
+                // headerValue will be "All" or "M"/"F"/"Other"
+                if (headerValue === "All") return true;      // no filtering
+                return rowValue === headerValue;
               }
             },
+
+
             {
               title: "Ethnicity",
               field: "Ethnicity",
-              headerFilter: multiSelectFilterEditor,
-              headerFilterFunc: multiSelectFilterFunction,
+              headerFilter: "select",
               headerFilterParams: {
+                // force exactly these entries in the dropdown
                 values: {
-                  "White": "White",
+                  All: "All",
+                  White: "White",
                   "Black or African American": "Black or African American",
                   "American Indian or Alaska Native": "American Indian or Alaska Native",
-                  "Asian": "Asian",
+                  Asian: "Asian",
                   "Native Hawaiian or Other Pacific Islander": "Native Hawaiian or Other Pacific Islander",
-                  "Hispanic": "Hispanic",
-                  "Prefer not to specify": "Prefer not to specify"
+                  Hispanic: "Hispanic",
+                  "Prefer not to specify" : "Prefer not to specify",
                 }
+              },
+              headerFilterPlaceholder: "All",
+              headerFilterFunc: function(headerValue, rowValue) {
+                // "All" means no filtering
+                if (headerValue === "All") return true;
+                return rowValue === headerValue;
               }
             },
+
             {
               title: 'Facial Surgery',
               field: 'FacialSurgery',
-              headerFilter: multiSelectFilterEditor,
-              headerFilterFunc: multiSelectFilterFunction,
+              headerFilter: 'select',
               headerFilterParams: {
                 values: {
+                  '':'Any',
                   'No Facial Surgery':'No Facial Surgery',
                   'Brow/forehead lift':'Brow/forehead lift',
                   'Ear pinning':'Ear Pinning',
@@ -230,15 +148,58 @@
                   'Other':'Other',
                   'Prefer not to specify':'Prefer not to specify'
                 }
-              }
-            }
-          ]
+              },
+              headerFilterPlaceholder: 'Any',
+            },
+          ],
         });
 
+        // 3) Clear-all button
         document.getElementById('clearFilters').addEventListener('click', () => {
-          table.clearHeaderFilter();
+          table.clearHeaderFilter(); // resets every column filter
         });
       })
       .catch(console.error);
-  </script>
+      
+      // === Dummy Chart for testing ===
+      const dummyData = [
+        { name: "Measurement A", value: 25 },
+        { name: "Measurement B", value: 42 },
+        { name: "Measurement C", value: 37 },
+        { name: "Measurement D", value: 60 },
+        { name: "Measurement E", value: 15 },
+        { name: "Measurement F", value: 48 },
+        { name: "Measurement G", value: 32 }
+      ];
+
+      const dummyCtx = document.getElementById('dummyHistogram').getContext('2d');
+      new Chart(dummyCtx, {
+        type: 'bar',
+        data: {
+          labels: dummyData.map(item => item.name),
+          datasets: [{
+            label: 'Value',
+            data: dummyData.map(item => item.value),
+            backgroundColor: 'rgba(255, 99, 132, 0.7)'
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            title: { display: true, text: 'Dummy Histogram of Measurements' }
+          },
+          scales: {
+            x: { beginAtZero: true },
+            y: {
+              ticks: { autoSkip: false }
+            }
+          }
+        }
+      });
+
+</script>
+
 </body>
+</html>
