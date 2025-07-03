@@ -33,10 +33,6 @@
   <div id="stats-table"></div>
 
 
-  <h3>Dummy Histogram Test</h3>
-  <canvas id="dummyHistogram" height="200"></canvas>
-
-
   <!-- Tabulator JS -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
 
@@ -160,44 +156,7 @@
         });
       })
       .catch(console.error);
-      
-      // === Dummy Chart for testing ===
-      const dummyData = [
-        { name: "Measurement A", value: 25 },
-        { name: "Measurement B", value: 42 },
-        { name: "Measurement C", value: 37 },
-        { name: "Measurement D", value: 60 },
-        { name: "Measurement E", value: 15 },
-        { name: "Measurement F", value: 48 },
-        { name: "Measurement G", value: 32 }
-      ];
 
-      const dummyCtx = document.getElementById('dummyHistogram').getContext('2d');
-      new Chart(dummyCtx, {
-        type: 'bar',
-        data: {
-          labels: dummyData.map(item => item.name),
-          datasets: [{
-            label: 'Value',
-            data: dummyData.map(item => item.value),
-            backgroundColor: 'rgba(255, 99, 132, 0.7)'
-          }]
-        },
-        options: {
-          indexAxis: 'y',
-          responsive: true,
-          plugins: {
-            legend: { display: false },
-            title: { display: true, text: 'Dummy Histogram of Measurements' }
-          },
-          scales: {
-            x: { beginAtZero: true },
-            y: {
-              ticks: { autoSkip: false }
-            }
-          }
-        }
-      });
 
 </script>
 
