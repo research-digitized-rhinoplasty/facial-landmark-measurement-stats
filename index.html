@@ -12,11 +12,12 @@
     #stats-table { margin-top: 20px; }
     .button-row { margin: 10px 0; }
 
+    /* style your multi-selects in the header */
     select[multiple] {
+      width: 100%;
       height: 100px;
       overflow-y: auto;
       font-size: 12px;
-      width: 100%;
     }
 
     .tabulator-header-filter {
@@ -37,52 +38,50 @@
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
 
   <script>
+    // 1) Editor that builds a native <select multiple> AFTER data loads
     function multiSelectNativeDropdown(field) {
       return function(cell, onRendered, success, cancel) {
         const select = document.createElement("select");
-        select.setAttribute("multiple", true);
-        select.style.height = "100px";
-        select.style.width = "100%";
+        select.multiple = true;
 
-        // Populate options after table data is ready
-        setTimeout(() => {
+        // wait until Tabulator has injected the header and loaded data
+        onRendered(() => {
           const tableData = cell.getTable().getData();
-          const values = [...new Set(tableData.map(row => row[field]))];
-
-          values.forEach(val => {
-            const option = document.createElement("option");
-            option.value = val;
-            option.textContent = val;
-            select.appendChild(option);
+          const unique = Array.from(new Set(tableData.map(r => r[field])));
+          unique.forEach(val => {
+            const opt = document.createElement("option");
+            opt.value = val;
+            opt.textContent = val;
+            select.appendChild(opt);
           });
-        }, 0);
+        });
 
+        // when user changes selection, invoke Tabulator's filter
         select.addEventListener("change", () => {
-          const selected = Array.from(select.selectedOptions).map(opt => opt.value);
-          success(function(cellValue) {
-            return selected.includes(cellValue);
-          });
+          const chosen = Array.from(select.selectedOptions).map(o => o.value);
+          // headerFilterFunc receives this chosen array below
+          success(chosen);
         });
 
         return select;
       };
     }
 
-    function multiSelectFilterFunc(selected, value) {
-      if (!selected || selected.length === 0) return true;
-      return selected.includes(value);
+    // 2) Filter function: keeps row if its cellValue is in the chosen list
+    function multiSelectFilterFunc(chosenList, cellValue) {
+      if (!Array.isArray(chosenList) || chosenList.length === 0) return true;
+      return chosenList.includes(cellValue);
     }
 
+    // 3) Load data and build the table
     fetch('data.json')
       .then(r => r.json())
       .then(data => {
         const table = new Tabulator("#stats-table", {
-          data: data,
+          data,
           layout: "fitColumns",
           pagination: "local",
           paginationSize: 10,
-          headerFilterLiveFilterDelay: 300,
-          headerFilterFuncCustom: multiSelectFilterFunc,
           columns: [
             { title: "Participant ID", field: "participantFileId" },
             {
@@ -107,23 +106,27 @@
               title: "Gender",
               field: "Gender",
               headerFilter: multiSelectNativeDropdown("Gender"),
-              headerFilterFunc: "custom"
+              headerFilterFunc: multiSelectFilterFunc,
+              headerFilterLiveFilter: true,
             },
             {
               title: "Ethnicity",
               field: "Ethnicity",
               headerFilter: multiSelectNativeDropdown("Ethnicity"),
-              headerFilterFunc: "custom"
+              headerFilterFunc: multiSelectFilterFunc,
+              headerFilterLiveFilter: true,
             },
             {
               title: "Facial Surgery",
               field: "FacialSurgery",
               headerFilter: multiSelectNativeDropdown("FacialSurgery"),
-              headerFilterFunc: "custom"
-            }
-          ]
+              headerFilterFunc: multiSelectFilterFunc,
+              headerFilterLiveFilter: true,
+            },
+          ],
         });
 
+        // 4) Clear-all button
         document.getElementById('clearFilters').addEventListener('click', () => {
           table.clearHeaderFilter();
         });
