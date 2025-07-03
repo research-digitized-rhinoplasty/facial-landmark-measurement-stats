@@ -83,51 +83,59 @@
       return h === "All" || h === "Any" || v === h;
     }
 
-    // dropdown checkbox header filter
+    // dropdown checkbox header filter (appended to body)
     function dropdownMultiCheck(cell, onRendered, success) {
       const values = cell.getColumn().getDefinition().headerFilterParams.values;
-      const wrapper = document.createElement('div');
-      wrapper.style.position = 'relative';
-
       const toggle = document.createElement('div');
       toggle.classList.add('dropdown-toggle');
       toggle.textContent = 'Select...';
-      wrapper.appendChild(toggle);
+      toggle.style.position = 'relative';
 
-      const list = document.createElement('div');
-      list.classList.add('checkbox-dropdown');
-      list.style.display = 'none';
+      let list;
+      const openDropdown = () => {
+        if (list) return;
+        list = document.createElement('div');
+        list.classList.add('checkbox-dropdown');
+        values.forEach(val => {
+          const lbl = document.createElement('label');
+          const cb = document.createElement('input'); cb.type = 'checkbox'; cb.value = val;
+          lbl.appendChild(cb);
+          lbl.appendChild(document.createTextNode(val));
+          list.appendChild(lbl);
 
-      values.forEach(val => {
-        const lbl = document.createElement('label');
-        const cb  = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.value = val;
-        lbl.appendChild(cb);
-        lbl.appendChild(document.createTextNode(val));
-        list.appendChild(lbl);
-
-        cb.addEventListener('change', () => {
-          const chosen = Array.from(list.querySelectorAll('input:checked'))
-                              .map(i => i.value);
-          toggle.textContent = chosen.length ? chosen.join(', ') : 'Select...';
-          success(chosen);
+          cb.addEventListener('change', () => {
+            const chosen = Array.from(list.querySelectorAll('input:checked')).map(i => i.value);
+            toggle.textContent = chosen.length ? chosen.join(', ') : 'Select...';
+            success(chosen);
+          });
         });
-      });
+        document.body.appendChild(list);
+        const rect = toggle.getBoundingClientRect();
+        list.style.position = 'absolute';
+        list.style.top = rect.bottom + window.scrollY + 'px';
+        list.style.left = rect.left + window.scrollX + 'px';
+        list.style.zIndex = '9999';
 
-      wrapper.appendChild(list);
+        document.addEventListener('click', outsideClick);
+      };
+      const closeDropdown = () => {
+        if (!list) return;
+        list.remove(); list = null;
+        document.removeEventListener('click', outsideClick);
+      };
+      const outsideClick = (e) => {
+        if (!toggle.contains(e.target) && list && !list.contains(e.target)) {
+          closeDropdown();
+        }
+      };
 
-      toggle.addEventListener('click', e => {
+      toggle.addEventListener('click', (e) => {
         e.stopPropagation();
-        list.style.display = list.style.display === 'none' ? 'block' : 'none';
-      });
-
-      document.addEventListener('click', () => {
-        list.style.display = 'none';
+        list ? closeDropdown() : openDropdown();
       });
 
       onRendered(() => {});
-      return wrapper;
+      return toggle;
     }
 
     // multi select filter function
