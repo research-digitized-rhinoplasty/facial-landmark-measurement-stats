@@ -2,136 +2,96 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>3D Facial Landmark Query Tool</title>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Participant & Measurement Dashboard</title>
   <!-- Tabulator CSS -->
-  <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet" />
-
+  <link
+    href="https://unpkg.com/tabulator-tables@5.4.4/dist/css/tabulator.min.css"
+    rel="stylesheet"
+  />
   <style>
-    body { font-family: Arial; padding: 20px; }
-    #stats-table { margin-top: 20px; }
-    .button-row { margin: 10px 0; }
-
-    /* style your multi-selects in the header */
-    select[multiple] {
-      width: 100%;
-      height: 100px;
-      overflow-y: auto;
-      font-size: 12px;
-    }
-
-    .tabulator-header-filter {
-      overflow: visible !important;
-    }
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    h2 { margin-top: 40px; }
+    #participant-table, #measurement-table { margin-top: 10px; }
   </style>
 </head>
 <body>
-  <h2>3D Facial Landmark Query Tool</h2>
+  <h1>Participant & Measurement Dashboard</h1>
 
-  <div class="button-row">
-    <button id="clearFilters">Clear All Column Filters</button>
-  </div>
+  <h2>Participants</h2>
+  <div id="participant-table"></div>
 
-  <div id="stats-table"></div>
+  <h2>Measurements</h2>
+  <div id="measurement-table"></div>
 
   <!-- Tabulator JS -->
-  <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
-
+  <script src="https://unpkg.com/tabulator-tables@5.4.4/dist/js/tabulator.min.js"></script>
   <script>
-    // 1) Editor that builds a native <select multiple> AFTER data loads
-    function multiSelectNativeDropdown(field) {
-      return function(cell, onRendered, success, cancel) {
-        const select = document.createElement("select");
-        select.multiple = true;
+    // Data holders
+    let participantData = [];
+    let measurementData = [];
 
-        // wait until Tabulator has injected the header and loaded data
-        onRendered(() => {
-          const tableData = cell.getTable().getData();
-          const unique = Array.from(new Set(tableData.map(r => r[field])));
-          unique.forEach(val => {
-            const opt = document.createElement("option");
-            opt.value = val;
-            opt.textContent = val;
-            select.appendChild(opt);
-          });
-        });
+    // 1) Participant table
+    const participantTable = new Tabulator("#participant-table", {
+      layout: "fitColumns",
+      height: "300px",
+      placeholder: "No participants to display",
+      columns: [
+        { title: "File ID",        field: "participantFileId", headerFilter: "input" },
+        { title: "Gender",         field: "Gender",            headerFilter: "select",
+          headerFilterParams: { "": "All", "F": "F", "M": "M" }
+        },
+        { title: "Age",            field: "Age",               headerFilter: "number" },
+        { title: "Ethnicity",      field: "Ethnicity",         headerFilter: "input" },
+        { title: "Facial Surgery", field: "FacialSurgery",     headerFilter: "input" },
+      ],
+      dataFiltered: function(filters, rows){
+        // get visible participant IDs
+        const ids = rows.map(r => r.getData().participantFileId);
+        // filter measurements to those IDs
+        const filtered = measurementData.filter(m =>
+          ids.includes(m.participantFileId)
+        );
+        measurementTable.replaceData(filtered);
+      },
+    });
 
-        // when user changes selection, invoke Tabulator's filter
-        select.addEventListener("change", () => {
-          const chosen = Array.from(select.selectedOptions).map(o => o.value);
-          // headerFilterFunc receives this chosen array below
-          success(chosen);
-        });
+    // 2) Measurement table
+    const measurementTable = new Tabulator("#measurement-table", {
+      layout: "fitColumns",
+      height: "300px",
+      placeholder: "Filter participants to see measurements",
+      columns: [
+        { title: "File ID",          field: "participantFileId" },
+        { title: "Measurement Name", field: "measurementName" },
+        { title: "Value",            field: "value" },
+      ],
+    });
 
-        return select;
-      };
-    }
-
-    // 2) Filter function: keeps row if its cellValue is in the chosen list
-    function multiSelectFilterFunc(chosenList, cellValue) {
-      if (!Array.isArray(chosenList) || chosenList.length === 0) return true;
-      return chosenList.includes(cellValue);
-    }
-
-    // 3) Load data and build the table
-    fetch('data.json')
-      .then(r => r.json())
+    // 3) Load data.json
+    fetch("data.json")
+      .then(res => res.json())
       .then(data => {
-        const table = new Tabulator("#stats-table", {
-          data,
-          layout: "fitColumns",
-          pagination: "local",
-          paginationSize: 10,
-          columns: [
-            { title: "Participant ID", field: "participantFileId" },
-            {
-              title: "Age Min",
-              field: "Age",
-              sorter: "number",
-              headerFilter: "input",
-              headerFilterPlaceholder: "Min…",
-              headerFilterFunc: ">=",
-              headerFilterLiveFilter: true,
-            },
-            {
-              title: "Age Max",
-              field: "Age",
-              sorter: "number",
-              headerFilter: "input",
-              headerFilterPlaceholder: "Max…",
-              headerFilterFunc: "<=",
-              headerFilterLiveFilter: true,
-            },
-            {
-              title: "Gender",
-              field: "Gender",
-              headerFilter: multiSelectNativeDropdown("Gender"),
-              headerFilterFunc: multiSelectFilterFunc,
-              headerFilterLiveFilter: true,
-            },
-            {
-              title: "Ethnicity",
-              field: "Ethnicity",
-              headerFilter: multiSelectNativeDropdown("Ethnicity"),
-              headerFilterFunc: multiSelectFilterFunc,
-              headerFilterLiveFilter: true,
-            },
-            {
-              title: "Facial Surgery",
-              field: "FacialSurgery",
-              headerFilter: multiSelectNativeDropdown("FacialSurgery"),
-              headerFilterFunc: multiSelectFilterFunc,
-              headerFilterLiveFilter: true,
-            },
-          ],
-        });
+        // assume data.json is an array of participant objects
+        participantData = data;
+        participantTable.setData(participantData);
 
-        // 4) Clear-all button
-        document.getElementById('clearFilters').addEventListener('click', () => {
-          table.clearHeaderFilter();
+        // flatten out all ParticipantMeasurements
+        measurementData = [];
+        participantData.forEach(p => {
+          if (Array.isArray(p.ParticipantMeasurements)) {
+            p.ParticipantMeasurements.forEach(m => {
+              measurementData.push({
+                participantFileId: p.participantFileId,
+                measurementName:   m.MeasurementName,
+                value:             m.Value,
+              });
+            });
+          }
         });
+        // leave measurement table empty until you filter participants
       })
-      .catch(console.error);
+      .catch(err => console.error("Failed to load data.json:", err));
   </script>
 </body>
 </html>
