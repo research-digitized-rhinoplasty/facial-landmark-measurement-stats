@@ -2,249 +2,120 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>3D Facial Landmark Query Tool</title>
+  <title>Tabulator Multi-Select Header Filters</title>
 
   <!-- Tabulator CSS -->
-  <link
-    href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css"
-    rel="stylesheet"
-  />
+  <link href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator.min.css" rel="stylesheet" />
 
   <!-- Choices.js CSS -->
-  <link
-    href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"
-    rel="stylesheet"
-  />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
 
-  <!-- Choices.js JS -->
-  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
 
+    .choices {
+      margin: 0;
+    }
 
- <style>
-  body { font-family: Arial; padding: 20px; }
-  #stats-table { margin-top: 20px; }
-  .button-row { margin: 10px 0; }
+    .choices__inner {
+      font-size: 12px;
+      min-height: auto;
+      padding: 4px 8px;
+    }
 
-  .tabulator-header-filter .choices {
-    font-size: 13px;
-  }
+    .choices__list--multiple .choices__item {
+      font-size: 11px;
+    }
 
-  /* ✅ New Fix Starts Here */
-  .choices__list--dropdown {
-    z-index: 1000 !important;
-    position: absolute !important;
-    max-height: 200px;
-    overflow-y: auto;
-    background-color: white;
-    border: 1px solid #ccc;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  }
-
-  .tabulator-header-filter {
-    overflow: visible !important;
-    position: relative;
-  }
-
-  /* ✅ Allow dropdown to break out of the header container */
-.tabulator .tabulator-header .tabulator-col .tabulator-header-filter {
-  overflow: visible !important;
-  position: relative !important;
-  z-index: 1;
-}
-
-/* ✅ Force Choices dropdown to show above the table */
-.choices__list--dropdown {
-  z-index: 9999 !important;
-  position: absolute !important;
-  max-height: 220px;
-  overflow-y: auto;
-  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.2);
-  background-color: white;
-  border: 1px solid #ccc;
-}
-
-/* ✅ Prevent header clipping (for Safari) */
-.tabulator-col {
-  overflow: visible !important;
-}
-
-/* Optional: more vertical space in the header filter cell */
-.tabulator-header-filter .choices {
-  min-height: 34px;
-  font-size: 13px;
-}
-
-</style>
-
+    .tabulator-header-filter input,
+    .tabulator-header-filter select {
+      width: 100%;
+      box-sizing: border-box;
+    }
+  </style>
 </head>
 <body>
-  <h2>3D Facial Landmark Query Tool</h2>
 
-  <div class="button-row">
-    <button id="clearFilters">Clear All Column Filters</button>
-  </div>
+  <h2>Facial Stats Table with Embedded Filters</h2>
 
-  <div id="stats-table"></div>
+  <div id="table"></div>
 
   <!-- Tabulator JS -->
-  <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
+  <script src="https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
 
-  <!-- Chart.js (if you need it later) -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Choices.js -->
+  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
   <script>
-    // === Multi-select filter using Choices.js ===
-    function multiSelectFilterEditor(cell, onRendered, success, cancel, editorParams){
-      const values = editorParams.values;
-      const el = document.createElement("select");
-      el.setAttribute("multiple", true);
+    const tableData = [
+      { id: 1, Name: "Alice", Gender: "F", Ethnicity: "Hispanic", "Facial Surgery": "None" },
+      { id: 2, Name: "Bob", Gender: "M", Ethnicity: "Asian", "Facial Surgery": "Rhinoplasty" },
+      { id: 3, Name: "Carlos", Gender: "M", Ethnicity: "Hispanic", "Facial Surgery": "None" },
+      { id: 4, Name: "Diana", Gender: "F", Ethnicity: "Caucasian", "Facial Surgery": "Jaw Surgery" },
+      { id: 5, Name: "Elena", Gender: "F", Ethnicity: "Asian", "Facial Surgery": "None" },
+    ];
 
-      for (const [val, label] of Object.entries(values)) {
-        const opt = document.createElement("option");
-        opt.value = val;
-        opt.textContent = label;
-        el.appendChild(opt);
-      }
+    function customMultiSelectFilter(field) {
+      return function(cell, onRendered, success, cancel) {
+        const input = document.createElement("select");
+        input.setAttribute("multiple", true);
 
-      onRendered(() => {
-        const choices = new Choices(el, {
+        const values = [...new Set(cell.getTable().getData().map(row => row[field]))];
+        values.forEach(val => {
+          const option = document.createElement("option");
+          option.value = val;
+          option.textContent = val;
+          input.appendChild(option);
+        });
+
+        const choices = new Choices(input, {
           removeItemButton: true,
-          searchEnabled: false,
-          placeholderValue: 'Choose an option below',
           shouldSort: false,
-          position: 'bottom',
-          renderChoiceLimit: -1,
-          // 👇 Forces the dropdown to be appended directly to <body>
-          appendTo: document.body 
         });
 
-        // Sync dropdown position with filter cell
-        const updatePosition = () => {
-          const rect = el.getBoundingClientRect();
-          const dropdown = el.closest('.choices').querySelector('.choices__list--dropdown');
-          if (dropdown) {
-            dropdown.style.position = 'absolute';
-            dropdown.style.top = rect.bottom + window.scrollY + 'px';
-            dropdown.style.left = rect.left + window.scrollX + 'px';
-            dropdown.style.width = rect.width + 'px';
-            dropdown.style.zIndex = 9999;
+        input.addEventListener("change", function () {
+          const selected = choices.getValue(true);
+          if (selected.length > 0) {
+            success(function(cellValue) {
+              return selected.includes(cellValue);
+            });
+          } else {
+            success(); // Clear filter if nothing selected
           }
-        };
-
-        // Run after a delay to ensure DOM is ready
-        setTimeout(updatePosition, 0);
-
-        // Update on scroll or resize
-        window.addEventListener('scroll', updatePosition, true);
-        window.addEventListener('resize', updatePosition);
-      });
-
-
-      el.addEventListener("change", () => {
-        const selected = Array.from(el.selectedOptions).map(opt => opt.value);
-        success(selected);
-      });
-
-      return el;
-    }
-
-    function multiSelectFilterFunction(selectedValues, rowValue) 
-    {
-      if (!selectedValues || selectedValues.length === 0) return true; // no filtering
-      return selectedValues.includes(rowValue); // keep row if value is in selected list
-    }
-
-
-
-    // === Initialize table with filters ===
-    fetch('data.json')
-      .then(r => r.json())
-      .then(data => {
-        const table = new Tabulator("#stats-table", {
-          data: data,
-          layout: "fitColumns",
-          pagination: "local",
-          paginationSize: 10,
-          columns: [
-            { title: "Participant ID", field: "participantFileId" },
-
-            {
-              title: "Age Min",
-              field: "Age",
-              sorter: "number",
-              headerFilter: "input",
-              headerFilterPlaceholder: "Min…",
-              headerFilterFunc: ">=",
-              headerFilterLiveFilter: true,
-            },
-            {
-              title: "Age Max",
-              field: "Age",
-              sorter: "number",
-              headerFilter: "input",
-              headerFilterPlaceholder: "Max…",
-              headerFilterFunc: "<=",
-              headerFilterLiveFilter: true,
-            },
-            {
-              title: "Gender",
-              field: "Gender",
-              headerFilter: multiSelectFilterEditor,
-              headerFilterFunc: multiSelectFilterFunction,
-              headerFilterParams: {
-                values: {
-                  "F": "F",
-                  "M": "M",
-                  "Other": "Other"
-                }
-              }
-            },
-            {
-              title: "Ethnicity",
-              field: "Ethnicity",
-              headerFilter: multiSelectFilterEditor,
-              headerFilterFunc: multiSelectFilterFunction,
-              headerFilterParams: {
-                values: {
-                  "White": "White",
-                  "Black or African American": "Black or African American",
-                  "American Indian or Alaska Native": "American Indian or Alaska Native",
-                  "Asian": "Asian",
-                  "Native Hawaiian or Other Pacific Islander": "Native Hawaiian or Other Pacific Islander",
-                  "Hispanic": "Hispanic",
-                  "Prefer not to specify": "Prefer not to specify"
-                }
-              }
-            },
-            {
-              title: 'Facial Surgery',
-              field: 'FacialSurgery',
-              headerFilter: multiSelectFilterEditor,
-              headerFilterFunc: multiSelectFilterFunction,
-              headerFilterParams: {
-                values: {
-                  'No Facial Surgery':'No Facial Surgery',
-                  'Brow/forehead lift':'Brow/forehead lift',
-                  'Ear pinning':'Ear Pinning',
-                  'Chin, cheek, or jaw reshaping':'Chin, cheek, or jaw reshaping',
-                  'Eyelid lift':'Eyelid Lift',
-                  'Facelift':'Facelift',
-                  'Facial implants':'Facial implants',
-                  'Hair replacement surgery':'Hair Replacement surgery',
-                  'Lip augmentation':'Lip Augmentation',
-                  'Rhinoplasty':'Rhinoplasty',
-                  'Other':'Other',
-                  'Prefer not to specify':'Prefer not to specify'
-                }
-              }
-            }
-          ]
         });
 
-        document.getElementById('clearFilters').addEventListener('click', () => {
-          table.clearHeaderFilter();
-        });
-      })
-      .catch(console.error);
+        return input;
+      };
+    }
+
+    const table = new Tabulator("#table", {
+      height: 400,
+      layout: "fitColumns",
+      data: tableData,
+      columns: [
+        { title: "ID", field: "id", width: 60 },
+        { title: "Name", field: "Name" },
+        {
+          title: "Gender",
+          field: "Gender",
+          headerFilter: customMultiSelectFilter("Gender")
+        },
+        {
+          title: "Ethnicity",
+          field: "Ethnicity",
+          headerFilter: customMultiSelectFilter("Ethnicity")
+        },
+        {
+          title: "Facial Surgery",
+          field: "Facial Surgery",
+          headerFilter: customMultiSelectFilter("Facial Surgery")
+        },
+      ],
+    });
   </script>
+
 </body>
+</html>
