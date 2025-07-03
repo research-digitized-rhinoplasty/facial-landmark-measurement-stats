@@ -3,9 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <title>3D Facial Landmark Query Tool</title>
+
+  <!-- Tabulator CSS -->
   <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet" />
+
   <style>
-    body { font-family: Arial; padding: 20px; }
+    body { font-family: Arial, padding: 20px; }
     #stats-table, #measurement-table { margin-top: 20px; }
     .button-row { margin: 10px 0; }
   </style>
@@ -15,12 +18,18 @@
   <div class="button-row">
     <button id="clearFilters">Clear All Column Filters</button>
   </div>
+
+  <!-- Stats Table -->
   <div id="stats-table"></div>
+
+  <!-- Measurements Table -->
   <h2>Measurements</h2>
   <div id="measurement-table"></div>
 
+  <!-- Tabulator JS -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
   <script>
+    // Helper for exact-match select filters:
     function exactMatch(headerValue, rowValue) {
       return headerValue === "All"
           || headerValue === "Any"
@@ -28,12 +37,31 @@
     }
 
     fetch('data.json')
-      .then(res => {
-        if (!res.ok) throw new Error("data.json not found");
-        return res.json();
-      })
+      .then(r => r.json())
       .then(participants => {
-        // STATS TABLE
+        // Flatten out every ParticipantMeasurements entry upfront:
+        const allMeasurements = participants.flatMap(p =>
+          (p.ParticipantMeasurements || []).map(m => ({
+            participantFileId: p.participantFileId,
+            measurementName: m.MeasurementName,
+            value: m.Value,
+          }))
+        );
+
+        // Build the Measurements table first (empty for now)
+        const measurementTable = new Tabulator("#measurement-table", {
+          data: allMeasurements,
+          layout: "fitColumns",
+          pagination: "local",
+          paginationSize: 10,
+          columns: [
+            { title: "Participant ID", field: "participantFileId" },
+            { title: "Measurement Name", field: "measurementName" },
+            { title: "Value", field: "value" },
+          ],
+        });
+
+        // Build the Stats table
         const statsTable = new Tabulator("#stats-table", {
           data: participants,
           layout: "fitColumns",
@@ -41,14 +69,16 @@
           paginationSize: 10,
           columns: [
             { title: "Participant ID", field: "participantFileId" },
+
             {
               title: "Gender",
               field: "Gender",
               headerFilter: "select",
-              headerFilterParams: { values:{ All:"All", M:"M", F:"F", Other:"Other" } },
+              headerFilterParams: { values: { All:"All", M:"M", F:"F", Other:"Other" } },
               headerFilterPlaceholder: "All",
               headerFilterFunc: exactMatch,
             },
+
             {
               title: "Age Min",
               field: "Age",
@@ -67,6 +97,7 @@
               headerFilterFunc: "<=",
               headerFilterLiveFilter: true,
             },
+
             {
               title: "Ethnicity",
               field: "Ethnicity",
@@ -86,6 +117,7 @@
               headerFilterPlaceholder: "All",
               headerFilterFunc: exactMatch,
             },
+
             {
               title: "Facial Surgery",
               field: "FacialSurgery",
@@ -113,35 +145,16 @@
           ],
         });
 
-        // FLATTEN MEASUREMENTS
-        const measurementRecords = participants.flatMap(p =>
-          (p.ParticipantMeasurements || []).map(m => ({
-            participantFileId: p.participantFileId,
-            measurementName: m.MeasurementName,
-            value: m.Value,
-          }))
-        );
-
-        // MEASUREMENTS TABLE
-        const measurementTable = new Tabulator("#measurement-table", {
-          data: measurementRecords,
-          layout: "fitColumns",
-          pagination: "local",
-          paginationSize: 10,
-          columns: [
-            { title: "Participant ID", field: "participantFileId" },
-            { title: "Measurement Name", field: "measurementName" },
-            { title: "Value", field: "value" },
-          ],
-        });
-
-        // LINK FILTERS: always apply an "in" filter even if the list is empty
+        // Whenever the Stats table data is filtered, rebuild the Measurements table
         statsTable.on("dataFiltered", (filters, rows) => {
           const visibleIDs = rows.map(r => r.getData().participantFileId);
-          measurementTable.setFilter("participantFileId", "in", visibleIDs);
+          const filteredMeasurements = allMeasurements.filter(m =>
+            visibleIDs.includes(m.participantFileId)
+          );
+          measurementTable.replaceData(filteredMeasurements);
         });
 
-        // CLEAR BUTTON
+        // Wire up the clear button
         document.getElementById('clearFilters').addEventListener('click', () => {
           statsTable.clearHeaderFilter();
         });
@@ -149,7 +162,7 @@
       .catch(err => {
         console.error(err);
         document.getElementById('stats-table').innerHTML =
-          `<p style="color:red;">Error loading data.json: ${err.message}</p>`;
+          `<p style="color:red">Error loading data.json: ${err.message}</p>`;
       });
   </script>
 </body>
