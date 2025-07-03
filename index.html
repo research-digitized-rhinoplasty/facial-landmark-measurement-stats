@@ -6,45 +6,47 @@
   <title>3D Facial Landmark Query Tool</title>
 
   <!-- Tabulator CSS -->
-  <link
-    href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css"
-    rel="stylesheet"
-  />
+  <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet" />
 
   <style>
-    body {
-      font-family: Arial;
-      padding: 20px;
-    }
-    #stats-table,
-    #measurement-table,
-    #landmark-table {
-      margin-top: 20px;
-    }
-    .button-row {
-      margin: 10px 0;
-    }
-    .header-multicheck {
+    body { font-family: Arial; padding: 20px; }
+    #stats-table, #measurement-table, #landmark-table { margin-top: 20px; }
+    .button-row { margin: 10px 0; }
+
+    /* Dropdown checkbox list styles */
+    .checkbox-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      z-index: 100;
+      background: white;
+      border: 1px solid #ccc;
       max-height: 180px;
       overflow-y: auto;
       padding: 4px;
-      background: white;
-      border: 1px solid #ccc;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
-    .header-multicheck label {
+    .checkbox-dropdown label {
       display: block;
       font-size: 12px;
-      margin-bottom: 2px;
       cursor: pointer;
+      margin-bottom: 2px;
     }
-    .header-multicheck input {
+    .checkbox-dropdown input {
       margin-right: 6px;
+    }
+    .dropdown-toggle {
+      cursor: pointer;
+      padding: 4px;
+      border: 1px solid #ccc;
+      background: #fff;
+      width: 100%;
+      box-sizing: border-box;
     }
   </style>
 </head>
 <body>
   <h2>3D Facial Landmark Query Tool</h2>
-
   <div class="button-row">
     <button id="clearFilters">Clear All Column Filters</button>
   </div>
@@ -64,162 +66,103 @@
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
   <script>
     // exact-match helper
-    function exactMatch(h, v) { return h === "All" || h === "Any" || v === h; }
+    function exactMatch(h,v){ return h==="All"||h==="Any"||v===h; }
 
-    // checkbox-based multi-select editor
-    function checkboxHeaderFilter(cell, onRendered, success) {
+    // dropdown checkbox header filter
+    function dropdownMultiCheck(cell,onRendered,success){
       const values = cell.getColumn().getDefinition().headerFilterParams.values;
-      const container = document.createElement("div");
-      container.classList.add("header-multicheck");
-      values.forEach(val => {
-        const label = document.createElement("label");
-        const cb = document.createElement("input");
-        cb.type = "checkbox";
-        cb.value = val;
-        label.appendChild(cb);
-        label.appendChild(document.createTextNode(val));
-        container.appendChild(label);
-        cb.addEventListener("change", () => {
-          const chosen = Array.from(container.querySelectorAll("input:checked"))
-                              .map(i => i.value);
+      const wrapper = document.createElement('div');
+      wrapper.style.position = 'relative';
+      
+      const toggle = document.createElement('div');
+      toggle.classList.add('dropdown-toggle');
+      toggle.textContent = 'Select...';
+      wrapper.appendChild(toggle);
+      
+      const list = document.createElement('div');
+      list.classList.add('checkbox-dropdown');
+      list.style.display = 'none';
+      values.forEach(val=>{
+        const lbl = document.createElement('label');
+        const cb  = document.createElement('input'); cb.type='checkbox'; cb.value=val;
+        lbl.appendChild(cb);
+        lbl.appendChild(document.createTextNode(val));
+        list.appendChild(lbl);
+        cb.addEventListener('change',()=>{
+          const chosen = Array.from(list.querySelectorAll('input:checked')).map(i=>i.value);
+          toggle.textContent = chosen.length? chosen.join(', '): 'Select...';
           success(chosen);
         });
       });
-      container.tabIndex = 0;
-      onRendered(() => container.focus());
-      return container;
+      wrapper.appendChild(list);
+      toggle.addEventListener('click',e=>{
+        e.stopPropagation();
+        list.style.display = list.style.display==='none'? 'block':'none';
+      });
+      document.addEventListener('click',()=> list.style.display='none');
+      onRendered(()=>{});
+      return wrapper;
     }
 
-    // multi-select filter function
-    function multiSelectFilterFunc(filterValues, cellValue) {
-      if (!filterValues || filterValues.length === 0) return true;
-      return filterValues.includes(cellValue);
+    // multi select filter function
+    function multiSelectFilterFunc(filterVals,cellVal){
+      if(!filterVals||!filterVals.length) return true;
+      return filterVals.includes(cellVal);
     }
 
     fetch('data.json')
-      .then(r => r.ok ? r.json() : Promise.reject('data.json not found'))
-      .then(participants => {
-        // flatten measurements
-        const allMeasurements = participants.flatMap(p =>
-          (p.ParticipantMeasurements||[]).map(m=>({
-            participantFileId: p.participantFileId,
-            measurementName: m.MeasurementName,
-            value: m.Value
-          }))
+      .then(r=>r.ok? r.json(): Promise.reject('data.json not found'))
+      .then(participants=>{
+        const allMeasurements = participants.flatMap(p=>
+          (p.ParticipantMeasurements||[]).map(m=>({participantFileId:p.participantFileId,measurementName:m.MeasurementName,value:m.Value}))
         );
-        // flatten landmarks
-        const allLandmarks = participants.flatMap(p =>
-          (p.ParticipantLandmarks||[]).map(l=>({
-            participantFileId: p.participantFileId,
-            landmarkName: l.LandmarkName,
-            xVal: l.xVal,
-            yVal: l.yVal,
-            zVal: l.zVal
-          }))
+        const allLandmarks = participants.flatMap(p=>
+          (p.ParticipantLandmarks||[]).map(l=>({participantFileId:p.participantFileId,landmarkName:l.LandmarkName,xVal:l.xVal,yVal:l.yVal,zVal:l.zVal}))
         );
 
-        // Measurements table
-        const measurementTable = new Tabulator("#measurement-table",{
-          data: allMeasurements,
-          layout:"fitColumns",
-          pagination:"local", paginationSize:10,
+        const measurementTable = new Tabulator('#measurement-table',{
+          data: allMeasurements,layout:'fitColumns',pagination:'local',paginationSize:10,
           columns:[
-            {title:"Participant ID", field:"participantFileId"},
-            {title:"Measurement Name", field:"measurementName"},
-            {title:"Value", field:"value"},
-          ],
+            {title:'Participant ID',field:'participantFileId'},
+            {title:'Measurement Name',field:'measurementName'},
+            {title:'Value',field:'value'}
+          ]
         });
 
-        // Landmarks table
-        const landmarkTable = new Tabulator("#landmark-table",{
-          data: allLandmarks,
-          layout:"fitColumns",
-          pagination:"local", paginationSize:10,
+        const landmarkTable = new Tabulator('#landmark-table',{
+          data: allLandmarks,layout:'fitColumns',pagination:'local',paginationSize:10,
           columns:[
-            {title:"Participant ID", field:"participantFileId"},
-            {title:"Landmark Name", field:"landmarkName"},
-            {title:"X Value", field:"xVal"},
-            {title:"Y Value", field:"yVal"},
-            {title:"Z Value", field:"zVal"},
-          ],
+            {title:'Participant ID',field:'participantFileId'},
+            {title:'Landmark Name',field:'landmarkName'},
+            {title:'X Value',field:'xVal'},
+            {title:'Y Value',field:'yVal'},
+            {title:'Z Value',field:'zVal'}
+          ]
         });
 
-        // Stats table
-        const statsTable = new Tabulator("#stats-table",{
-          data: participants,
-          layout:"fitColumns",
-          pagination:"local", paginationSize:10,
+        const statsTable = new Tabulator('#stats-table',{
+          data: participants,layout:'fitColumns',pagination:'local',paginationSize:10,
           columns:[
-            {title:"Participant ID", field:"participantFileId"},
-            {
-              title:"Gender", field:"Gender",
-              headerFilter:checkboxHeaderFilter,
-              headerFilterFunc:multiSelectFilterFunc,
-              headerFilterParams:{values:["M","F","Other"]}
-            },
-            {title:"Age Min", field:"Age", sorter:"number",
-              headerFilter:"input", headerFilterPlaceholder:"Min…",
-              headerFilterFunc:">=", headerFilterLiveFilter:true
-            },
-            {title:"Age Max", field:"Age", sorter:"number",
-              headerFilter:"input", headerFilterPlaceholder:"Max…",
-              headerFilterFunc:"<=", headerFilterLiveFilter:true
-            },
-            {
-              title:"Ethnicity", field:"Ethnicity",
-              headerFilter:checkboxHeaderFilter,
-              headerFilterFunc:multiSelectFilterFunc,
-              headerFilterParams:{values:[
-                "White",
-                "Black or African American",
-                "American Indian or Alaska Native",
-                "Asian",
-                "Native Hawaiian or Other Pacific Islander",
-                "Hispanic",
-                "Prefer not to specify"
-              ]}
-            },
-            {
-              title:"Facial Surgery", field:"FacialSurgery",
-              headerFilter:checkboxHeaderFilter,
-              headerFilterFunc:multiSelectFilterFunc,
-              headerFilterParams:{values:[
-                "No Facial Surgery",
-                "Brow/forehead lift",
-                "Ear pinning",
-                "Chin, cheek, or jaw reshaping",
-                "Eyelid lift",
-                "Facelift",
-                "Facial implants",
-                "Hair replacement surgery",
-                "Lip augmentation",
-                "Rhinoplasty",
-                "Other",
-                "Prefer not to specify"
-              ]}
-            },
-          ],
+            {title:'Participant ID',field:'participantFileId'},
+            {title:'Gender',field:'Gender',headerFilter:dropdownMultiCheck,headerFilterFunc:multiSelectFilterFunc,headerFilterParams:{values:['M','F','Other']}},
+            {title:'Age Min',field:'Age',sorter:'number',headerFilter:'input',headerFilterPlaceholder:'Min…',headerFilterFunc:'>=',headerFilterLiveFilter:true},
+            {title:'Age Max',field:'Age',sorter:'number',headerFilter:'input',headerFilterPlaceholder:'Max…',headerFilterFunc:'<=',headerFilterLiveFilter:true},
+            {title:'Ethnicity',field:'Ethnicity',headerFilter:dropdownMultiCheck,headerFilterFunc:multiSelectFilterFunc,headerFilterParams:{values:['White','Black or African American','American Indian or Alaska Native','Asian','Native Hawaiian or Other Pacific Islander','Hispanic','Prefer not to specify']}},
+            {title:'Facial Surgery',field:'FacialSurgery',headerFilter:dropdownMultiCheck,headerFilterFunc:multiSelectFilterFunc,headerFilterParams:{values:['No Facial Surgery','Brow/forehead lift','Ear pinning','Chin, cheek, or jaw reshaping','Eyelid lift','Facelift','Facial implants','Hair replacement surgery','Lip augmentation','Rhinoplasty','Other','Prefer not to specify']}}
+          ]
         });
 
-        // sync on filter
-        statsTable.on("dataFiltered",(filters,rows)=>{
+        statsTable.on('dataFiltered',(filters,rows)=>{
           const ids = rows.map(r=>r.getData().participantFileId);
-          measurementTable.replaceData(
-            allMeasurements.filter(m=>ids.includes(m.participantFileId))
-          );
-          landmarkTable.replaceData(
-            allLandmarks.filter(l=>ids.includes(l.participantFileId))
-          );
+          measurementTable.replaceData(allMeasurements.filter(m=>ids.includes(m.participantFileId)));
+          landmarkTable.replaceData(allLandmarks.filter(l=>ids.includes(l.participantFileId)));
         });
 
-        // clear button
-        document.getElementById('clearFilters')
-                .addEventListener('click',()=>statsTable.clearHeaderFilter());
+        document.getElementById('clearFilters').addEventListener('click',()=>statsTable.clearHeaderFilter());
       })
       .catch(err=>{
         console.error(err);
-        document.querySelector('#stats-table').innerHTML =
-          `<p style="color:red;">${err}</p>`;
+        document.querySelector('#stats-table').innerHTML = `<p style="color:red">${err}</p>`;
       });
   </script>
 </body>
