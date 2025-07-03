@@ -6,9 +6,9 @@
   <title>3D Facial Landmark Query Tool</title>
 
   <!-- Tabulator CSS -->
-  <link 
-    href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" 
-    rel="stylesheet" 
+  <link
+    href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css"
+    rel="stylesheet"
   />
 
   <style>
@@ -42,20 +42,49 @@
   <!-- Tabulator JS -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
   <script>
-    // exact-match helper for select filters
-    function exactMatch(headerValue, rowValue) {
-      return headerValue === "All"
-          || headerValue === "Any"
-          || rowValue === headerValue;
+    // === 1) Multi-select header editor ===
+    function multiSelectHeaderFilter(cell, onRendered, success, cancel, editorParams) {
+      // create <select multiple>
+      const select = document.createElement("select");
+      select.multiple = true;
+      select.style.width = "100%";
+      select.style.height = "100px";
+      select.style.overflowY = "auto";
+
+      // populate options
+      editorParams.values.forEach(val => {
+        const opt = document.createElement("option");
+        opt.value = val;
+        opt.textContent = val;
+        select.appendChild(opt);
+      });
+
+      // when rendered, listen for changes
+      onRendered(() => {
+        select.addEventListener("change", () => {
+          const chosen = Array.from(select.selectedOptions).map(o => o.value);
+          success(chosen);
+        });
+      });
+
+      return select;
     }
 
+    // === 2) Filter function for multi-select ===
+    function multiSelectFilterFunc(filterValues, cellValue) {
+      // no selection = no filter
+      if (!filterValues || filterValues.length === 0) return true;
+      return filterValues.includes(cellValue);
+    }
+
+    // === 3) Load data.json and build tables ===
     fetch('data.json')
       .then(res => {
         if (!res.ok) throw new Error("data.json not found");
         return res.json();
       })
       .then(participants => {
-        // Flatten ParticipantMeasurements into a single array
+        // flatten all ParticipantMeasurements for the measurements table
         const allMeasurements = participants.flatMap(p =>
           (p.ParticipantMeasurements || []).map(m => ({
             participantFileId: p.participantFileId,
@@ -64,7 +93,7 @@
           }))
         );
 
-        // 1) Build the Measurements table (initially showing all)
+        // --- Measurements Table (initially shows all) ---
         const measurementTable = new Tabulator("#measurement-table", {
           data: allMeasurements,
           layout: "fitColumns",
@@ -77,7 +106,7 @@
           ],
         });
 
-        // 2) Build the Stats table with native <select> filters
+        // --- Stats Table with multi-select filters ---
         const statsTable = new Tabulator("#stats-table", {
           data: participants,
           layout: "fitColumns",
@@ -86,17 +115,16 @@
           columns: [
             { title: "Participant ID", field: "participantFileId" },
 
+            // Gender multi-select
             {
               title: "Gender",
               field: "Gender",
-              headerFilter: "select",
-              headerFilterParams: {
-                values: { All:"All", M:"M", F:"F", Other:"Other" },
-              },
-              headerFilterPlaceholder: "All",
-              headerFilterFunc: exactMatch,
+              headerFilter: multiSelectHeaderFilter,
+              headerFilterFunc: multiSelectFilterFunc,
+              headerFilterParams: { values: ["M","F","Other"] },
             },
 
+            // Age Min
             {
               title: "Age Min",
               field: "Age",
@@ -106,6 +134,7 @@
               headerFilterFunc: ">=",
               headerFilterLiveFilter: true,
             },
+            // Age Max
             {
               title: "Age Max",
               field: "Age",
@@ -116,54 +145,52 @@
               headerFilterLiveFilter: true,
             },
 
+            // Ethnicity multi-select
             {
               title: "Ethnicity",
               field: "Ethnicity",
-              headerFilter: "select",
+              headerFilter: multiSelectHeaderFilter,
+              headerFilterFunc: multiSelectFilterFunc,
               headerFilterParams: {
-                values: {
-                  All: "All",
-                  White: "White",
-                  "Black or African American": "Black or African American",
-                  "American Indian or Alaska Native": "American Indian or Alaska Native",
-                  Asian: "Asian",
-                  "Native Hawaiian or Other Pacific Islander": "Native Hawaiian or Other Pacific Islander",
-                  Hispanic: "Hispanic",
-                  "Prefer not to specify": "Prefer not to specify",
-                },
+                values: [
+                  "White",
+                  "Black or African American",
+                  "American Indian or Alaska Native",
+                  "Asian",
+                  "Native Hawaiian or Other Pacific Islander",
+                  "Hispanic",
+                  "Prefer not to specify"
+                ]
               },
-              headerFilterPlaceholder: "All",
-              headerFilterFunc: exactMatch,
             },
 
+            // Facial Surgery multi-select
             {
               title: "Facial Surgery",
               field: "FacialSurgery",
-              headerFilter: "select",
+              headerFilter: multiSelectHeaderFilter,
+              headerFilterFunc: multiSelectFilterFunc,
               headerFilterParams: {
-                values: {
-                  Any: "Any",
-                  "No Facial Surgery": "No Facial Surgery",
-                  "Brow/forehead lift": "Brow/forehead lift",
-                  "Ear pinning": "Ear Pinning",
-                  "Chin, cheek, or jaw reshaping": "Chin, cheek, or jaw reshaping",
-                  "Eyelid lift": "Eyelid Lift",
-                  Facelift: "Facelift",
-                  "Facial implants": "Facial implants",
-                  "Hair replacement surgery": "Hair Replacement surgery",
-                  "Lip augmentation": "Lip Augmentation",
-                  Rhinoplasty: "Rhinoplasty",
-                  Other: "Other",
-                  "Prefer not to specify": "Prefer not to specify",
-                },
+                values: [
+                  "No Facial Surgery",
+                  "Brow/forehead lift",
+                  "Ear Pinning",
+                  "Chin, cheek, or jaw reshaping",
+                  "Eyelid Lift",
+                  "Facelift",
+                  "Facial implants",
+                  "Hair Replacement surgery",
+                  "Lip Augmentation",
+                  "Rhinoplasty",
+                  "Other",
+                  "Prefer not to specify"
+                ]
               },
-              headerFilterPlaceholder: "Any",
-              headerFilterFunc: exactMatch,
             },
           ],
         });
 
-        // 3) On stats filter change, rebuild Measurement table data
+        // --- 4) Sync measurements on stats filter ---
         statsTable.on("dataFiltered", (filters, rows) => {
           const visibleIDs = rows.map(r => r.getData().participantFileId);
           const filtered = allMeasurements.filter(m =>
@@ -172,7 +199,7 @@
           measurementTable.replaceData(filtered);
         });
 
-        // 4) Clear button resets all stats filters (and thus measurements)
+        // --- 5) Clear button ---
         document.getElementById('clearFilters').addEventListener('click', () => {
           statsTable.clearHeaderFilter();
         });
