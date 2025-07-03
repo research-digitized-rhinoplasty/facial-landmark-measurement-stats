@@ -44,6 +44,36 @@
     overflow: visible !important;
     position: relative;
   }
+
+  /* ✅ Allow dropdown to break out of the header container */
+.tabulator .tabulator-header .tabulator-col .tabulator-header-filter {
+  overflow: visible !important;
+  position: relative !important;
+  z-index: 1;
+}
+
+/* ✅ Force Choices dropdown to show above the table */
+.choices__list--dropdown {
+  z-index: 9999 !important;
+  position: absolute !important;
+  max-height: 220px;
+  overflow-y: auto;
+  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.2);
+  background-color: white;
+  border: 1px solid #ccc;
+}
+
+/* ✅ Prevent header clipping (for Safari) */
+.tabulator-col {
+  overflow: visible !important;
+}
+
+/* Optional: more vertical space in the header filter cell */
+.tabulator-header-filter .choices {
+  min-height: 34px;
+  font-size: 13px;
+}
+
 </style>
 
 </head>
@@ -77,16 +107,38 @@
       }
 
       onRendered(() => {
-        // Delay Choices init to ensure select is fully in DOM
-        setTimeout(() => {
-          new Choices(el, {
-            removeItemButton: true,
-            searchEnabled: false,
-            placeholderValue: 'Choose an option below',
-            shouldSort: false
-          });
-        }, 0);
+        const choices = new Choices(el, {
+          removeItemButton: true,
+          searchEnabled: false,
+          placeholderValue: 'Choose an option below',
+          shouldSort: false,
+          position: 'bottom',
+          renderChoiceLimit: -1,
+          // 👇 Forces the dropdown to be appended directly to <body>
+          appendTo: document.body 
+        });
+
+        // Sync dropdown position with filter cell
+        const updatePosition = () => {
+          const rect = el.getBoundingClientRect();
+          const dropdown = el.closest('.choices').querySelector('.choices__list--dropdown');
+          if (dropdown) {
+            dropdown.style.position = 'absolute';
+            dropdown.style.top = rect.bottom + window.scrollY + 'px';
+            dropdown.style.left = rect.left + window.scrollX + 'px';
+            dropdown.style.width = rect.width + 'px';
+            dropdown.style.zIndex = 9999;
+          }
+        };
+
+        // Run after a delay to ensure DOM is ready
+        setTimeout(updatePosition, 0);
+
+        // Update on scroll or resize
+        window.addEventListener('scroll', updatePosition, true);
+        window.addEventListener('resize', updatePosition);
       });
+
 
       el.addEventListener("change", () => {
         const selected = Array.from(el.selectedOptions).map(opt => opt.value);
@@ -96,10 +148,11 @@
       return el;
     }
 
-    function multiSelectFilterFunction(selectedValues, rowValue) {
+    function multiSelectFilterFunction(selectedValues, rowValue) 
+    {
       if (!selectedValues || selectedValues.length === 0) return true; // no filtering
       return selectedValues.includes(rowValue); // keep row if value is in selected list
-}
+    }
 
 
 
