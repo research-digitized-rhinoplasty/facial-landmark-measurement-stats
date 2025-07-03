@@ -83,32 +83,53 @@
       return h === "All" || h === "Any" || v === h;
     }
 
-    // dropdown checkbox header filter (appended to body)
+    // dropdown checkbox header filter (preserve checked on reopen)
     function dropdownMultiCheck(cell, onRendered, success) {
-      const values = cell.getColumn().getDefinition().headerFilterParams.values;
+      const column = cell.getColumn();
+      const field = column.getField();
+      const table = cell.getTable();
+      const values = column.getDefinition().headerFilterParams.values;
+      
+      // create toggle button
       const toggle = document.createElement('div');
       toggle.classList.add('dropdown-toggle');
-      toggle.textContent = 'Select...';
       toggle.style.position = 'relative';
+      
+      // function to update toggle label from current filter
+      const updateLabel = () => {
+        const current = table.getHeaderFilterValue(field) || [];
+        toggle.textContent = current.length ? current.join(', ') : 'Select...';
+      };
+      updateLabel();
 
       let list;
+
       const openDropdown = () => {
         if (list) return;
+        // re-create to pick up latest state
         list = document.createElement('div');
         list.classList.add('checkbox-dropdown');
+        const current = table.getHeaderFilterValue(field) || [];
+        
         values.forEach(val => {
           const lbl = document.createElement('label');
-          const cb = document.createElement('input'); cb.type = 'checkbox'; cb.value = val;
+          const cb  = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.value = val;
+          cb.checked = current.includes(val);
           lbl.appendChild(cb);
           lbl.appendChild(document.createTextNode(val));
           list.appendChild(lbl);
 
           cb.addEventListener('change', () => {
-            const chosen = Array.from(list.querySelectorAll('input:checked')).map(i => i.value);
-            toggle.textContent = chosen.length ? chosen.join(', ') : 'Select...';
+            const chosen = Array.from(list.querySelectorAll('input:checked'))
+                                .map(i => i.value);
+            // update filter and label
             success(chosen);
+            toggle.textContent = chosen.length ? chosen.join(', ') : 'Select...';
           });
         });
+
         document.body.appendChild(list);
         const rect = toggle.getBoundingClientRect();
         list.style.position = 'absolute';
@@ -118,18 +139,20 @@
 
         document.addEventListener('click', outsideClick);
       };
+
       const closeDropdown = () => {
         if (!list) return;
         list.remove(); list = null;
         document.removeEventListener('click', outsideClick);
       };
+
       const outsideClick = (e) => {
         if (!toggle.contains(e.target) && list && !list.contains(e.target)) {
           closeDropdown();
         }
       };
 
-      toggle.addEventListener('click', (e) => {
+      toggle.addEventListener('click', e => {
         e.stopPropagation();
         list ? closeDropdown() : openDropdown();
       });
