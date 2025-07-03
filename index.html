@@ -15,7 +15,6 @@
     #stats-table { margin-top: 20px; }
     .button-row { margin: 10px 0; }
 
-    /* Style for dropdown overflow/position */
     .tabulator-header-filter {
       overflow: visible !important;
       position: relative;
@@ -25,6 +24,15 @@
     .choices__list--dropdown {
       z-index: 9999 !important;
       position: absolute !important;
+      max-height: 220px;
+      overflow-y: auto;
+      background-color: white;
+      border: 1px solid #ccc;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .choices__inner {
+      min-height: 36px;
     }
   </style>
 </head>
@@ -44,7 +52,7 @@
   <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
   <script>
-    // Multi-select filter function
+    // Custom multi-select filter editor using Choices.js
     function multiSelectFilterEditor(cell, onRendered, success, cancel, editorParams) {
       const select = document.createElement("select");
       select.setAttribute("multiple", true);
@@ -62,24 +70,30 @@
           shouldSort: false,
           placeholder: true,
           placeholderValue: 'Choose…',
+          searchEnabled: false,
           position: 'bottom',
           appendTo: document.body
         });
 
-        // Position fix
-        const updatePosition = () => {
+        const container = select.closest('.choices');
+        container.addEventListener('click', () => {
+          choices.showDropdown(true); // open immediately on click
+        });
+
+        const updateDropdownPosition = () => {
           const rect = select.getBoundingClientRect();
-          const dropdown = select.closest('.choices')?.querySelector('.choices__list--dropdown');
+          const dropdown = container.querySelector('.choices__list--dropdown');
           if (dropdown) {
-            dropdown.style.position = 'absolute';
             dropdown.style.top = rect.bottom + window.scrollY + 'px';
             dropdown.style.left = rect.left + window.scrollX + 'px';
             dropdown.style.width = rect.width + 'px';
+            dropdown.style.zIndex = '9999';
           }
         };
-        setTimeout(updatePosition, 0);
-        window.addEventListener('scroll', updatePosition, true);
-        window.addEventListener('resize', updatePosition);
+
+        setTimeout(updateDropdownPosition, 0);
+        window.addEventListener('scroll', updateDropdownPosition, true);
+        window.addEventListener('resize', updateDropdownPosition);
       });
 
       select.addEventListener("change", () => {
@@ -90,13 +104,11 @@
       return select;
     }
 
-    // Filtering logic: rowValue must be in selected list
     function multiSelectFilterFunction(filterVals, rowValue) {
       if (!filterVals || filterVals.length === 0) return true;
       return filterVals.includes(rowValue);
     }
 
-    // Load table
     fetch('data.json')
       .then(r => r.json())
       .then(data => {
@@ -162,18 +174,18 @@
               headerFilterFunc: multiSelectFilterFunction,
               headerFilterParams: {
                 values: {
-                  'No Facial Surgery':'No Facial Surgery',
-                  'Brow/forehead lift':'Brow/forehead lift',
-                  'Ear pinning':'Ear Pinning',
-                  'Chin, cheek, or jaw reshaping':'Chin, cheek, or jaw reshaping',
-                  'Eyelid lift':'Eyelid Lift',
-                  'Facelift':'Facelift',
-                  'Facial implants':'Facial implants',
-                  'Hair replacement surgery':'Hair Replacement surgery',
-                  'Lip augmentation':'Lip Augmentation',
-                  'Rhinoplasty':'Rhinoplasty',
-                  'Other':'Other',
-                  'Prefer not to specify':'Prefer not to specify'
+                  'No Facial Surgery': 'No Facial Surgery',
+                  'Brow/forehead lift': 'Brow/forehead lift',
+                  'Ear pinning': 'Ear Pinning',
+                  'Chin, cheek, or jaw reshaping': 'Chin, cheek, or jaw reshaping',
+                  'Eyelid lift': 'Eyelid Lift',
+                  'Facelift': 'Facelift',
+                  'Facial implants': 'Facial implants',
+                  'Hair replacement surgery': 'Hair Replacement surgery',
+                  'Lip augmentation': 'Lip Augmentation',
+                  'Rhinoplasty': 'Rhinoplasty',
+                  'Other': 'Other',
+                  'Prefer not to specify': 'Prefer not to specify'
                 }
               }
             }
