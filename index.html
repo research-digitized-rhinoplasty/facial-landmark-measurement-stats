@@ -9,62 +9,66 @@
     href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css"
     rel="stylesheet"
   />
-   <!-- Choices.js CSS (for your multi-select filters above, if you still need them) -->
-<!-- Choices.js CSS -->
-<link
-  href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"
-  rel="stylesheet"
-/>
 
-<!-- Choices.js JavaScript -->
-<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+  <!-- Choices.js CSS -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"
+    rel="stylesheet"
+  />
 
+  <!-- Choices.js JS -->
+  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
   <style>
     body { font-family: Arial; padding: 20px; }
     #stats-table { margin-top: 20px; }
     .button-row { margin: 10px 0; }
+
+    /* Optional: improve dropdown display in headers */
+    .tabulator-header-filter .choices {
+      font-size: 13px;
+    }
   </style>
 </head>
 <body>
   <h2>3D Facial Landmark Query Tool</h2>
 
-  <!-- (Your existing multi-select / age inputs go here, if you still want them) -->
   <div class="button-row">
     <button id="clearFilters">Clear All Column Filters</button>
   </div>
 
-  <!-- This is where Tabulator will render -->
   <div id="stats-table"></div>
-
 
   <!-- Tabulator JS -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
 
-  <!-- Chart.js CDN -->
+  <!-- Chart.js (if you need it later) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-
-
   <script>
+    // === Multi-select filter using Choices.js ===
     function multiSelectFilterEditor(cell, onRendered, success, cancel, editorParams){
       const values = editorParams.values;
       const el = document.createElement("select");
       el.setAttribute("multiple", true);
-      
-      Object.entries(values).forEach(([val, label]) => {
+
+      for (const [val, label] of Object.entries(values)) {
         const opt = document.createElement("option");
         opt.value = val;
         opt.textContent = label;
         el.appendChild(opt);
-      });
+      }
 
       onRendered(() => {
-        new Choices(el, {
+        const choices = new Choices(el, {
           removeItemButton: true,
+          searchEnabled: false,
           placeholderValue: 'Filter...',
-          searchEnabled: false
+          shouldSort: false
         });
+
+        // Ensure dropdown opens after render
+        setTimeout(() => choices.showDropdown(), 0);
       });
 
       el.addEventListener("change", () => {
@@ -80,11 +84,10 @@
       return headerValue.includes(rowValue);
     }
 
-    // 1) Fetch your data.json
+    // === Initialize table with filters ===
     fetch('data.json')
       .then(r => r.json())
       .then(data => {
-        // 2) Create the Tabulator
         const table = new Tabulator("#stats-table", {
           data: data,
           layout: "fitColumns",
@@ -93,7 +96,6 @@
           columns: [
             { title: "Participant ID", field: "participantFileId" },
 
-            // Min Age filter
             {
               title: "Age Min",
               field: "Age",
@@ -103,8 +105,6 @@
               headerFilterFunc: ">=",
               headerFilterLiveFilter: true,
             },
-
-            // Max Age filter
             {
               title: "Age Max",
               field: "Age",
@@ -114,7 +114,6 @@
               headerFilterFunc: "<=",
               headerFilterLiveFilter: true,
             },
-
             {
               title: "Gender",
               field: "Gender",
@@ -122,8 +121,8 @@
               headerFilterFunc: multiSelectFilterFunction,
               headerFilterParams: {
                 values: {
-                  "M": "M",
                   "F": "F",
+                  "M": "M",
                   "Other": "Other"
                 }
               }
@@ -167,18 +166,14 @@
                 }
               }
             }
-
-          ],
+          ]
         });
 
-        // 3) Clear-all button
         document.getElementById('clearFilters').addEventListener('click', () => {
-          table.clearHeaderFilter(); // resets every column filter
+          table.clearHeaderFilter();
         });
       })
       .catch(console.error);
-
-</script>
-
+  </script>
 </body>
 </html>
