@@ -4,12 +4,15 @@
   <meta charset="UTF-8" />
   <title>3D Facial Landmark Query Tool</title>
 
+
   <!-- Tabulator CSS -->
   <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" rel="stylesheet" />
+  <!-- CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/multi-select-dropdown/dist/style.css" />
+  <!-- JS -->
+  <script src="https://cdn.jsdelivr.net/npm/multi-select-dropdown/dist/script.js"></script>
 
-  <!-- Multi-Select Dropdown Plugin -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/multi-select-dropdown@1.2.2/dist/style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/multi-select-dropdown@1.2.2/dist/script.min.js"></script>
 
   <style>
     body { font-family: Arial; padding: 20px; }
@@ -19,17 +22,25 @@
     .tabulator-header-filter {
       overflow: visible !important;
       position: relative;
-      z-index: 2;
+      z-index: 1;
     }
 
     .tabulator-col {
       overflow: visible !important;
     }
 
-    /* Optional tweaks */
-    .multi-select-dropdown {
+    .choices__list--dropdown {
+      z-index: 9999 !important;
+      position: absolute !important;
       max-height: 250px;
       overflow-y: auto;
+      background-color: white;
+      border: 1px solid #ccc;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .choices__inner {
+      min-height: 36px;
     }
   </style>
 </head>
@@ -44,17 +55,12 @@
 
   <!-- Tabulator JS -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
   <script>
-    // Custom multi-select dropdown using cssscript plugin
     function multiSelectFilterEditor(cell, onRendered, success, cancel, editorParams) {
-      const wrapper = document.createElement('div');
       const select = document.createElement("select");
-      select.setAttribute("multiple", "");
-      select.setAttribute("data-multi-select-dropdown", "");
-      select.style.minWidth = "180px"; // wide enough to show search box
-      wrapper.style.overflow = "visible";
-      wrapper.appendChild(select);
+      select.setAttribute("multiple", true);
 
       for (const [value, label] of Object.entries(editorParams.values)) {
         const option = document.createElement("option");
@@ -64,15 +70,51 @@
       }
 
       onRendered(() => {
-        multiSelectDropdown.init(); // Activate plugin
+        const choices = new Choices(select, {
+          removeItemButton: true,
+          shouldSort: false,
+          searchEnabled: false,
+          placeholder: true,
+          placeholderValue: 'Choose…',
+          position: 'bottom',
+          appendTo: document.body,
+        });
+
+        const container = select.closest('.choices');
+
+        const updateDropdownPosition = () => {
+          requestAnimationFrame(() => {
+            const rect = select.getBoundingClientRect();
+            const dropdown = container.querySelector('.choices__list--dropdown');
+            if (dropdown) {
+              dropdown.style.position = 'absolute';
+              dropdown.style.top = `${rect.bottom + window.scrollY}px`;
+              dropdown.style.left = `${rect.left + window.scrollX}px`;
+              dropdown.style.width = `${rect.width}px`;
+              dropdown.style.zIndex = '9999';
+              dropdown.style.visibility = 'visible';
+              dropdown.style.display = 'block';
+            }
+          });
+        };
+
+        // Open dropdown immediately when header filter is clicked
+        container.addEventListener('click', () => {
+          choices.showDropdown(true);
+          updateDropdownPosition();
+        });
+
+        setTimeout(updateDropdownPosition, 10);
+        window.addEventListener('scroll', updateDropdownPosition, true);
+        window.addEventListener('resize', updateDropdownPosition);
       });
 
       select.addEventListener("change", () => {
-        const selected = Array.from(select.selectedOptions).map(o => o.value);
+        const selected = Array.from(select.selectedOptions).map(opt => opt.value);
         success(selected);
       });
 
-      return wrapper;
+      return select;
     }
 
     function multiSelectFilterFunction(filterVals, rowValue) {
