@@ -42,16 +42,20 @@
   <!-- Tabulator JS -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
   <script>
-    // === 1) Multi-select header editor ===
+    // Exact‐match helper for select filters
+    function exactMatch(h, v) {
+      return h === "All" || h === "Any" || v === h;
+    }
+
+    // 1) Custom multi‐select editor that toggles on click (no Ctrl needed)
     function multiSelectHeaderFilter(cell, onRendered, success, cancel, editorParams) {
-      // create <select multiple>
       const select = document.createElement("select");
       select.multiple = true;
+      select.size = 5;           // show 5 rows tall
       select.style.width = "100%";
-      select.style.height = "100px";
       select.style.overflowY = "auto";
 
-      // populate options
+      // Populate options
       editorParams.values.forEach(val => {
         const opt = document.createElement("option");
         opt.value = val;
@@ -59,32 +63,35 @@
         select.appendChild(opt);
       });
 
-      // when rendered, listen for changes
       onRendered(() => {
-        select.addEventListener("change", () => {
-          const chosen = Array.from(select.selectedOptions).map(o => o.value);
-          success(chosen);
+        // Prevent default (single‐select) behavior, toggle option
+        select.addEventListener("mousedown", e => {
+          e.preventDefault();
+          if (e.target.tagName === "OPTION") {
+            e.target.selected = !e.target.selected;
+            const chosen = Array.from(select.selectedOptions).map(o => o.value);
+            success(chosen);
+          }
         });
       });
 
       return select;
     }
 
-    // === 2) Filter function for multi-select ===
+    // 2) Filter function: keep row if its value is in the chosen array
     function multiSelectFilterFunc(filterValues, cellValue) {
-      // no selection = no filter
       if (!filterValues || filterValues.length === 0) return true;
       return filterValues.includes(cellValue);
     }
 
-    // === 3) Load data.json and build tables ===
+    // 3) Load data.json, build both tables
     fetch('data.json')
-      .then(res => {
-        if (!res.ok) throw new Error("data.json not found");
-        return res.json();
+      .then(r => {
+        if (!r.ok) throw new Error("data.json not found");
+        return r.json();
       })
       .then(participants => {
-        // flatten all ParticipantMeasurements for the measurements table
+        // Flatten all measurements
         const allMeasurements = participants.flatMap(p =>
           (p.ParticipantMeasurements || []).map(m => ({
             participantFileId: p.participantFileId,
@@ -93,20 +100,20 @@
           }))
         );
 
-        // --- Measurements Table (initially shows all) ---
+        // Measurements table
         const measurementTable = new Tabulator("#measurement-table", {
           data: allMeasurements,
           layout: "fitColumns",
           pagination: "local",
           paginationSize: 10,
           columns: [
-            { title: "Participant ID",     field: "participantFileId" },
-            { title: "Measurement Name",   field: "measurementName"   },
-            { title: "Value",              field: "value"             },
+            { title: "Participant ID",   field: "participantFileId" },
+            { title: "Measurement Name", field: "measurementName" },
+            { title: "Value",            field: "value" },
           ],
         });
 
-        // --- Stats Table with multi-select filters ---
+        // Stats table
         const statsTable = new Tabulator("#stats-table", {
           data: participants,
           layout: "fitColumns",
@@ -115,7 +122,7 @@
           columns: [
             { title: "Participant ID", field: "participantFileId" },
 
-            // Gender multi-select
+            // Gender multi‐select
             {
               title: "Gender",
               field: "Gender",
@@ -124,7 +131,7 @@
               headerFilterParams: { values: ["M","F","Other"] },
             },
 
-            // Age Min
+            // Age Min / Max
             {
               title: "Age Min",
               field: "Age",
@@ -134,7 +141,6 @@
               headerFilterFunc: ">=",
               headerFilterLiveFilter: true,
             },
-            // Age Max
             {
               title: "Age Max",
               field: "Age",
@@ -145,7 +151,7 @@
               headerFilterLiveFilter: true,
             },
 
-            // Ethnicity multi-select
+            // Ethnicity multi‐select
             {
               title: "Ethnicity",
               field: "Ethnicity",
@@ -159,12 +165,12 @@
                   "Asian",
                   "Native Hawaiian or Other Pacific Islander",
                   "Hispanic",
-                  "Prefer not to specify"
-                ]
+                  "Prefer not to specify",
+                ],
               },
             },
 
-            // Facial Surgery multi-select
+            // Facial Surgery multi‐select
             {
               title: "Facial Surgery",
               field: "FacialSurgery",
@@ -183,23 +189,21 @@
                   "Lip Augmentation",
                   "Rhinoplasty",
                   "Other",
-                  "Prefer not to specify"
-                ]
+                  "Prefer not to specify",
+                ],
               },
             },
           ],
         });
 
-        // --- 4) Sync measurements on stats filter ---
+        // 4) Sync measurements when stats filters change
         statsTable.on("dataFiltered", (filters, rows) => {
-          const visibleIDs = rows.map(r => r.getData().participantFileId);
-          const filtered = allMeasurements.filter(m =>
-            visibleIDs.includes(m.participantFileId)
-          );
+          const ids = rows.map(r => r.getData().participantFileId);
+          const filtered = allMeasurements.filter(m => ids.includes(m.participantFileId));
           measurementTable.replaceData(filtered);
         });
 
-        // --- 5) Clear button ---
+        // Clear button
         document.getElementById('clearFilters').addEventListener('click', () => {
           statsTable.clearHeaderFilter();
         });
@@ -207,7 +211,7 @@
       .catch(err => {
         console.error(err);
         document.getElementById('stats-table').innerHTML =
-          `<p style="color:red;">Error loading data.json: ${err.message}</p>`;
+          `<p style="color:red;">${err.message}</p>`;
       });
   </script>
 </body>
