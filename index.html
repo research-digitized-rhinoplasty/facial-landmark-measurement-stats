@@ -123,28 +123,26 @@
               field: "FacialSurgery",
               headerFilter: "select",
               headerFilterParams: {
-                values: {
-                  "Any":                   "Any",
-                  "No Facial Surgery":     "No Facial Surgery",
-                  "Brow/forehead lift":    "Brow/forehead lift",
-                  "Ear pinning":           "Ear Pinning",
+                values:{
+                  "All": "All",
+                  "No Facial Surgery": "No Facial Surgery",
+                  "Brow/forehead lift": "Brow/forehead lift",
+                  "Ear pinning": "Ear Pinning",
                   "Chin, cheek, or jaw reshaping": "Chin, cheek, or jaw reshaping",
-                  "Eyelid lift":           "Eyelid Lift",
-                  "Facelift":              "Facelift",
-                  "Facial implants":       "Facial implants",
+                  "Eyelid lift": "Eyelid Lift",
+                  "Facelift": "Facelift",
+                  "Facial implants": "Facial implants",
                   "Hair replacement surgery": "Hair Replacement surgery",
-                  "Lip augmentation":      "Lip Augmentation",
-                  "Rhinoplasty":           "Rhinoplasty",
-                  "Other":                 "Other",
+                  "Lip augmentation": "Lip Augmentation",
+                  "Rhinoplasty": "Rhinoplasty",
+                  "Other": "Other",
                   "Prefer not to specify": "Prefer not to specify",
                 }
               },
-              headerFilterPlaceholder: "Any",
-              headerFilterFunc: function(headerValue, rowValue) {
-                // “Any” means no filter; otherwise exact match
-                return headerValue === "Any" || rowValue === headerValue;
-              },
+              headerFilterPlaceholder: "All",
+              headerFilterFunc: exactMatch,
             }
+
 
           ],
         });
