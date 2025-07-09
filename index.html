@@ -61,7 +61,8 @@
 <body>
   <h2>3D Facial Landmark Query Tool</h2>
   <div class="button-row">
-    <button id="clearFilters">Clear All Column Filters</button>
+    <button id="clearFilters">Clear All Filters</button>
+    <button id="downloadCSV">Download Filtered Data (CSV)</button>
   </div>
 
   <!-- Stats Table -->
@@ -311,6 +312,43 @@
           console.error(err);
           document.querySelector('#stats-table').innerHTML = `<p style="color:red">${err}</p>`;
         });
+
+        // CSV download 
+        function downloadAllFilteredData() {
+          const allData = [
+            ...statsTable.getData(),              // visible rows from stats table
+            ...measurementTable.getData(),       // visible rows from measurements
+            ...landmarkTable.getData(),          // visible rows from landmarks
+          ];
+
+          // Create a combined header
+          const headers = new Set();
+          allData.forEach(row => Object.keys(row).forEach(key => headers.add(key)));
+          const headerArray = Array.from(headers);
+
+          // Convert data rows to CSV format
+          const csvRows = [headerArray.join(',')];
+          allData.forEach(row => {
+            const csvLine = headerArray.map(field => {
+              const val = row[field];
+              return val !== undefined ? `"${String(val).replace(/"/g, '""')}"` : '';
+            }).join(',');
+            csvRows.push(csvLine);
+          });
+
+          // Download as CSV
+          const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.setAttribute('download', 'filtered_data.csv');
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+
+        // Hook the button
+        document.getElementById('downloadCSV').addEventListener('click', downloadAllFilteredData);
+
 
 
   </script>
