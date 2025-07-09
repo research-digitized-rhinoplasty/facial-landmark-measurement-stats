@@ -13,10 +13,20 @@
     #stats-table, #measurement-table, #landmark-table { margin-top: 20px; }
     .button-row { margin: 10px 0; }
 
-    .tabulator .tabulator-header { overflow: visible !important; }
-    .tabulator .tabulator-header .tabulator-col { overflow: visible !important; position: relative !important; }
-    .tabulator .tabulator-header .tabulator-col .tabulator-header-filter { overflow: visible !important; position: relative !important; }
+    /* Allow header filters to overflow */
+    .tabulator .tabulator-header {
+      overflow: visible !important;
+    }
+    .tabulator .tabulator-header .tabulator-col {
+      overflow: visible !important;
+      position: relative !important;
+    }
+    .tabulator .tabulator-header .tabulator-col .tabulator-header-filter {
+      overflow: visible !important;
+      position: relative !important;
+    }
 
+    /* Dropdown checkbox list styles */
     .checkbox-dropdown {
       position: absolute;
       top: 100%;
@@ -29,8 +39,15 @@
       padding: 4px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
-    .checkbox-dropdown label { display: block; font-size: 12px; cursor: pointer; margin-bottom: 2px; }
-    .checkbox-dropdown input { margin-right: 6px; }
+    .checkbox-dropdown label {
+      display: block;
+      font-size: 12px;
+      cursor: pointer;
+      margin-bottom: 2px;
+    }
+    .checkbox-dropdown input {
+      margin-right: 6px;
+    }
     .dropdown-toggle {
       cursor: pointer;
       padding: 4px;
@@ -45,28 +62,40 @@
   <h2>3D Facial Landmark Query Tool</h2>
   <div class="button-row">
     <button id="clearFilters">Clear All Column Filters</button>
-    <button id="downloadCSV">Download Filtered Data (CSV)</button>
   </div>
 
+  <!-- Stats Table -->
   <div id="stats-table"></div>
+
+  <!-- Measurements Table -->
   <h2>Measurements</h2>
   <div id="measurement-table"></div>
+
+  <!-- Landmarks Table -->
   <h2>Landmarks</h2>
   <div id="landmark-table"></div>
 
+  <!-- Tabulator JS -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
   <script>
-    function exactMatch(h, v) { return h === "All" || h === "Any" || v === h; }
+    // exact-match helper
+    function exactMatch(h, v) {
+      return h === "All" || h === "Any" || v === h;
+    }
 
+    // dropdown checkbox header filter (preserve checked on reopen)
     function dropdownMultiCheck(cell, onRendered, success) {
       const column = cell.getColumn();
       const field = column.getField();
       const table = cell.getTable();
       const values = column.getDefinition().headerFilterParams.values;
+      
+      // create toggle button
       const toggle = document.createElement('div');
       toggle.classList.add('dropdown-toggle');
       toggle.style.position = 'relative';
-
+      
+      // function to update toggle label from current filter
       const updateLabel = () => {
         const current = table.getHeaderFilterValue(field) || [];
         toggle.textContent = current.length ? current.join(', ') : 'Select...';
@@ -74,32 +103,40 @@
       updateLabel();
 
       let list;
+
       const openDropdown = () => {
         if (list) return;
+        // re-create to pick up latest state
         list = document.createElement('div');
         list.classList.add('checkbox-dropdown');
         const current = table.getHeaderFilterValue(field) || [];
+        
         values.forEach(val => {
           const lbl = document.createElement('label');
-          const cb = document.createElement('input');
+          const cb  = document.createElement('input');
           cb.type = 'checkbox';
           cb.value = val;
           cb.checked = current.includes(val);
           lbl.appendChild(cb);
           lbl.appendChild(document.createTextNode(val));
           list.appendChild(lbl);
+
           cb.addEventListener('change', () => {
-            const chosen = Array.from(list.querySelectorAll('input:checked')).map(i => i.value);
+            const chosen = Array.from(list.querySelectorAll('input:checked'))
+                                .map(i => i.value);
+            // update filter and label
             success(chosen);
             toggle.textContent = chosen.length ? chosen.join(', ') : 'Select...';
           });
         });
+
         document.body.appendChild(list);
         const rect = toggle.getBoundingClientRect();
         list.style.position = 'absolute';
         list.style.top = rect.bottom + window.scrollY + 'px';
         list.style.left = rect.left + window.scrollX + 'px';
         list.style.zIndex = '9999';
+
         document.addEventListener('click', outsideClick);
       };
 
@@ -124,46 +161,139 @@
       return toggle;
     }
 
+    // multi select filter function
     function multiSelectFilterFunc(filterVals, cellVal) {
       if (!filterVals || !filterVals.length) return true;
       return filterVals.includes(cellVal);
     }
 
-    function exportTablesToCSV() {
-      const rows = [
-        ...statsTable.getData(),
-        ...measurementTable.getData(),
-        ...landmarkTable.getData(),
-      ];
-      const headers = new Set();
-      rows.forEach(r => Object.keys(r).forEach(k => headers.add(k)));
-      const headerArr = Array.from(headers);
-      const csvRows = [headerArr.join(',')];
-      rows.forEach(row => {
-        const line = headerArr.map(h => row[h] !== undefined ? '"' + String(row[h]).replace(/"/g, '""') + '"' : '').join(',');
-        csvRows.push(line);
-      });
-      const csvContent = csvRows.join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.setAttribute('download', 'filtered_data.csv');
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-
-    let statsTable, measurementTable, landmarkTable;
-
     fetch('data.json')
       .then(r => r.ok ? r.json() : Promise.reject('data.json not found'))
       .then(participants => {
-        const allMeasurements = participants.flatMap(p => (p.ParticipantMeasurements || []).map(m => ({ participantFileId: p.participantFileId, measurementName: m.MeasurementName, value: m.Value })));
-        const allLandmarks = participants.flatMap(p => (p.ParticipantLandmarks || []).map(l => ({ participantFileId: p.participantFileId, landmarkName: l.LandmarkName, xVal: l.xVal, yVal: l.yVal, zVal: l.zVal })));
+        const allMeasurements = participants.flatMap(p =>
+          (p.ParticipantMeasurements || []).map(m => ({
+            participantFileId: p.participantFileId,
+            measurementName: m.MeasurementName,
+            value: m.Value
+          }))
+        );
 
-        measurementTable = new Tabulator('#measurement-table', {/*...columns config...*/});
-        landmarkTable = new Tabulator('#landmark-table', {/*...columns config...*/});
-        statsTable = new Tabulator('#stats-table', {/*...columns config...*/});
+        const allLandmarks = participants.flatMap(p =>
+          (p.ParticipantLandmarks || []).map(l => ({
+            participantFileId: p.participantFileId,
+            landmarkName: l.LandmarkName,
+            xVal: l.xVal,
+            yVal: l.yVal,
+            zVal: l.zVal
+          }))
+        );
+
+        const measurementTable = new Tabulator('#measurement-table', {
+  data: allMeasurements,
+  layout: 'fitColumns',
+  pagination: 'local',
+  paginationSize: 10,
+  columns: [
+    { title: 'Participant ID', field: 'participantFileId' },
+    {
+      title: 'Measurement Name',
+      field: 'measurementName',
+      headerFilter: dropdownMultiCheck,
+      headerFilterFunc: multiSelectFilterFunc,
+      headerFilterParams: {
+        values: [
+          "(Inner) Intercanthal Distance/Width", "Ala/Alar Length (left)", "Ala/Alar Length (right)", "Alar Base Width", "Base Bony Width",
+          "Columella Length", "Columella Width", "Distance between sill-base junction and alar flare", "Distance between 1st point - 2nd point",
+          "Eye/palpebral fissure length - left", "Eye/palpebral fissure length - right", "Face Width", "Infratip Lobule Length", "Interalar Distance",
+          "Lower Facial Height", "Mid-Facial Height", "Nasal Bridge Length", "Nasal Root Width", "Nasal Tip Projection", "Nose Height",
+          "Nostril Floor Width (left)", "Nostril Floor Width (right)", "Outer Intercanthal Distance", "Premaxilla - left", "Premaxilla - right",
+          "Radix Projection", "Subnasal Width", "Supratip Lobule", "Tip/Lobule Width", "Upper Facial Height",
+          "Distances - Surface", "(Inner) Intercanthal Distance/Width - Surface", "Ala/Alar Length (left) - Surface", "Ala/Alar Length (right) - Surface",
+          "Alar Base Width - Surface", "Base Bony Width - Surface", "Columella Length - Surface", "Columella Width - Surface",
+          "Distance between sill-base junction and alar flare - Surface", "Distance between 1st point - 2nd point - Surface",
+          "Eye/palpebral fissure length - left - Surface", "Eye/palpebral fissure length - right - Surface", "Face Width - Surface",
+          "Infratip Lobule Length - Surface", "Interalar Distance - Surface", "Lower Facial Height - Surface", "Mid-Facial Height - Surface",
+          "Nasal Bridge Length - Surface", "Nasal Root Width - Surface", "Nasal Tip Projection - Surface", "Nose Height - Surface",
+          "Nostril Floor Width (left) - Surface", "Nostril Floor Width (right) - Surface", "Outer Intercanthal Distance - Surface",
+          "Premaxilla - left - Surface", "Premaxilla - right - Surface", "Radix Projection - Surface", "Subnasal Width - Surface",
+          "Supratip Lobule - Surface", "Tip/Lobule Width - Surface", "Upper Facial Height - Surface",
+          "Angles", "Columellar Labial Angle", "Columellar Lobular Angle", "Degree of Deviation (I-type)", "Domal divergence",
+          "Interalar Angle", "Medium facial third angle - right", "Nasal Tip Angle", "Nasofacial Angle", "Nasofrontal Angle", "Nasolabial Angle I",
+          "Nasolabial contour", "Nasomental Angle I", "Rhinion deviation angle", "Supratip Deviation Angle", "Tip deviation angle",
+          "Ratios", "Ratio: Symmetry - Alar Base (Right) to Nasion to Alar Base (Left)", "Ratio: Symmetry - Alar Base (Right) to Pronasale to Alar Base (Left)",
+          "Ratio: Symmetry - Alar Base (Right) to Subnasale to Alar Base (Left)", "Lobule - Base Ratio", "Nasal Tip Projection: Baum",
+          "Nasal Tip Projection: Byrd and Hobar", "Nasal Tip Projection: Goode", "Nasal Tip Projection: Goode (Left)",
+          "Nasal Tip Projection: Goode (Right)", "Nasal Tip Projection: Powell and Humphries", "Nasal Tip Projection: Simons",
+          "Nasal Width-Length Ratio", "Nasal Width–Intercanthal Distance Ratio", "Ratio: Nasion to Labiale Superios to Alar Base (Left)",
+          "Ratio: Nasion to Labiale Superios to Alar Base (Right)", "Ratio: Nasion to Labiale Superios to Alar Rim’s Highest Point (left)",
+          "Ratio: Nasion to Labiale Superios to Alar Rim’s Highest Point (right)", "Ratio: Nasion to Subnasale to Alar Base (Left)",
+          "Ratio: Nasion to Subnasale to Alar Base (Right)", "Ratio: Nasion to Subnasale to Alar Rim’s Highest Point (left)",
+          "Ratio: Nasion to Subnasale to Alar Rim’s Highest Point (right)",
+          "Areas - Surface", "Alar Base Area", "Dorsal Hump Area", "Area of Entire Nose", "Nasal Dorsum Area", "Root of the Nose Area",
+          "Tip Surface Area", "Area between the vertical fifths and horizontal thirds",
+          "Volumes", "Alar Base Volume", "Dorsal Hump Volume", "Volume of Entire Nose", "Nasal Dorsum Volume", "Root of the Nose Volume",
+          "Tip Volume", "Volume between the vertical fifths and horizontal thirds"
+        ]
+      }
+    },
+    { title: 'Value', field: 'value' },
+  ],
+});
+
+
+        const landmarkTable = new Tabulator('#landmark-table', {
+  data: allLandmarks,
+  layout: 'fitColumns',
+  pagination: 'local',
+  paginationSize: 10,
+  columns: [
+    { title: 'Participant ID', field: 'participantFileId' },
+    {
+      title: 'Landmark Name',
+      field: 'landmarkName',
+      headerFilter: dropdownMultiCheck,
+      headerFilterFunc: multiSelectFilterFunc,
+      headerFilterParams: {
+        values: [
+          "1st Point", "2nd Point", "Alar Base Junction/Alar Crease - left", "Alar Base Junction/Alar Crease - right",
+          "Alare/Alar Flare - left", "Alare/Alar Flare - right", "Alar Rim’s Highest Point - left", "Alar Rim’s Highest Point - right",
+          "Cervical Point", "Columellar Break Point", "Cheilion - left", "Cheilion - right", "Columellar Rim - left", "Columellar Rim - right",
+          "Corneal Plane", "Crista Philtri - left", "Crista Philtri - right", "Endocanthion/Medial Canthus - left", "Endocanthion/Medial Canthus - right",
+          "Exocanthion/Lateral Canthus - left", "Exocanthion/Lateral Canthus - right", "Glabella", "Soft tissue gonion - left", "Soft tissue gonion - right",
+          "Iris - left", "Iris - right", "Midpoint of left Infraorbital Rim", "Midpoint of right Infraorbital Rim",
+          "Posterior Point of Nostril - left", "Posterior Point of Nostril - right", "Kyphion", "Lateral helix of ear - left",
+          "Lateral helix of ear - right", "Labiale Inferius", "Labiale Superius", "Maxilloanteriorale - left", "Maxilloanteriorale - right",
+          "Menton/Gnathion", "Maxillofrontale - left", "Maxillofrontale - right", "Nasion/Radix", "Nasal Parenthesis - left",
+          "Nasal Parenthesis - right", "Pupil - left", "Pupil - right", "Pogonion", "Pronasale/Tip", "Rhinion", "Supratip Break Point",
+          "Subalare - left", "Subalare - right", "Sill-base junction - left", "Sill-base junction - right",
+          "Supratarsal Crease - left", "Supratarsal Crease - right", "Sellion", "Sublabiale/Mentolabial Sulcus", "Subnasale",
+          "Subnasale - left", "Subnasale - right", "Subspinale", "Anterior Point of Nostril/Columella Junction left",
+          "Anterior Point of Nostril/Columella Junction right", "Stomion", "Tragion - left", "Tragion - right",
+          "Tip Defining Point - left", "Tip Defining Point - right", "Trichion", "Vertex", "Zygion - left", "Zygion - right"
+        ]
+      }
+    },
+    { title: 'X Value', field: 'xVal' },
+    { title: 'Y Value', field: 'yVal' },
+    { title: 'Z Value', field: 'zVal' },
+  ],
+});
+
+
+        const statsTable = new Tabulator('#stats-table', {
+          data: participants,
+          layout: 'fitColumns',
+          pagination: 'local',
+          paginationSize: 10,
+          columns: [
+            { title: 'Participant ID', field: 'participantFileId' },
+            { title: 'Gender', field: 'Gender', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: ['M','F','Other'] } },
+            { title: 'Age Min', field: 'Age', sorter: 'number', headerFilter: 'input', headerFilterPlaceholder: 'Min…', headerFilterFunc: '>=', headerFilterLiveFilter: true },
+            { title: 'Age Max', field: 'Age', sorter: 'number', headerFilter: 'input', headerFilterPlaceholder: 'Max…', headerFilterFunc: '<=', headerFilterLiveFilter: true },
+            { title: 'Ethnicity', field: 'Ethnicity', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: ['White','Black or African American','American Indian or Alaska Native','Asian','Native Hawaiian or Other Pacific Islander','Hispanic','Prefer not to specify'] } },
+            { title: 'Facial Surgery', field: 'FacialSurgery', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: ['No Facial Surgery','Brow/forehead lift','Ear pinning','Chin, cheek, or jaw reshaping','Eyelid lift','Facelift','Facial implants','Hair replacement surgery','Lip augmentation','Rhinoplasty','Other','Prefer not to specify'] } },
+          ],
+        });
 
         statsTable.on('dataFiltered', (filters, rows) => {
           const ids = rows.map(r => r.getData().participantFileId);
@@ -176,13 +306,13 @@
           measurementTable.clearHeaderFilter();
           landmarkTable.clearHeaderFilter();
         });
+        })
+        .catch(err => {
+          console.error(err);
+          document.querySelector('#stats-table').innerHTML = `<p style="color:red">${err}</p>`;
+        });
 
-        document.getElementById('downloadCSV').addEventListener('click', exportTablesToCSV);
-      })
-      .catch(err => {
-        console.error(err);
-        document.querySelector('#stats-table').innerHTML = `<p style="color:red">${err}</p>`;
-      });
+
   </script>
 </body>
 </html>
