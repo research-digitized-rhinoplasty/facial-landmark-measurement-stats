@@ -242,18 +242,43 @@
 
 
         const landmarkTable = new Tabulator('#landmark-table', {
-          data: allLandmarks,
-          layout: 'fitColumns',
-          pagination: 'local',
-          paginationSize: 10,
-          columns: [
-            { title: 'Participant ID', field: 'participantFileId' },
-            { title: 'Landmark Name', field: 'landmarkName' },
-            { title: 'X Value', field: 'xVal' },
-            { title: 'Y Value', field: 'yVal' },
-            { title: 'Z Value', field: 'zVal' },
-          ],
-        });
+  data: allLandmarks,
+  layout: 'fitColumns',
+  pagination: 'local',
+  paginationSize: 10,
+  columns: [
+    { title: 'Participant ID', field: 'participantFileId' },
+    {
+      title: 'Landmark Name',
+      field: 'landmarkName',
+      headerFilter: dropdownMultiCheck,
+      headerFilterFunc: multiSelectFilterFunc,
+      headerFilterParams: {
+        values: [
+          "1st Point", "2nd Point", "Alar Base Junction/Alar Crease - left", "Alar Base Junction/Alar Crease - right",
+          "Alare/Alar Flare - left", "Alare/Alar Flare - right", "Alar Rim’s Highest Point - left", "Alar Rim’s Highest Point - right",
+          "Cervical Point", "Columellar Break Point", "Cheilion - left", "Cheilion - right", "Columellar Rim - left", "Columellar Rim - right",
+          "Corneal Plane", "Crista Philtri - left", "Crista Philtri - right", "Endocanthion/Medial Canthus - left", "Endocanthion/Medial Canthus - right",
+          "Exocanthion/Lateral Canthus - left", "Exocanthion/Lateral Canthus - right", "Glabella", "Soft tissue gonion - left", "Soft tissue gonion - right",
+          "Iris - left", "Iris - right", "Midpoint of left Infraorbital Rim", "Midpoint of right Infraorbital Rim",
+          "Posterior Point of Nostril - left", "Posterior Point of Nostril - right", "Kyphion", "Lateral helix of ear - left",
+          "Lateral helix of ear - right", "Labiale Inferius", "Labiale Superius", "Maxilloanteriorale - left", "Maxilloanteriorale - right",
+          "Menton/Gnathion", "Maxillofrontale - left", "Maxillofrontale - right", "Nasion/Radix", "Nasal Parenthesis - left",
+          "Nasal Parenthesis - right", "Pupil - left", "Pupil - right", "Pogonion", "Pronasale/Tip", "Rhinion", "Supratip Break Point",
+          "Subalare - left", "Subalare - right", "Sill-base junction - left", "Sill-base junction - right",
+          "Supratarsal Crease - left", "Supratarsal Crease - right", "Sellion", "Sublabiale/Mentolabial Sulcus", "Subnasale",
+          "Subnasale - left", "Subnasale - right", "Subspinale", "Anterior Point of Nostril/Columella Junction left",
+          "Anterior Point of Nostril/Columella Junction right", "Stomion", "Tragion - left", "Tragion - right",
+          "Tip Defining Point - left", "Tip Defining Point - right", "Trichion", "Vertex", "Zygion - left", "Zygion - right"
+        ]
+      }
+    },
+    { title: 'X Value', field: 'xVal' },
+    { title: 'Y Value', field: 'yVal' },
+    { title: 'Z Value', field: 'zVal' },
+  ],
+});
+
 
         const statsTable = new Tabulator('#stats-table', {
           data: participants,
