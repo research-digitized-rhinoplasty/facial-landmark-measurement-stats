@@ -168,6 +168,61 @@
       return filterVals.includes(cellVal);
     }
 
+    // 1) Declare globals so downloadAllFilteredData can see them:
+    let statsTable, measurementTable, landmarkTable;
+
+    // 2) CSV download function
+    function downloadAllFilteredData() {
+      // If tables aren’t ready yet, bail out
+      if (!statsTable || !measurementTable || !landmarkTable) {
+        alert('Table data is still loading, please try again in a moment.');
+        return;
+      }
+
+      // Grab only the filtered rows from each table
+      const statsData       = statsTable.getData();        // respects filters
+      const measurementData = measurementTable.getData();  // respects filters
+      const landmarkData    = landmarkTable.getData();     // respects filters
+
+      // helper to turn an array of objects into a CSV string
+      const toCSV = (data, sectionName) => {
+        if (!data.length) return '';
+        const headers = Object.keys(data[0]);
+        const rows    = data.map(row =>
+          headers.map(f => `"${String(row[f] ?? '').replace(/"/g, '""')}"`).join(',')
+        );
+        return [
+          `\n\n# ${sectionName}`,     // section header
+          headers.join(','),          // column headers
+          ...rows
+        ].join('\n');
+      };
+
+      const csvContent = [
+        toCSV(statsData,       'Participants'),
+        toCSV(measurementData, 'Measurements'),
+        toCSV(landmarkData,    'Landmarks'),
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'filtered_data.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // wire up download button
+    document.getElementById('downloadCSV')
+            .addEventListener('click', downloadAllFilteredData);
+
+
+
+
+
+
+
     fetch('data.json')
       .then(r => r.ok ? r.json() : Promise.reject('data.json not found'))
       .then(participants => {
@@ -312,46 +367,6 @@
           console.error(err);
           document.querySelector('#stats-table').innerHTML = `<p style="color:red">${err}</p>`;
         });
-
-        // CSV download 
-        function downloadAllFilteredData() {
-          const statsData = statsTable.getData();
-          const measurementData = measurementTable.getData();
-          const landmarkData = landmarkTable.getData();
-
-          const convertToCSV = (data, sectionName) => {
-            if (!data.length) return '';
-
-            const headers = Object.keys(data[0]);
-            const csvRows = [
-              `\n\n${sectionName}`,
-              headers.join(','),
-              ...data.map(row =>
-                headers.map(field => `"${String(row[field] ?? '').replace(/"/g, '""')}"`).join(',')
-              )
-            ];
-
-            return csvRows.join('\n');
-          };
-
-          const csvContent = [
-            convertToCSV(statsData, 'Participants'),
-            convertToCSV(measurementData, 'Measurements'),
-            convertToCSV(landmarkData, 'Landmarks')
-          ].join('\n');
-
-          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-          const link = document.createElement('a');
-          link.href = URL.createObjectURL(blob);
-          link.setAttribute('download', 'filtered_data.csv');
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        }
-
-
-        // Hook the button
-        document.getElementById('downloadCSV').addEventListener('click', downloadAllFilteredData);
 
 
 
