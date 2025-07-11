@@ -292,6 +292,91 @@
       const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download='filtered_data.csv'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
     }
     document.getElementById('downloadCSV').addEventListener('click', downloadAllFilteredData);
+
+
+
+    // Show chart options + chart canvas and draw chart on button click
+  document.getElementById('create-chart').addEventListener('click', () => {
+    const chartContainer = document.getElementById('chart-container');
+    chartContainer.style.display = 'grid';
+    drawChart(); // draw the initial chart immediately
+  });
+
+  // Re-draw chart when chart options change
+  document.getElementById('chart-options').addEventListener('change', () => {
+    drawChart();
+  });
+
+  function drawChart() {
+    const data = participantsTable.getData(); // filtered participants
+    if (!data.length) return;
+
+    const category = document.querySelector('input[name="category"]:checked').value;
+    const chartType = document.querySelector('input[name="chartType"]:checked').value;
+
+    let labels = [];
+    let values = [];
+
+    if (category === 'Age') {
+      const ageCounts = {};
+      data.forEach(p => {
+        const age = parseInt(p.Age);
+        if (!isNaN(age)) {
+          ageCounts[age] = (ageCounts[age] || 0) + 1;
+        }
+      });
+
+      // sort numerically
+      labels = Object.keys(ageCounts).sort((a, b) => a - b);
+      values = labels.map(label => ageCounts[label]);
+    } else {
+      const counts = {};
+      data.forEach(p => {
+        const val = p[category] || 'Unknown';
+        counts[val] = (counts[val] || 0) + 1;
+      });
+
+      labels = Object.keys(counts);
+      values = labels.map(label => counts[label]);
+    }
+
+    const total = values.reduce((sum, val) => sum + val, 0) || 1;
+    const percentages = values.map(val => (val / total * 100).toFixed(2));
+
+    // destroy existing chart if present
+    if (window.currentChart) {
+      window.currentChart.destroy();
+    }
+
+    const ctx = document.getElementById('chart-canvas').getContext('2d');
+    window.currentChart = new Chart(ctx, {
+      type: chartType,
+      data: {
+        labels: labels,
+        datasets: [{
+          label: '% of Participants',
+          data: percentages,
+          backgroundColor: labels.map((_, i) => `hsl(${i * 360 / labels.length}, 70%, 60%)`)
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: context => `${context.label}: ${context.formattedValue}%`
+            }
+          }
+        }
+      }
+    });
+  }
+
+
+
+
+
+
   </script>
 </body>
 </html>
