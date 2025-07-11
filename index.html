@@ -114,7 +114,22 @@
           lbl.appendChild(cb); lbl.appendChild(document.createTextNode(val)); list.appendChild(lbl);
           cb.addEventListener('change', () => {
             const chosen = Array.from(list.querySelectorAll('input:checked')).map(i => i.value);
-            success(chosen); toggle.textContent = chosen.length ? chosen.join(', ') : 'Select...';
+            success(chosen);
+            toggle.textContent = chosen.length ? chosen.join(', ') : 'Select...';
+
+            // Redraw chart immediately if it matches the selected category
+            const category = document.querySelector('input[name="category"]:checked')?.value;
+            const chartVisible = document.getElementById("chart-container").style.display !== "none";
+
+            if (
+              chartVisible &&
+              (
+                (category === "Age" && field === "Age") ||
+                field?.toLowerCase().includes(category?.toLowerCase())
+              )
+            ) {
+              drawChart();
+            }
           });
         });
         document.body.appendChild(list);
