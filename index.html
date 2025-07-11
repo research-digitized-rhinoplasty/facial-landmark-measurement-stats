@@ -268,7 +268,14 @@
           const ids = rows.map(r => r.getData().participantFileId);
           measurementTable.replaceData(allMeasurements.filter(m => ids.includes(m.participantFileId)));
           landmarkTable.replaceData(allLandmarks.filter(l => ids.includes(l.participantFileId)));
+
+          const chartVisible = document.getElementById("chart-container").style.display !== "none";
+          if (chartVisible) {
+            drawChart();
+          }
         });
+
+        
 
         document.getElementById('clearFilters').addEventListener('click', () => {
           participantsTable.clearHeaderFilter();
