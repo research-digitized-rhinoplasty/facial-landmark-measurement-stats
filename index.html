@@ -174,10 +174,10 @@
     // 2) CSV download function
     function downloadAllFilteredData() {
       // If tables aren’t ready yet, bail out
-      if (!statsTable || !measurementTable || !landmarkTable) {
-        alert('Table data is still loading, please try again in a moment.');
-        return;
-      }
+      //if (!statsTable || !measurementTable || !landmarkTable) {
+      //  alert('Table data is still loading, please try again in a moment.');
+     //   return;
+     //}
 
       // Grab only the filtered rows from each table
       const statsData       = statsTable.getData();        // respects filters
