@@ -264,16 +264,23 @@
           ],
         });
 
-        participantsTable.on('dataFiltered', (filters, rows) => {
-          const ids = rows.map(r => r.getData().participantFileId);
-          measurementTable.replaceData(allMeasurements.filter(m => ids.includes(m.participantFileId)));
-          landmarkTable.replaceData(allLandmarks.filter(l => ids.includes(l.participantFileId)));
-
+        participantsTable.on('headerFilterChanged', (column) => {
+          const category = document.querySelector('input[name="category"]:checked')?.value;
+          const field = column.getField();
           const chartVisible = document.getElementById("chart-container").style.display !== "none";
-          if (chartVisible) {
+
+          // Update chart only when the changed field matches the selected chart category
+          if (
+            chartVisible &&
+            (
+              (category === "Age" && (field === "Age" || field === "Age Min" || field === "Age Max")) ||
+              field?.toLowerCase().includes(category?.toLowerCase())
+            )
+          ) {
             drawChart();
           }
         });
+
 
         
 
