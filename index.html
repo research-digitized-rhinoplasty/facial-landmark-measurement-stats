@@ -308,7 +308,8 @@
   });
 
   function drawChart() {
-    const data = participantsTable.getData(); // filtered participants
+    const rows = participantsTable.getRows(); // get filtered rows
+    const data = rows.map(r => r.getData());
     if (!data.length) return;
 
     const category = document.querySelector('input[name="category"]:checked').value;
@@ -326,9 +327,8 @@
         }
       });
 
-      // sort numerically
       labels = Object.keys(ageCounts).sort((a, b) => a - b);
-      values = labels.map(label => ageCounts[label]);
+      values = labels.map(l => ageCounts[l]);
     } else {
       const counts = {};
       data.forEach(p => {
@@ -337,13 +337,12 @@
       });
 
       labels = Object.keys(counts);
-      values = labels.map(label => counts[label]);
+      values = labels.map(l => counts[l]);
     }
 
     const total = values.reduce((sum, val) => sum + val, 0) || 1;
     const percentages = values.map(val => (val / total * 100).toFixed(2));
 
-    // destroy existing chart if present
     if (window.currentChart) {
       window.currentChart.destroy();
     }
@@ -352,7 +351,7 @@
     window.currentChart = new Chart(ctx, {
       type: chartType,
       data: {
-        labels: labels,
+        labels,
         datasets: [{
           label: '% of Participants',
           data: percentages,
@@ -371,6 +370,9 @@
       }
     });
   }
+
+
+
 
 
 
