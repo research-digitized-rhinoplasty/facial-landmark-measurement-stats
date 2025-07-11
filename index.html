@@ -296,6 +296,16 @@
           }
         });
 
+        participantsTable.on('dataFiltered', (filters, rows) => {
+          const chartVisible = document.getElementById("chart-container").style.display !== "none";
+          const category = document.querySelector('input[name="category"]:checked')?.value;
+
+          if (chartVisible && category === "Age") {
+            drawChart();
+          }
+        });
+
+
 
         
 
