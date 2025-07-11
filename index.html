@@ -284,7 +284,7 @@
         
 
     function downloadAllFilteredData() {
-      const pd=participantsTable.getData(), ids=pd.map(p=>p.participantFileId);
+      const pd = participantsTable.getData("active"), ids=pd.map(p=>p.participantFileId);
       const md=measurementTable.getData().filter(m=>ids.includes(m.participantFileId));
       const ld=landmarkTable.getData().filter(l=>ids.includes(l.participantFileId));
       const makeSection=(data,title)=>{ if(!data.length) return''; const cols=Object.keys(data[0]); const rows=data.map(r=>cols.map(f=>`"${String(r[f]||'').replace(/"/g,'""')}"`).join(',')); return[`\n\n# ${title}`,cols.join(','),...rows].join('\n'); };
@@ -308,8 +308,8 @@
   });
 
   function drawChart() {
-    const rows = participantsTable.getRows(); // get filtered rows
-    const data = rows.map(r => r.getData());
+    const data = participantsTable.getData("active");
+
     if (!data.length) return;
 
     const category = document.querySelector('input[name="category"]:checked').value;
