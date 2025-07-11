@@ -16,48 +16,18 @@
     .button-row { margin: 10px 0; }
 
     /* Allow header filters to overflow */
-    .tabulator .tabulator-header {
-      overflow: visible !important;
-    }
-    .tabulator .tabulator-header .tabulator-col {
-      overflow: visible !important;
-      position: relative !important;
-    }
-    .tabulator .tabulator-header .tabulator-col .tabulator-header-filter {
-      overflow: visible !important;
-      position: relative !important;
-    }
+    .tabulator .tabulator-header { overflow: visible !important; }
+    .tabulator .tabulator-header .tabulator-col { overflow: visible !important; position: relative !important; }
+    .tabulator .tabulator-header .tabulator-col .tabulator-header-filter { overflow: visible !important; position: relative !important; }
 
     /* Dropdown checkbox list styles */
-    .checkbox-dropdown {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      z-index: 9999;
-      background: white;
-      border: 1px solid #ccc;
-      max-height: 180px;
-      overflow-y: auto;
-      padding: 4px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .checkbox-dropdown label {
-      display: block;
-      font-size: 12px;
-      cursor: pointer;
-      margin-bottom: 2px;
-    }
-    .checkbox-dropdown input {
-      margin-right: 6px;
-    }
-    .dropdown-toggle {
-      cursor: pointer;
-      padding: 4px;
-      border: 1px solid #ccc;
-      background: #fff;
-      width: 100%;
-      box-sizing: border-box;
-    }
+    .checkbox-dropdown { position: absolute; top: 100%; left: 0; z-index: 9999; background: white; border: 1px solid #ccc; max-height: 180px; overflow-y: auto; padding: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .checkbox-dropdown label { display: block; font-size: 12px; cursor: pointer; margin-bottom: 2px; }
+    .checkbox-dropdown input { margin-right: 6px; }
+    .dropdown-toggle { cursor: pointer; padding: 4px; border: 1px solid #ccc; background: #fff; width: 100%; box-sizing: border-box; }
+
+    /* Chart container hidden by default */
+    #chart-container { margin-top: 20px; display: none; }
   </style>
 </head>
 <body>
@@ -65,12 +35,18 @@
   <div class="button-row">
     <button id="clearFilters">Clear All Filters</button>
     <button id="downloadCSV">Download Filtered Data (CSV)</button>
+    <button id="showChart">Show Chart</button>
   </div>
 
   <!-- Stats Table -->
+  <h2>Participant Statistics</h2>
   <div id="stats-table"></div>
-  <!-- Chart for filtered stats -->
-  <canvas id="filter-chart" width="400" height="200" style="margin-top:20px;"></canvas>
+
+  <!-- Chart Container -->
+  <div id="chart-container">
+    <h3>Gender Distribution (%)</h3>
+    <canvas id="filter-chart" width="400" height="200"></canvas>
+  </div>
 
   <!-- Measurements Table -->
   <h2>Measurements</h2>
@@ -84,122 +60,97 @@
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
   <script>
     // exact-match helper
-    function exactMatch(h, v) {
-      return h === "All" || h === "Any" || v === h;
-    }
+    function exactMatch(h, v) { return h === "All" || h === "Any" || v === h; }
 
     // dropdown checkbox header filter
     function dropdownMultiCheck(cell, onRendered, success) {
-      const column = cell.getColumn();
-      const field = column.getField();
-      const table = cell.getTable();
+      const column = cell.getColumn(), field = column.getField(), table = cell.getTable();
       const values = column.getDefinition().headerFilterParams.values;
       const toggle = document.createElement('div');
-      toggle.classList.add('dropdown-toggle');
-      toggle.style.position = 'relative';
-      const updateLabel = () => {
-        const current = table.getHeaderFilterValue(field) || [];
-        toggle.textContent = current.length ? current.join(', ') : 'Select...';
-      };
-      updateLabel();
-      let list;
+      toggle.classList.add('dropdown-toggle'); toggle.style.position = 'relative';
+      const updateLabel = () => { const cur = table.getHeaderFilterValue(field) || []; toggle.textContent = cur.length ? cur.join(', ') : 'Select...'; };
+      updateLabel(); let list;
       const openDropdown = () => {
-        if (list) return;
-        list = document.createElement('div');
-        list.classList.add('checkbox-dropdown');
-        const current = table.getHeaderFilterValue(field) || [];
+        if(list) return;
+        list = document.createElement('div'); list.classList.add('checkbox-dropdown');
+        const cur = table.getHeaderFilterValue(field) || [];
         values.forEach(val => {
           const lbl = document.createElement('label');
-          const cb  = document.createElement('input');
-          cb.type = 'checkbox';
-          cb.value = val;
-          cb.checked = current.includes(val);
-          lbl.appendChild(cb);
-          lbl.appendChild(document.createTextNode(val));
-          list.appendChild(lbl);
-          cb.addEventListener('change', () => {
-            const chosen = Array.from(list.querySelectorAll('input:checked')).map(i => i.value);
-            success(chosen);
-            toggle.textContent = chosen.length ? chosen.join(', ') : 'Select...';
+          const cb = document.createElement('input'); cb.type='checkbox'; cb.value=val; cb.checked = cur.includes(val);
+          lbl.appendChild(cb); lbl.appendChild(document.createTextNode(val)); list.appendChild(lbl);
+          cb.addEventListener('change', ()=>{
+            const chosen = Array.from(list.querySelectorAll('input:checked')).map(i=>i.value);
+            success(chosen); toggle.textContent = chosen.length ? chosen.join(', ') : 'Select...';
           });
         });
         document.body.appendChild(list);
-        const rect = toggle.getBoundingClientRect();
-        list.style.top = rect.bottom + window.scrollY + 'px';
-        list.style.left = rect.left + window.scrollX + 'px';
+        const rect = toggle.getBoundingClientRect(); list.style.top = rect.bottom + window.scrollY + 'px'; list.style.left = rect.left + window.scrollX + 'px';
         document.addEventListener('click', outsideClick);
       };
-      const closeDropdown = () => { if (!list) return; list.remove(); list = null; document.removeEventListener('click', outsideClick); };
-      const outsideClick = (e) => { if (!toggle.contains(e.target) && list && !list.contains(e.target)) closeDropdown(); };
-      toggle.addEventListener('click', e => { e.stopPropagation(); list ? closeDropdown() : openDropdown(); });
-      onRendered(() => {});
+      const closeDropdown = () => { if(!list) return; list.remove(); list=null; document.removeEventListener('click', outsideClick); };
+      const outsideClick = (e) => { if(!toggle.contains(e.target)&&list&&!list.contains(e.target)) closeDropdown(); };
+      toggle.addEventListener('click', e=>{ e.stopPropagation(); list? closeDropdown(): openDropdown(); });
+      onRendered(()=>{});
       return toggle;
     }
-    function multiSelectFilterFunc(filterVals, cellVal) {
-      if (!filterVals || !filterVals.length) return true;
-      return filterVals.includes(cellVal);
-    }
+    function multiSelectFilterFunc(filterVals, cellVal){ if(!filterVals||!filterVals.length) return true; return filterVals.includes(cellVal); }
 
     fetch('data.json')
-      .then(r => r.ok ? r.json() : Promise.reject('data.json not found'))
-      .then(participants => {
-        // prepare flat data
-        const allMeasurements = participants.flatMap(p => (p.ParticipantMeasurements || []).map(m => ({ participantFileId: p.participantFileId, measurementName: m.MeasurementName, value: m.Value })));
-        const allLandmarks = participants.flatMap(p => (p.ParticipantLandmarks || []).map(l => ({ participantFileId: p.participantFileId, landmarkName: l.LandmarkName, xVal: l.xVal, yVal: l.yVal, zVal: l.zVal })));
+      .then(r=>r.ok ? r.json() : Promise.reject('data.json not found'))
+      .then(participants=>{
+        const allMeasurements = participants.flatMap(p=>(p.ParticipantMeasurements||[]).map(m=>({ participantFileId:p.participantFileId, measurementName:m.MeasurementName, value:m.Value })));
+        const allLandmarks    = participants.flatMap(p=>(p.ParticipantLandmarks ||[]).map(l=>({ participantFileId:p.participantFileId, landmarkName:l.LandmarkName, xVal:l.xVal, yVal:l.yVal, zVal:l.zVal })));
+
+        const measurementTable = new Tabulator('#measurement-table', { data:allMeasurements, layout:'fitColumns', pagination:'local', paginationSize:10, columns:[ {title:'Participant ID',field:'participantFileId'}, {title:'Measurement Name',field:'measurementName', headerFilter:dropdownMultiCheck, headerFilterFunc:multiSelectFilterFunc, headerFilterParams:{values: [/* same list */]}}, {title:'Value',field:'value'} ]});
+        const landmarkTable    = new Tabulator('#landmark-table',    { data:allLandmarks,    layout:'fitColumns', pagination:'local', paginationSize:10, columns:[ {title:'Participant ID',field:'participantFileId'}, {title:'Landmark Name',field:'landmarkName', headerFilter:dropdownMultiCheck, headerFilterFunc:multiSelectFilterFunc, headerFilterParams:{values: [/* same list */]}}, {title:'X Value',field:'xVal'}, {title:'Y Value',field:'yVal'}, {title:'Z Value',field:'zVal'} ]});
+
+        const statsTable = new Tabulator('#stats-table',{ data:participants, layout:'fitColumns', pagination:'local', paginationSize:10, columns:[ {title:'Participant ID',field:'participantFileId'}, {title:'Gender',field:'Gender', headerFilter:dropdownMultiCheck, headerFilterFunc:multiSelectFilterFunc, headerFilterParams:{values:['M','F','Other']}}, {title:'Age Min',field:'Age',sorter:'number',headerFilter:'input',headerFilterPlaceholder:'Min…',headerFilterFunc:'>=',headerFilterLiveFilter:true}, {title:'Age Max',field:'Age',sorter:'number',headerFilter:'input',headerFilterPlaceholder:'Max…',headerFilterFunc:'<=',headerFilterLiveFilter:true}, {title:'Ethnicity',field:'Ethnicity', headerFilter:dropdownMultiCheck, headerFilterFunc:multiSelectFilterFunc, headerFilterParams:{values:['White','Black or African American','American Indian or Alaska Native','Asian','Native Hawaiian or Other Pacific Islander','Hispanic','Prefer not to specify']}}, {title:'Facial Surgery',field:'FacialSurgery', headerFilter:dropdownMultiCheck, headerFilterFunc:multiSelectFilterFunc, headerFilterParams:{values:['No Facial Surgery','Brow/forehead lift','Ear pinning','Chin, cheek, or jaw reshaping','Eyelid lift','Facelift','Facial implants','Hair replacement surgery','Lip augmentation','Rhinoplasty','Other','Prefer not to specify']}} ]});
+
+        // Update measurements/landmarks on stats filter change
+        statsTable.on('dataFiltered',(filters,rows)=>{
+          const ids = rows.map(r=>r.getData().participantFileId);
+          measurementTable.replaceData(allMeasurements.filter(m=>ids.includes(m.participantFileId)));
+          landmarkTable.replaceData(allLandmarks.filter(l=>ids.includes(l.participantFileId)));
+        });
 
         // Chart.js setup
         const ctx = document.getElementById('filter-chart').getContext('2d');
-        const filterChart = new Chart(ctx, {
-          type: 'bar',
-          data: { labels: [], datasets: [{ label: 'Count', data: [] }] },
-          options: { responsive: true, scales: { y: { beginAtZero: true } } }
-        });
-        function updateChart(filteredRows) {
-          const counts = {};
-          filteredRows.forEach(row => {
-            const key = row.Gender || 'Unknown';
-            counts[key] = (counts[key] || 0) + 1;
-          });
+        const filterChart = new Chart(ctx, { type:'bar', data:{ labels:[], datasets:[{ label:'%', data:[] }] }, options:{ responsive:true, scales:{ y:{ beginAtZero:true, ticks:{ callback: v=>v+'%' } } } } });
+
+        // Compute and update percentage chart
+        function updateChart(data){
+          const total = data.length;
+          const counts = data.reduce((acc,row)=>{ const key=row.Gender||'Unknown'; acc[key]=(acc[key]||0)+1; return acc; },{});
           const labels = Object.keys(counts);
-          const values = labels.map(l => counts[l]);
+          const values = labels.map(l=> Math.round((counts[l]/total)*100));
           filterChart.data.labels = labels;
           filterChart.data.datasets[0].data = values;
           filterChart.update();
         }
 
-        // Tabulator tables
-        const measurementTable = new Tabulator('#measurement-table', { /* ... */ });
-        const landmarkTable    = new Tabulator('#landmark-table',    { /* ... */ });
-        const statsTable       = new Tabulator('#stats-table',       { /* ... */ });
-
-        // redraw chart & related tables on filter
-        statsTable.on('dataFiltered', (filters, rows) => {
-          const ids = rows.map(r => r.getData().participantFileId);
-          measurementTable.replaceData(allMeasurements.filter(m => ids.includes(m.participantFileId)));
-          landmarkTable.replaceData(allLandmarks.filter(l => ids.includes(l.participantFileId)));
-          updateChart(statsTable.getData());
+        // Show/hide chart on button
+        let chartVisible = false;
+        document.getElementById('showChart').addEventListener('click',()=>{
+          chartVisible = !chartVisible;
+          document.getElementById('chart-container').style.display = chartVisible? 'block':'none';
+          document.getElementById('showChart').textContent = chartVisible? 'Hide Chart':'Show Chart';
+          if(chartVisible) updateChart(statsTable.getData());
         });
 
-        // initial draw
-        updateChart(statsTable.getData());
+        // Clear filters
+        document.getElementById('clearFilters').addEventListener('click',()=>{ statsTable.clearHeaderFilter(); measurementTable.clearHeaderFilter(); landmarkTable.clearHeaderFilter(); });
 
-        document.getElementById('clearFilters').addEventListener('click', () => {
-          statsTable.clearHeaderFilter(); measurementTable.clearHeaderFilter(); landmarkTable.clearHeaderFilter();
-        });
-
+        // CSV download
+        function downloadAllFilteredData(){
+          const rows = [ ...statsTable.getData(), ...measurementTable.getData(), ...landmarkTable.getData() ];
+          const headers = Array.from(new Set(rows.flatMap(r=>Object.keys(r))));
+          const csv = [ headers.join(',') ].concat(rows.map(r=> headers.map(h=>`"${(r[h]||'').toString().replace(/"/g,'""')}"`).join(',') ) ).join('\n');
+          const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+          const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.setAttribute('download','filtered_data.csv'); document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        }
+        document.getElementById('downloadCSV').addEventListener('click',downloadAllFilteredData);
       })
-      .catch(err => { console.error(err); document.querySelector('#stats-table').innerHTML = `<p style="color:red">${err}</p>`; });
-
-    // CSV download
-    function downloadAllFilteredData() {
-      const allData = [ ...statsTable.getData(), ...measurementTable.getData(), ...landmarkTable.getData() ];
-      const headers = Array.from(new Set(allData.flatMap(Object.keys)));
-      const csvRows = [headers.join(',')];
-      allData.forEach(row => { csvRows.push(headers.map(f => row[f]!==undefined ? `"${String(row[f]).replace(/"/g,'""')}"` : '').join(',')); });
-      const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.setAttribute('download', 'filtered_data.csv'); document.body.appendChild(link); link.click(); document.body.removeChild(link);
-    }
-    document.getElementById('downloadCSV').addEventListener('click', downloadAllFilteredData);
+      .catch(err=>{ console.error(err); document.querySelector('#stats-table').innerHTML=`<p style="color:red">${err}</p>`; });
   </script>
 </body>
 </html>
