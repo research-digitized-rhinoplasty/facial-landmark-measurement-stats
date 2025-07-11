@@ -13,6 +13,9 @@
     #participants-table, #measurement-table, #landmark-table { margin-top: 20px; }
     .button-row { margin: 10px 0; }
 
+    /* Hide chart container until 'Chart' is clicked */
+    #chart-container { display: none; }
+
     /* Allow header filters to overflow */
     .tabulator .tabulator-header { overflow: visible !important; }
     .tabulator .tabulator-header .tabulator-col { overflow: visible !important; position: relative !important; }
@@ -41,7 +44,13 @@
   <h2>Participant Information</h2>
   <div id="participants-table"></div>
 
-  <div id="chart-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 1rem;">
+  <div id="chart-container" style="
+      display: none;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-top: 1rem;
+      display: grid;
+    ">
     <div>
       <h3>Ethnicity</h3>
       <canvas id="ethnicity-chart"></canvas>
@@ -172,6 +181,10 @@
 
         // chart button
         document.getElementById('create-chart').addEventListener('click', () => {
+          // show chart container on click
+          const container = document.getElementById('chart-container');
+          container.style.display = 'grid';
+
           const data = participantsTable.getData();
           function getPercentages(arr, order = null) {
             const counts = {};
@@ -216,7 +229,7 @@
       })
       .catch(err => {
         console.error(err);
-        document.querySelector('#participants-table').innerHTML = `<p style="color:red">${err}</p>`;
+        document.querySelector('#participants-table').innerHTML = `<p style=\"color:red\">${err}</p>`;
       });
 
     // download CSV
