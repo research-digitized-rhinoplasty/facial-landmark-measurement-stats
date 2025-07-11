@@ -14,6 +14,8 @@
     body { font-family: Arial; padding: 20px; }
     #stats-table, #measurement-table, #landmark-table { margin-top: 20px; }
     .button-row { margin: 10px 0; }
+    .chart-controls { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+    #chartPanel { margin-top: 20px; display: none; }
 
     /* Allow header filters to overflow */
     .tabulator .tabulator-header { overflow: visible !important; }
@@ -25,9 +27,6 @@
     .checkbox-dropdown label { display: block; font-size: 12px; cursor: pointer; margin-bottom: 2px; }
     .checkbox-dropdown input { margin-right: 6px; }
     .dropdown-toggle { cursor: pointer; padding: 4px; border: 1px solid #ccc; background: #fff; width: 100%; box-sizing: border-box; }
-
-    /* Chart container hidden by default */
-    #chart-container { margin-top: 20px; display: none; }
   </style>
 </head>
 <body>
@@ -35,120 +34,143 @@
   <div class="button-row">
     <button id="clearFilters">Clear All Filters</button>
     <button id="downloadCSV">Download Filtered Data (CSV)</button>
-    <button id="showChart">Show Chart</button>
+    <button id="showChartBtn">Show Chart</button>
+  </div>
+
+  <!-- Chart Options (hidden until Show Chart clicked) -->
+  <div id="chartPanel">
+    <div class="chart-controls">
+      <strong>Group by:</strong>
+      <label><input type="radio" name="groupField" value="Ethnicity" checked> Ethnicity</label>
+      <label><input type="radio" name="groupField" value="Gender"> Gender</label>
+      <label><input type="radio" name="groupField" value="FacialSurgery"> Facial Surgery</label>
+      <label><input type="radio" name="groupField" value="Age"> Age</label>
+    </div>
+    <div class="chart-controls">
+      <strong>Chart Type:</strong>
+      <label><input type="radio" name="chartType" value="bar" checked> Bar</label>
+      <label><input type="radio" name="chartType" value="pie"> Pie</label>
+    </div>
+    <canvas id="filter-chart" width="800" height="400"></canvas>
   </div>
 
   <!-- Stats Table -->
-  <h2>Participant Statistics</h2>
   <div id="stats-table"></div>
-
-  <!-- Chart Container -->
-  <div id="chart-container">
-    <h3>Gender Distribution (%)</h3>
-    <canvas id="filter-chart" width="400" height="200"></canvas>
-  </div>
-
-  <!-- Measurements Table -->
   <h2>Measurements</h2>
   <div id="measurement-table"></div>
-
-  <!-- Landmarks Table -->
   <h2>Landmarks</h2>
   <div id="landmark-table"></div>
 
   <!-- Tabulator JS -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
   <script>
-    // exact-match helper
     function exactMatch(h, v) { return h === "All" || h === "Any" || v === h; }
-
-    // dropdown checkbox header filter
     function dropdownMultiCheck(cell, onRendered, success) {
-      const column = cell.getColumn(), field = column.getField(), table = cell.getTable();
-      const values = column.getDefinition().headerFilterParams.values;
-      const toggle = document.createElement('div');
-      toggle.classList.add('dropdown-toggle'); toggle.style.position = 'relative';
-      const updateLabel = () => { const cur = table.getHeaderFilterValue(field) || []; toggle.textContent = cur.length ? cur.join(', ') : 'Select...'; };
+      const column = cell.getColumn(), field = column.getField(), table = cell.getTable(), values = column.getDefinition().headerFilterParams.values;
+      const toggle = document.createElement('div'); toggle.classList.add('dropdown-toggle'); toggle.style.position='relative';
+      const updateLabel = () => { const current = table.getHeaderFilterValue(field) || []; toggle.textContent = current.length ? current.join(', ') : 'Select...'; };
       updateLabel(); let list;
       const openDropdown = () => {
-        if(list) return;
-        list = document.createElement('div'); list.classList.add('checkbox-dropdown');
-        const cur = table.getHeaderFilterValue(field) || [];
+        if (list) return; list = document.createElement('div'); list.classList.add('checkbox-dropdown');
+        const current = table.getHeaderFilterValue(field) || [];
         values.forEach(val => {
-          const lbl = document.createElement('label');
-          const cb = document.createElement('input'); cb.type='checkbox'; cb.value=val; cb.checked = cur.includes(val);
-          lbl.appendChild(cb); lbl.appendChild(document.createTextNode(val)); list.appendChild(lbl);
-          cb.addEventListener('change', ()=>{
-            const chosen = Array.from(list.querySelectorAll('input:checked')).map(i=>i.value);
-            success(chosen); toggle.textContent = chosen.length ? chosen.join(', ') : 'Select...';
-          });
+          const lbl = document.createElement('label'), cb = document.createElement('input'); cb.type='checkbox'; cb.value=val; cb.checked=current.includes(val);
+          lbl.append(cb, document.createTextNode(val)); list.append(lbl);
+          cb.addEventListener('change', () => { const chosen = Array.from(list.querySelectorAll('input:checked')).map(i=>i.value); success(chosen); toggle.textContent = chosen.length ? chosen.join(', ') : 'Select...'; });
         });
-        document.body.appendChild(list);
-        const rect = toggle.getBoundingClientRect(); list.style.top = rect.bottom + window.scrollY + 'px'; list.style.left = rect.left + window.scrollX + 'px';
+        document.body.append(list);
+        const rect=toggle.getBoundingClientRect(); list.style.top=rect.bottom+window.scrollY+'px'; list.style.left=rect.left+window.scrollX+'px';
         document.addEventListener('click', outsideClick);
       };
-      const closeDropdown = () => { if(!list) return; list.remove(); list=null; document.removeEventListener('click', outsideClick); };
-      const outsideClick = (e) => { if(!toggle.contains(e.target)&&list&&!list.contains(e.target)) closeDropdown(); };
-      toggle.addEventListener('click', e=>{ e.stopPropagation(); list? closeDropdown(): openDropdown(); });
-      onRendered(()=>{});
+      const closeDropdown = () => { if (!list) return; list.remove(); list=null; document.removeEventListener('click', outsideClick); };
+      const outsideClick = e => { if (!toggle.contains(e.target) && list && !list.contains(e.target)) closeDropdown(); };
+      toggle.addEventListener('click', e=>{ e.stopPropagation(); list ? closeDropdown() : openDropdown(); }); onRendered(()=>{});
       return toggle;
     }
-    function multiSelectFilterFunc(filterVals, cellVal){ if(!filterVals||!filterVals.length) return true; return filterVals.includes(cellVal); }
+    function multiSelectFilterFunc(filterVals, cellVal) { if (!filterVals || !filterVals.length) return true; return filterVals.includes(cellVal); }
 
+    let statsTable, measurementTable, landmarkTable, chart;
     fetch('data.json')
-      .then(r=>r.ok ? r.json() : Promise.reject('data.json not found'))
+      .then(res=>res.ok?res.json():Promise.reject('data.json not found'))
       .then(participants=>{
         const allMeasurements = participants.flatMap(p=>(p.ParticipantMeasurements||[]).map(m=>({ participantFileId:p.participantFileId, measurementName:m.MeasurementName, value:m.Value })));
-        const allLandmarks    = participants.flatMap(p=>(p.ParticipantLandmarks ||[]).map(l=>({ participantFileId:p.participantFileId, landmarkName:l.LandmarkName, xVal:l.xVal, yVal:l.yVal, zVal:l.zVal })));
+        const allLandmarks   = participants.flatMap(p=>(p.ParticipantLandmarks||[]).map(l=>({ participantFileId:p.participantFileId, landmarkName:l.LandmarkName, xVal:l.xVal, yVal:l.yVal, zVal:l.zVal })));
 
-        const measurementTable = new Tabulator('#measurement-table', { data:allMeasurements, layout:'fitColumns', pagination:'local', paginationSize:10, columns:[ {title:'Participant ID',field:'participantFileId'}, {title:'Measurement Name',field:'measurementName', headerFilter:dropdownMultiCheck, headerFilterFunc:multiSelectFilterFunc, headerFilterParams:{values: [/* same list */]}}, {title:'Value',field:'value'} ]});
-        const landmarkTable    = new Tabulator('#landmark-table',    { data:allLandmarks,    layout:'fitColumns', pagination:'local', paginationSize:10, columns:[ {title:'Participant ID',field:'participantFileId'}, {title:'Landmark Name',field:'landmarkName', headerFilter:dropdownMultiCheck, headerFilterFunc:multiSelectFilterFunc, headerFilterParams:{values: [/* same list */]}}, {title:'X Value',field:'xVal'}, {title:'Y Value',field:'yVal'}, {title:'Z Value',field:'zVal'} ]});
+        measurementTable = new Tabulator('#measurement-table',{data:allMeasurements,layout:'fitColumns',pagination:'local',paginationSize:10,columns:[
+          {title:'Participant ID',field:'participantFileId'},
+          {title:'Measurement Name',field:'measurementName',headerFilter:dropdownMultiCheck,headerFilterFunc:multiSelectFilterFunc,headerFilterParams:{values: /* same long list as before */ []}},
+          {title:'Value',field:'value'}
+        ]});
 
-        const statsTable = new Tabulator('#stats-table',{ data:participants, layout:'fitColumns', pagination:'local', paginationSize:10, columns:[ {title:'Participant ID',field:'participantFileId'}, {title:'Gender',field:'Gender', headerFilter:dropdownMultiCheck, headerFilterFunc:multiSelectFilterFunc, headerFilterParams:{values:['M','F','Other']}}, {title:'Age Min',field:'Age',sorter:'number',headerFilter:'input',headerFilterPlaceholder:'Min…',headerFilterFunc:'>=',headerFilterLiveFilter:true}, {title:'Age Max',field:'Age',sorter:'number',headerFilter:'input',headerFilterPlaceholder:'Max…',headerFilterFunc:'<=',headerFilterLiveFilter:true}, {title:'Ethnicity',field:'Ethnicity', headerFilter:dropdownMultiCheck, headerFilterFunc:multiSelectFilterFunc, headerFilterParams:{values:['White','Black or African American','American Indian or Alaska Native','Asian','Native Hawaiian or Other Pacific Islander','Hispanic','Prefer not to specify']}}, {title:'Facial Surgery',field:'FacialSurgery', headerFilter:dropdownMultiCheck, headerFilterFunc:multiSelectFilterFunc, headerFilterParams:{values:['No Facial Surgery','Brow/forehead lift','Ear pinning','Chin, cheek, or jaw reshaping','Eyelid lift','Facelift','Facial implants','Hair replacement surgery','Lip augmentation','Rhinoplasty','Other','Prefer not to specify']}} ]});
+        landmarkTable = new Tabulator('#landmark-table',{data:allLandmarks,layout:'fitColumns',pagination:'local',paginationSize:10,columns:[
+          {title:'Participant ID',field:'participantFileId'},
+          {title:'Landmark Name',field:'landmarkName',headerFilter:dropdownMultiCheck,headerFilterFunc:multiSelectFilterFunc,headerFilterParams:{values: /* list as before */ []}},
+          {title:'X Value',field:'xVal'}, {title:'Y Value',field:'yVal'}, {title:'Z Value',field:'zVal'}
+        ]});
 
-        // Update measurements/landmarks on stats filter change
-        statsTable.on('dataFiltered',(filters,rows)=>{
-          const ids = rows.map(r=>r.getData().participantFileId);
+        statsTable = new Tabulator('#stats-table',{data:participants,layout:'fitColumns',pagination:'local',paginationSize:10,columns:[
+          {title:'Participant ID',field:'participantFileId'},
+          {title:'Gender',field:'Gender',headerFilter:dropdownMultiCheck,headerFilterFunc:multiSelectFilterFunc,headerFilterParams:{values:['M','F','Other']}},
+          {title:'Age',field:'Age',sorter:'number',headerFilter:'input',headerFilterPlaceholder:'Min…',headerFilterFunc:'>=',headerFilterLiveFilter:true},
+          {title:'Ethnicity',field:'Ethnicity',headerFilter:dropdownMultiCheck,headerFilterFunc:multiSelectFilterFunc,headerFilterParams:{values:['White','Black or African American','American Indian or Alaska Native','Asian','Native Hawaiian or Other Pacific Islander','Hispanic','Prefer not to specify']}},
+          {title:'Facial Surgery',field:'FacialSurgery',headerFilter:dropdownMultiCheck,headerFilterFunc:multiSelectFilterFunc,headerFilterParams:{values:['No Facial Surgery','Brow/forehead lift','Ear pinning','Chin, cheek, or jaw reshaping','Eyelid lift','Facelift','Facial implants','Hair replacement surgery','Lip augmentation','Rhinoplasty','Other','Prefer not to specify']}}
+        ]});
+
+        statsTable.on('dataFiltered',(f,rows)=>{
+          const ids=rows.map(r=>r.getData().participantFileId);
           measurementTable.replaceData(allMeasurements.filter(m=>ids.includes(m.participantFileId)));
           landmarkTable.replaceData(allLandmarks.filter(l=>ids.includes(l.participantFileId)));
+          if(document.getElementById('chartPanel').style.display==='block') renderChart();
         });
 
-        // Chart.js setup
-        const ctx = document.getElementById('filter-chart').getContext('2d');
-        const filterChart = new Chart(ctx, { type:'bar', data:{ labels:[], datasets:[{ label:'%', data:[] }] }, options:{ responsive:true, scales:{ y:{ beginAtZero:true, ticks:{ callback: v=>v+'%' } } } } });
-
-        // Compute and update percentage chart
-        function updateChart(data){
-          const total = data.length;
-          const counts = data.reduce((acc,row)=>{ const key=row.Gender||'Unknown'; acc[key]=(acc[key]||0)+1; return acc; },{});
-          const labels = Object.keys(counts);
-          const values = labels.map(l=> Math.round((counts[l]/total)*100));
-          filterChart.data.labels = labels;
-          filterChart.data.datasets[0].data = values;
-          filterChart.update();
-        }
-
-        // Show/hide chart on button
-        let chartVisible = false;
-        document.getElementById('showChart').addEventListener('click',()=>{
-          chartVisible = !chartVisible;
-          document.getElementById('chart-container').style.display = chartVisible? 'block':'none';
-          document.getElementById('showChart').textContent = chartVisible? 'Hide Chart':'Show Chart';
-          if(chartVisible) updateChart(statsTable.getData());
-        });
-
-        // Clear filters
         document.getElementById('clearFilters').addEventListener('click',()=>{ statsTable.clearHeaderFilter(); measurementTable.clearHeaderFilter(); landmarkTable.clearHeaderFilter(); });
+        document.getElementById('downloadCSV').addEventListener('click', downloadAllFilteredData);
+        document.getElementById('showChartBtn').addEventListener('click', ()=>{
+          document.getElementById('chartPanel').style.display='block';
+          if(!chart) initializeChart();
+          renderChart();
+        });
 
-        // CSV download
-        function downloadAllFilteredData(){
-          const rows = [ ...statsTable.getData(), ...measurementTable.getData(), ...landmarkTable.getData() ];
-          const headers = Array.from(new Set(rows.flatMap(r=>Object.keys(r))));
-          const csv = [ headers.join(',') ].concat(rows.map(r=> headers.map(h=>`"${(r[h]||'').toString().replace(/"/g,'""')}"`).join(',') ) ).join('\n');
-          const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
-          const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.setAttribute('download','filtered_data.csv'); document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        function initializeChart(){
+          const ctx=document.getElementById('filter-chart').getContext('2d');
+          chart=new Chart(ctx,{type:'bar',data:{labels:[],datasets:[{label:'Percentage',data:[]}]},options:{responsive:true}});
+          // listen for control changes
+          document.querySelectorAll('input[name="groupField"]').forEach(r=>r.addEventListener('change',renderChart));
+          document.querySelectorAll('input[name="chartType"]').forEach(r=>r.addEventListener('change',renderChart));
         }
-        document.getElementById('downloadCSV').addEventListener('click',downloadAllFilteredData);
+
+        function renderChart(){
+          const data=statsTable.getData(); const total=data.length||1;
+          const groupField=document.querySelector('input[name="groupField"]:checked').value;
+          const chartType=document.querySelector('input[name="chartType"]:checked').value;
+          const counts={};
+          if(groupField==='Age'){
+            data.forEach(r=>{
+              const age=r.Age; const bin=Math.floor(age/10)*10; const label=`${bin}-${bin+9}`;
+              counts[label]=(counts[label]||0)+1;
+            });
+          } else {
+            data.forEach(r=>{
+              const key=r[groupField]||'Unknown'; counts[key]=(counts[key]||0)+1;
+            });
+          }
+          const labels=Object.keys(counts);
+          const percentages=labels.map(l=>Math.round((counts[l]/total)*100*10)/10);
+          chart.config.type=chartType;
+          chart.data.labels=labels;
+          chart.data.datasets[0].data=percentages;
+          chart.update();
+        }
+
+        function downloadAllFilteredData(){
+          const allData=[...statsTable.getData(),...measurementTable.getData(),...landmarkTable.getData()];
+          const headers=new Set(); allData.forEach(r=>Object.keys(r).forEach(k=>headers.add(k)));
+          const headerArray=Array.from(headers);
+          const csvRows=[headerArray.join(',')];
+          allData.forEach(r=>{ const line=headerArray.map(f=>r[f]!=null?`"${String(r[f]).replace(/"/g,'""')}"`:'').join(','); csvRows.push(line); });
+          const blob=new Blob([csvRows.join('\n')],{type:'text/csv;charset=utf-8;'});
+          const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.setAttribute('download','filtered_data.csv'); document.body.append(link); link.click(); link.remove();
+        }
       })
       .catch(err=>{ console.error(err); document.querySelector('#stats-table').innerHTML=`<p style="color:red">${err}</p>`; });
   </script>
