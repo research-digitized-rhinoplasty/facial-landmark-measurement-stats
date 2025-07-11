@@ -14,7 +14,19 @@
     .button-row { margin: 10px 0; }
 
     /* Hide chart container until 'Chart' is clicked */
-    #chart-container { display: none; }
+    #chart-container {
+      display: none;
+      margin-top: 20px;
+      /* grid layout applies when chart shown via script */
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+
+    /* Chart canvas styling */
+    #chart-canvas {
+      max-width: 600px;
+      margin-top: 20px;
+    }
 
     /* Allow header filters to overflow */
     .tabulator .tabulator-header { overflow: visible !important; }
@@ -23,14 +35,24 @@
 
     /* Dropdown checkbox list styles */
     .checkbox-dropdown {
-      position: absolute; top: 100%; left: 0; z-index: 9999;
-      background: white; border: 1px solid #ccc;
-      max-height: 180px; overflow-y: auto; padding: 4px;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      z-index: 9999;
+      background: white;
+      border: 1px solid #ccc;
+      max-height: 180px;
+      overflow-y: auto;
+      padding: 4px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
     .checkbox-dropdown label { display: block; font-size: 12px; cursor: pointer; margin-bottom: 2px; }
     .checkbox-dropdown input { margin-right: 6px; }
     .dropdown-toggle { cursor: pointer; padding: 4px; border: 1px solid #ccc; background: #fff; width: 100%; box-sizing: border-box; }
+
+    /* Chart options styling */
+    #chart-options { border: 1px solid #ccc; padding: 10px; max-width: 400px; }
+    #chart-options label { margin-right: 10px; }
   </style>
 </head>
 <body>
@@ -44,29 +66,19 @@
   <h2>Participant Information</h2>
   <div id="participants-table"></div>
 
-  <div id="chart-container" style="
-      display: none;
-      grid-template-columns: 1fr 1fr;
-      gap: 2rem;
-      margin-top: 1rem;
-      display: grid;
-    ">
-    <div>
-      <h3>Ethnicity</h3>
-      <canvas id="ethnicity-chart"></canvas>
-    </div>
-    <div>
-      <h3>Gender</h3>
-      <canvas id="gender-chart"></canvas>
-    </div>
-    <div>
-      <h3>Age</h3>
-      <canvas id="age-chart"></canvas>
-    </div>
-    <div>
-      <h3>Facial Surgery</h3>
-      <canvas id="surgery-chart"></canvas>
-    </div>
+  <!-- Chart container hidden until Chart button clicked -->
+  <div id="chart-container">
+    <fieldset id="chart-options">
+      <legend>Category</legend>
+      <label><input type="radio" name="category" value="Ethnicity" checked> Ethnicity</label>
+      <label><input type="radio" name="category" value="Gender"> Gender</label>
+      <label><input type="radio" name="category" value="FacialSurgery"> Facial Surgery</label>
+      <label><input type="radio" name="category" value="Age"> Age</label>
+      <br><br>
+      <label><input type="radio" name="chartType" value="pie" checked> Pie</label>
+      <label><input type="radio" name="chartType" value="bar"> Bar</label>
+    </fieldset>
+    <canvas id="chart-canvas"></canvas>
   </div>
 
   <h2>Measurements</h2>
@@ -75,7 +87,7 @@
   <h2>Landmarks</h2>
   <div id="landmark-table"></div>
 
-  <!-- Tabulator & Chart.js -->
+  <!-- Libraries -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
@@ -86,168 +98,110 @@
     function dropdownMultiCheck(cell, onRendered, success) {
       const column = cell.getColumn(), field = column.getField(), table = cell.getTable();
       const values = column.getDefinition().headerFilterParams.values;
-      const toggle = document.createElement('div');
-      toggle.classList.add('dropdown-toggle');
-
+      const toggle = document.createElement('div'); toggle.classList.add('dropdown-toggle');
       const updateLabel = () => {
         const current = table.getHeaderFilterValue(field) || [];
         toggle.textContent = current.length ? current.join(', ') : 'Select...';
       };
-      updateLabel();
-
-      let list;
+      updateLabel(); let list;
       const openDropdown = () => {
         if (list) return;
-        list = document.createElement('div');
-        list.classList.add('checkbox-dropdown');
+        list = document.createElement('div'); list.classList.add('checkbox-dropdown');
         const current = table.getHeaderFilterValue(field) || [];
         values.forEach(val => {
           const lbl = document.createElement('label');
-          const cb  = document.createElement('input');
-          cb.type = 'checkbox'; cb.value = val; cb.checked = current.includes(val);
-          lbl.appendChild(cb);
-          lbl.appendChild(document.createTextNode(val));
-          list.appendChild(lbl);
+          const cb = document.createElement('input'); cb.type = 'checkbox'; cb.value = val; cb.checked = current.includes(val);
+          lbl.appendChild(cb); lbl.appendChild(document.createTextNode(val)); list.appendChild(lbl);
           cb.addEventListener('change', () => {
             const chosen = Array.from(list.querySelectorAll('input:checked')).map(i => i.value);
-            success(chosen);
-            toggle.textContent = chosen.length ? chosen.join(', ') : 'Select...';
+            success(chosen); toggle.textContent = chosen.length ? chosen.join(', ') : 'Select...';
           });
         });
         document.body.appendChild(list);
         const rect = toggle.getBoundingClientRect();
-        list.style.top  = rect.bottom + window.scrollY + 'px';
-        list.style.left = rect.left   + window.scrollX + 'px';
+        list.style.top = rect.bottom + window.scrollY + 'px'; list.style.left = rect.left + window.scrollX + 'px';
         document.addEventListener('click', outsideClick);
       };
-      const closeDropdown = () => { list && list.remove(); list = null; document.removeEventListener('click', outsideClick); };
+      const closeDropdown = () => { if (list) { list.remove(); list = null; } document.removeEventListener('click', outsideClick); };
       const outsideClick = e => { if (!toggle.contains(e.target) && list && !list.contains(e.target)) closeDropdown(); };
       toggle.addEventListener('click', e => { e.stopPropagation(); list ? closeDropdown() : openDropdown(); });
       onRendered(() => {});
       return toggle;
     }
-
-    // multi-select filter function
     function multiSelectFilterFunc(filterVals, cellVal) {
       if (!filterVals || !filterVals.length) return true;
       return filterVals.includes(cellVal);
     }
 
-    // globals
     let participantsTable, measurementTable, landmarkTable;
-    let ethnicityChart, genderChart, ageChart, surgeryChart;
+    let currentChart;
 
-    // load data
     fetch('data.json')
       .then(r => r.ok ? r.json() : Promise.reject('data.json not found'))
       .then(participants => {
-        // flatten measurements & landmarks
-        const allMeasurements = participants.flatMap(p =>
-          (p.ParticipantMeasurements || []).map(m => ({ participantFileId: p.participantFileId, measurementName: m.MeasurementName, value: m.Value }))
-        );
-        const allLandmarks = participants.flatMap(p =>
-          (p.ParticipantLandmarks || []).map(l => ({ participantFileId: p.participantFileId, landmarkName: l.LandmarkName, xVal: l.xVal, yVal: l.yVal, zVal: l.zVal }))
-        );
+        const allMeasurements = participants.flatMap(p => (p.ParticipantMeasurements||[]).map(m => ({participantFileId:p.participantFileId, measurementName:m.MeasurementName, value:m.Value})));        
+        const allLandmarks   = participants.flatMap(p => (p.ParticipantLandmarks||[]).map(l => ({participantFileId:p.participantFileId, landmarkName:l.LandmarkName, xVal:l.xVal, yVal:l.yVal, zVal:l.zVal})));
 
-        // measurements table
-        measurementTable = new Tabulator('#measurement-table', {
-          data: allMeasurements, layout: 'fitColumns', pagination: 'local', paginationSize: 10,
-          columns: [ /* ... your columns ... */ ],
+        measurementTable = new Tabulator('#measurement-table',{data:allMeasurements,layout:'fitColumns',pagination:'local',paginationSize:10,columns:[/*...*/]});
+        landmarkTable    = new Tabulator('#landmark-table',{data:allLandmarks,layout:'fitColumns',pagination:'local',paginationSize:10,columns:[/*...*/]});
+        participantsTable= new Tabulator('#participants-table',{data:participants,layout:'fitColumns',pagination:'local',paginationSize:10,columns:[/*...*/]});
+
+        participantsTable.on('dataFiltered',(filters,rows)=>{
+          const ids = rows.map(r=>r.getData().participantFileId);
+          measurementTable.replaceData(allMeasurements.filter(m=>ids.includes(m.participantFileId)));
+          landmarkTable.replaceData(allLandmarks.filter(l=>ids.includes(l.participantFileId)));
         });
 
-        // landmarks table
-        landmarkTable = new Tabulator('#landmark-table', {
-          data: allLandmarks, layout: 'fitColumns', pagination: 'local', paginationSize: 10,
-          columns: [ /* ... your columns ... */ ],
-        });
-
-        // participants table
-        participantsTable = new Tabulator('#participants-table', {
-          data: participants, layout: 'fitColumns', pagination: 'local', paginationSize: 10,
-          columns: [ /* ... your participant columns ... */ ],
-        });
-
-        // sync measurements & landmarks on filter
-        participantsTable.on('dataFiltered', (filters, rows) => {
-          const ids = rows.map(r => r.getData().participantFileId);
-          measurementTable.replaceData(allMeasurements.filter(m => ids.includes(m.participantFileId)));
-          landmarkTable.replaceData(allLandmarks.filter(l => ids.includes(l.participantFileId)));
-        });
-
-        // clear filters button
-        document.getElementById('clearFilters').addEventListener('click', () => {
+        document.getElementById('clearFilters').addEventListener('click',()=>{
           participantsTable.clearHeaderFilter(); measurementTable.clearHeaderFilter(); landmarkTable.clearHeaderFilter();
         });
 
-        // chart button
-        document.getElementById('create-chart').addEventListener('click', () => {
-          // show chart container on click
+        function drawChart() {
+          const cat = document.querySelector('input[name="category"]:checked').value;
+          const type= document.querySelector('input[name="chartType"]:checked').value;
+          const data= participantsTable.getData();
+          let labels=[], counts={}, values=[], total;
+
+          if (cat === 'Age') {
+            const ages = data.map(r=>Number(r.Age)).filter(a=>!isNaN(a));
+            const min = Math.min(...ages), max = Math.max(...ages);
+            labels = Array.from({length:max-min+1},(_,i)=>(min+i).toString());
+            values = labels.map(l=> ages.filter(a=>a===Number(l)).length );
+          } else {
+            data.forEach(r=>{ const v=r[cat]||'Unknown'; counts[v]=(counts[v]||0)+1; });
+            labels = Object.keys(counts).sort(); values=labels.map(l=>counts[l]);
+          }
+          total = values.reduce((a,b)=>a+b,0)||1;
+          const perc = values.map(v=>Math.round(v/total*100));
+
+          if (currentChart) currentChart.destroy();
+          const ctx = document.getElementById('chart-canvas').getContext('2d');
+          currentChart = new Chart(ctx,{
+            type: type,
+            data:{ labels, datasets:[{ label:'%', data: perc }] },
+            options:{ responsive:true, plugins:{ legend:{position:'bottom'}, tooltip:{callbacks:{ label:ctx=>`${ctx.label}: ${ctx.formattedValue}%` } } } }
+          });
+        }
+
+        document.getElementById('create-chart').addEventListener('click',()=>{
           const container = document.getElementById('chart-container');
           container.style.display = 'grid';
-
-          const data = participantsTable.getData();
-          function getPercentages(arr, order = null) {
-            const counts = {};
-            arr.forEach(v => counts[v] = (counts[v] || 0) + 1);
-            const total = arr.length || 1;
-            const labels = order || Object.keys(counts).sort();
-            const values = labels.map(l => Math.round(counts[l] / total * 100));
-            return { labels, values };
-          }
-          const ethn     = data.map(r => r.Ethnicity);
-          const gen      = data.map(r => r.Gender);
-          const surg     = data.map(r => r.FacialSurgery);
-          const ages     = data.map(r => r.Age).filter(a=>a!=null).map(Number);
-          const minAge   = Math.min(...ages), maxAge = Math.max(...ages);
-          const ageLabels= Array.from({ length: maxAge - minAge + 1 }, (_,i) => String(minAge + i));
-          const ageStr   = ages.map(String);
-
-          const ethData  = getPercentages(ethn);
-          const genData  = getPercentages(gen);
-          const surgData = getPercentages(surg);
-          const ageData  = getPercentages(ageStr, ageLabels);
-
-          [ethnicityChart, genderChart, ageChart, surgeryChart].forEach(c => c && c.destroy());
-
-          const makePie = (ctx, d) => new Chart(ctx, {
-            type: 'pie',
-            data: { labels: d.labels, datasets: [{ data: d.values }] },
-            options: {
-              responsive: true,
-              plugins: {
-                legend: { position: 'bottom' },
-                tooltip: { callbacks: { label: i => `${i.label}: ${i.formattedValue}%` } }
-              }
-            }
-          });
-
-          ethnicityChart = makePie(document.getElementById('ethnicity-chart').getContext('2d'), ethData);
-          genderChart    = makePie(document.getElementById('gender-chart').getContext('2d'),    genData);
-          ageChart       = makePie(document.getElementById('age-chart').getContext('2d'),       ageData);
-          surgeryChart   = makePie(document.getElementById('surgery-chart').getContext('2d'),   surgData);
+          drawChart();
         });
+        document.getElementById('chart-options').addEventListener('change',drawChart);
       })
       .catch(err => {
         console.error(err);
         document.querySelector('#participants-table').innerHTML = `<p style=\"color:red\">${err}</p>`;
       });
 
-    // download CSV
     function downloadAllFilteredData() {
-      const participantsData = participantsTable.getData();
-      const ids = participantsData.map(p => p.participantFileId);
-      const measurementData = measurementTable.getData().filter(m => ids.includes(m.participantFileId));
-      const landmarkData    = landmarkTable.getData().filter(l => ids.includes(l.participantFileId));
-      const makeSection = (data, title) => {
-        if (!data.length) return '';
-        const cols = Object.keys(data[0]);
-        const rows = data.map(r => cols.map(f => `"${String(r[f]||'').replace(/"/g,'""')}"`).join(','));
-        return [`\n\n# ${title}`, cols.join(','), ...rows].join('\n');
-      };
-      const csv = [makeSection(participantsData,'Participants'), makeSection(measurementData,'Measurements'), makeSection(landmarkData,'Landmarks')].join('\n');
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'filtered_data.csv'; document.body.appendChild(link);
-      link.click(); document.body.removeChild(link);
+      const pd=participantsTable.getData(), ids=pd.map(p=>p.participantFileId);
+      const md=measurementTable.getData().filter(m=>ids.includes(m.participantFileId));
+      const ld=landmarkTable.getData().filter(l=>ids.includes(l.participantFileId));
+      const makeSection=(data,title)=>{ if(!data.length) return''; const cols=Object.keys(data[0]); const rows=data.map(r=>cols.map(f=>`"${String(r[f]||'').replace(/"/g,'""')}"`).join(',')); return[`\n\n# ${title}`,cols.join(','),...rows].join('\n'); };
+      const csv=[makeSection(pd,'Participants'),makeSection(md,'Measurements'),makeSection(ld,'Landmarks')].join('\n');
+      const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download='filtered_data.csv'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
     }
     document.getElementById('downloadCSV').addEventListener('click', downloadAllFilteredData);
   </script>
