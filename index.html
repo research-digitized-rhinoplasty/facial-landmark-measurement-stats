@@ -312,15 +312,9 @@
         // ─────────────── INITIALIZE STATS TABLE ───────────────
         const statsTable = new Tabulator("#stats-table", {
           layout: "fitColumns",
-          columns: [
-            { title: "Name",           field: "Name" },
-            { title: "Average",        field: "Average" },
-            { title: "Std. Deviation", field: "StdDev" },
-            { title: "Minimum",        field: "Min" },
-            { title: "Maximum",        field: "Max" },
-            { title: "Median",         field: "Median" },
-          ],
+          columns: [], // will be auto-detected from data keys
         });
+
         // ────────────────────────────────────────────────────────
 
 
@@ -355,7 +349,7 @@
 
           if (!Array.isArray(allowedNames)) allowedNames = [allowedNames];
           if (allowedNames.length === 0) {
-            statsTable.replaceData([]); // Show nothing if no name is filtered
+            statsTable.replaceData([]);
             return;
           }
 
@@ -364,40 +358,62 @@
             allowedNames.includes(type === "measurements" ? row.measurementName : row.landmarkName)
           );
 
-          // Group values by name
+          // Group by name
           const groups = filtered.reduce((acc, row) => {
-            const name = (type === "measurements") ? row.measurementName : row.landmarkName;
-            const val = parseFloat(type === "measurements" ? row.value : (row.xVal || row.yVal || row.zVal));
-            if (!acc[name]) acc[name] = [];
-            if (!isNaN(val)) acc[name].push(val);
+            const name = type === "measurements" ? row.measurementName : row.landmarkName;
+            if (!acc[name]) acc[name] = { x: [], y: [], z: [], v: [] };
+
+            if (type === "measurements") {
+              const v = parseFloat(row.value);
+              if (!isNaN(v)) acc[name].v.push(v);
+            } else {
+              const x = parseFloat(row.xVal);
+              const y = parseFloat(row.yVal);
+              const z = parseFloat(row.zVal);
+              if (!isNaN(x)) acc[name].x.push(x);
+              if (!isNaN(y)) acc[name].y.push(y);
+              if (!isNaN(z)) acc[name].z.push(z);
+            }
             return acc;
           }, {});
 
-          // Compute summary statistics
-          const statsData = Object.entries(groups).map(([Name, vals]) => ({
-            Name,
-            Average: mean(vals).toFixed(2),
-            StdDev: stdDev(vals).toFixed(2),
-            Min: Math.min(...vals).toFixed(2),
-            Max: Math.max(...vals).toFixed(2),
-            Median: median(vals).toFixed(2),
-          }));
+          // Build stats output
+          const statsData = Object.entries(groups).map(([Name, values]) => {
+            if (type === "measurements") {
+              const v = values.v;
+              return {
+                Name,
+                Average: mean(v).toFixed(2),
+                StdDev: stdDev(v).toFixed(2),
+                Min: Math.min(...v).toFixed(2),
+                Max: Math.max(...v).toFixed(2),
+                Median: median(v).toFixed(2),
+              };
+            } else {
+              const { x, y, z } = values;
+              return {
+                Name,
+                "Average X": mean(x).toFixed(2),
+                "Average Y": mean(y).toFixed(2),
+                "Average Z": mean(z).toFixed(2),
+                "Standard Dev X": stdDev(x).toFixed(2),
+                "Standard Dev Y": stdDev(y).toFixed(2),
+                "Standard Dev Z": stdDev(z).toFixed(2),
+                "Minimum X": Math.min(...x).toFixed(2),
+                "Minimum Y": Math.min(...y).toFixed(2),
+                "Minimum Z": Math.min(...z).toFixed(2),
+                "Maximum X": Math.max(...x).toFixed(2),
+                "Maximum Y": Math.max(...y).toFixed(2),
+                "Maximum Z": Math.max(...z).toFixed(2),
+                "Median X": median(x).toFixed(2),
+                "Median Y": median(y).toFixed(2),
+                "Median Z": median(z).toFixed(2),
+              };
+            }
+          });
 
           statsTable.replaceData(statsData);
-        
         }
-
-
-        // Auto-switch table + stats when Measurement/Landmark radio changes
-        document.querySelectorAll('input[name="statsType"]').forEach(radio => {
-          radio.addEventListener('change', () => {
-            updateStats(); // update stats table
-            document.getElementById("stats-table-container").style.display = "block"; // auto-show table
-          });
-        });
-
-
-        
       
         // ────────────────────────────────────────────────
 
