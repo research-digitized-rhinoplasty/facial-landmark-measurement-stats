@@ -339,7 +339,6 @@
           const table = (type === "measurements") ? measurementTable : landmarkTable;
           const rows = table.getData(true); // only filtered rows
 
-          // Get active header filter for name column
           let allowedNames = [];
           if (type === "measurements") {
             allowedNames = measurementTable.getHeaderFilterValue("measurementName") || [];
@@ -349,16 +348,15 @@
 
           if (!Array.isArray(allowedNames)) allowedNames = [allowedNames];
           if (allowedNames.length === 0) {
-            statsTable.replaceData([]);
+            statsTable.clearData();
+            statsTable.setColumns([]);
             return;
           }
 
-          // Filter only the rows matching allowed names
           const filtered = rows.filter(row =>
             allowedNames.includes(type === "measurements" ? row.measurementName : row.landmarkName)
           );
 
-          // Group by name
           const groups = filtered.reduce((acc, row) => {
             const name = type === "measurements" ? row.measurementName : row.landmarkName;
             if (!acc[name]) acc[name] = { x: [], y: [], z: [], v: [] };
@@ -377,52 +375,72 @@
             return acc;
           }, {});
 
-          // Build stats output
-          const statsData = Object.entries(groups).map(([Name, values]) => {
-            if (type === "measurements") {
-              const v = values.v;
-              return {
-                Name,
-                Average: mean(v).toFixed(2),
-                StdDev: stdDev(v).toFixed(2),
-                Min: Math.min(...v).toFixed(2),
-                Max: Math.max(...v).toFixed(2),
-                Median: median(v).toFixed(2),
-              };
-            } else {
-              const { x, y, z } = values;
-              return {
-                Name,
-                "Average X": mean(x).toFixed(2),
-                "Average Y": mean(y).toFixed(2),
-                "Average Z": mean(z).toFixed(2),
-                "Standard Dev X": stdDev(x).toFixed(2),
-                "Standard Dev Y": stdDev(y).toFixed(2),
-                "Standard Dev Z": stdDev(z).toFixed(2),
-                "Minimum X": Math.min(...x).toFixed(2),
-                "Minimum Y": Math.min(...y).toFixed(2),
-                "Minimum Z": Math.min(...z).toFixed(2),
-                "Maximum X": Math.max(...x).toFixed(2),
-                "Maximum Y": Math.max(...y).toFixed(2),
-                "Maximum Z": Math.max(...z).toFixed(2),
-                "Median X": median(x).toFixed(2),
-                "Median Y": median(y).toFixed(2),
-                "Median Z": median(z).toFixed(2),
-              };
-            }
-          });
+          let statsData = [];
+          let columns = [];
 
-          statsTable.setColumns(Object.keys(statsData[0] || {}).map(field => ({
-            title: field,
-            field: field,
-            hozAlign: "right"
-          })));
+          if (type === "measurements") {
+            statsData = Object.entries(groups).map(([Name, { v }]) => ({
+              Name,
+              Average: mean(v).toFixed(2),
+              StdDev: stdDev(v).toFixed(2),
+              Min: Math.min(...v).toFixed(2),
+              Max: Math.max(...v).toFixed(2),
+              Median: median(v).toFixed(2),
+            }));
 
+            columns = [
+              { title: "Name", field: "Name" },
+              { title: "Average", field: "Average", hozAlign: "right" },
+              { title: "Std. Deviation", field: "StdDev", hozAlign: "right" },
+              { title: "Minimum", field: "Min", hozAlign: "right" },
+              { title: "Maximum", field: "Max", hozAlign: "right" },
+              { title: "Median", field: "Median", hozAlign: "right" },
+            ];
+          } else {
+            statsData = Object.entries(groups).map(([Name, { x, y, z }]) => ({
+              Name,
+              "Average X": mean(x).toFixed(2),
+              "Average Y": mean(y).toFixed(2),
+              "Average Z": mean(z).toFixed(2),
+              "StdDev X": stdDev(x).toFixed(2),
+              "StdDev Y": stdDev(y).toFixed(2),
+              "StdDev Z": stdDev(z).toFixed(2),
+              "Min X": Math.min(...x).toFixed(2),
+              "Min Y": Math.min(...y).toFixed(2),
+              "Min Z": Math.min(...z).toFixed(2),
+              "Max X": Math.max(...x).toFixed(2),
+              "Max Y": Math.max(...y).toFixed(2),
+              "Max Z": Math.max(...z).toFixed(2),
+              "Median X": median(x).toFixed(2),
+              "Median Y": median(y).toFixed(2),
+              "Median Z": median(z).toFixed(2),
+            }));
+
+            columns = [
+              { title: "Name", field: "Name" },
+              { title: "Average X", field: "Average X", hozAlign: "right" },
+              { title: "Average Y", field: "Average Y", hozAlign: "right" },
+              { title: "Average Z", field: "Average Z", hozAlign: "right" },
+              { title: "StdDev X", field: "StdDev X", hozAlign: "right" },
+              { title: "StdDev Y", field: "StdDev Y", hozAlign: "right" },
+              { title: "StdDev Z", field: "StdDev Z", hozAlign: "right" },
+              { title: "Min X", field: "Min X", hozAlign: "right" },
+              { title: "Min Y", field: "Min Y", hozAlign: "right" },
+              { title: "Min Z", field: "Min Z", hozAlign: "right" },
+              { title: "Max X", field: "Max X", hozAlign: "right" },
+              { title: "Max Y", field: "Max Y", hozAlign: "right" },
+              { title: "Max Z", field: "Max Z", hozAlign: "right" },
+              { title: "Median X", field: "Median X", hozAlign: "right" },
+              { title: "Median Y", field: "Median Y", hozAlign: "right" },
+              { title: "Median Z", field: "Median Z", hozAlign: "right" },
+            ];
+          }
+
+          statsTable.setColumns(columns);
           statsTable.replaceData(statsData);
-
-
-          
         }
+
+      
       
         // ────────────────────────────────────────────────
 
