@@ -289,6 +289,7 @@
         // ────────────────────────────────────────────────────────
 
 
+
         // ─────────────── UTILITY FUNCTIONS ───────────────
         function mean(arr) {
           return arr.reduce((a,b)=>a+b,0)/arr.length;
@@ -302,24 +303,34 @@
                 mid = Math.floor(s.length/2);
           return s.length % 2 ? s[mid] : (s[mid-1] + s[mid]) / 2;
         }
+        // ────────────────────────────────────────────────────────
+
 
         // ─────────────── UPDATE STATS ───────────────
         function updateStats(){
+          // **grab the dropdown’s current value****
           const type  = document.getElementById("statsType").value;
-          const table = (type === "measurements") ? measurementTable : landmarkTable;
-          const rows  = table.getData(true); // true → only filtered rows
 
-          // group by Name (measurementName or landmarkName)
+          // pick the filtered rows from the chosen table
+          const table = (type === "measurements") ? measurementTable : landmarkTable;
+          const rows  = table.getData(true); // true = only filtered rows
+
+          // group by name field
           const groups = rows.reduce((acc,row)=>{
-            const name  = (type==="measurements") ? row.measurementName : row.landmarkName;
-            const val   = parseFloat(type==="measurements" ? row.value : (row.xVal || row.yVal || row.zVal));
+            const name = (type === "measurements")
+              ? row.measurementName
+              : row.landmarkName;
+            // parse whichever coordinate/value you want
+            const val = parseFloat(
+              (type === "measurements") ? row.value : row.xVal
+            );
             if (!acc[name]) acc[name] = [];
             if (!isNaN(val)) acc[name].push(val);
             return acc;
           },{});
 
           // build summary array
-          const statsData = Object.entries(groups).map(([Name, vals])=>({
+          const statsData = Object.entries(groups).map(([Name, vals]) => ({
             Name,
             Average: mean(vals).toFixed(2),
             StdDev:  stdDev(vals).toFixed(2),
@@ -328,12 +339,27 @@
             Median:  median(vals).toFixed(2),
           }));
 
+          // reload stats table
           statsTable.replaceData(statsData);
         }
-        // ────────────────────────────────────────────────
+        // ────────────────────────────────────────────────────────
 
 
+        // ─────────────── WIRE UP THE EVENTS ───────────────
+        // when the dropdown changes:
+        document.getElementById("statsType")
+                .addEventListener("change", updateStats);
 
+        // when either table’s filters change:
+        measurementTable.on("dataFiltered", updateStats);
+        landmarkTable  .on("dataFiltered", updateStats);
+
+        // draw once on load
+        updateStats();
+        // ────────────────────────────────────────────────────────
+
+        })  // <-- this closes your .then(participants => { … })
+        .catch(err => { /* … */ });
 
 
 
