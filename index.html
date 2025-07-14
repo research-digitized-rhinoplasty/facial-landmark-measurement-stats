@@ -307,9 +307,8 @@
         function updateStats(){
           const type  = document.getElementById("statsType").value;
           const table = (type === "measurements") ? measurementTable : landmarkTable;
-          const rows  = table.getData(true); // true → only filtered rows
+          const rows  = table.getData(true); // ✅ filtered rows only
 
-          // group by Name (measurementName or landmarkName)
           const groups = rows.reduce((acc,row)=>{
             const name  = (type==="measurements") ? row.measurementName : row.landmarkName;
             const val   = parseFloat(type==="measurements" ? row.value : (row.xVal || row.yVal || row.zVal));
@@ -318,7 +317,6 @@
             return acc;
           },{});
 
-          // build summary array
           const statsData = Object.entries(groups).map(([Name, vals])=>({
             Name,
             Average: mean(vals).toFixed(2),
@@ -330,6 +328,7 @@
 
           statsTable.replaceData(statsData);
         }
+
         // ────────────────────────────────────────────────
 
 
@@ -386,7 +385,13 @@
           if (chartContainer.style.display !== "none") {
             drawChart();
           }
+
+          
+          updateStats(); // recompute stats based on new measurement/landmark data
         });
+
+
+        
 
         // Re-compute stats when the dropdown changes:
         document.getElementById("statsType")
@@ -396,8 +401,14 @@
         measurementTable.on("dataFiltered", updateStats);
         landmarkTable  .on("dataFiltered", updateStats);
 
+        measurementTable.on("dataChanged", updateStats);
+        landmarkTable.on("dataChanged", updateStats);
+
         // Initial draw:
         updateStats();
+
+        
+
 
 
 
