@@ -440,8 +440,14 @@
           statsTable.replaceData(statsData);
         }
 
-      
-      
+        // Auto-switch table + stats when Measurement/Landmark radio changes
+        document.querySelectorAll('input[name="statsType"]').forEach(radio => {
+          radio.addEventListener('change', () => {
+            updateStats(); // update stats table
+            document.getElementById("stats-table-container").style.display = "block"; // auto-show table
+          });
+        });
+
         // ────────────────────────────────────────────────
 
         // Handle "Show Stats" button click
