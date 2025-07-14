@@ -10,23 +10,20 @@
 
   <style>
     body { font-family: Arial; padding: 20px; }
-    #participants-table, #measurement-table, #landmark-table { margin-top: 20px; }
+    #participants-table, #measurement-table, #landmark-table, #stats-table { margin-top: 20px; }
     .button-row { margin: 10px 0; }
 
     /* Hide chart container until 'Chart' is clicked */
     #chart-container {
-        display: none;
-        margin: 0 auto;
-        padding: 10px;
-        max-width: 700px;
-        text-align: center;
+      display: none;
+      margin: 0 auto;
+      padding: 10px;
+      max-width: 700px;
+      text-align: center;
     }
 
     /* Chart canvas styling */
-    #chart-canvas {
-        max-width: 100%;
-        max-height: 400px;
-    }
+    #chart-canvas { max-width: 100%; max-height: 400px; }
 
     /* Allow header filters to overflow */
     .tabulator .tabulator-header { overflow: visible !important; }
@@ -57,6 +54,7 @@
 </head>
 <body>
   <h2>3D Facial Landmark Query Tool</h2>
+
   <div class="button-row">
     <button id="clearFilters">Clear All Filters</button>
     <button id="downloadCSV">Download Data</button>
@@ -87,7 +85,7 @@
   <h2>Landmarks</h2>
   <div id="landmark-table"></div>
 
-    <!-- ─────────────── STATISTICS CONTROLS & TABLE ─────────────── -->
+  <!-- ─────────────── STATISTICS CONTROLS & TABLE ─────────────── -->
   <div style="margin:1em 0">
     <label for="statsType"><strong>Show stats for:</strong></label>
     <select id="statsType">
@@ -101,236 +99,338 @@
   <!-- Libraries -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <script>
-    // exact-match helper
-    function exactMatch(h, v) { return h === "All" || h === "Any" || v === h; }
+    // ─────────────── FILTER HELPERS ───────────────
+    function exactMatch(h,v){ return h==="All"||h==="Any"||v===h; }
 
-    // dropdown checkbox header filter
-    function dropdownMultiCheck(cell, onRendered, success) {
-      const column = cell.getColumn(), field = column.getField(), table = cell.getTable();
-      const values = column.getDefinition().headerFilterParams.values;
-      const toggle = document.createElement('div'); toggle.classList.add('dropdown-toggle');
-      const updateLabel = () => {
-        const current = table.getHeaderFilterValue(field) || [];
-        toggle.textContent = current.length ? current.join(', ') : 'Select...';
+    function dropdownMultiCheck(cell, onRendered, success){
+      const column = cell.getColumn(),
+            field  = column.getField(),
+            table  = cell.getTable(),
+            values = column.getDefinition().headerFilterParams.values;
+
+      const toggle = document.createElement('div');
+      toggle.classList.add('dropdown-toggle');
+
+      const updateLabel = ()=>{
+        const current = table.getHeaderFilterValue(field)||[];
+        toggle.textContent = current.length? current.join(', '): 'Select...';
       };
-      updateLabel(); let list;
-      const openDropdown = () => {
-        if (list) return;
-        list = document.createElement('div'); list.classList.add('checkbox-dropdown');
-        const current = table.getHeaderFilterValue(field) || [];
-        values.forEach(val => {
+      updateLabel();
+
+      let list;
+      const openDropdown = ()=>{
+        if(list) return;
+        list = document.createElement('div');
+        list.classList.add('checkbox-dropdown');
+
+        const current = table.getHeaderFilterValue(field)||[];
+        values.forEach(val=>{
           const lbl = document.createElement('label');
-          const cb = document.createElement('input'); cb.type = 'checkbox'; cb.value = val; cb.checked = current.includes(val);
-          lbl.appendChild(cb); lbl.appendChild(document.createTextNode(val)); list.appendChild(lbl);
-          cb.addEventListener('change', () => {
-            const chosen = Array.from(list.querySelectorAll('input:checked')).map(i => i.value);
+          const cb  = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.value= val;
+          cb.checked = current.includes(val);
+          lbl.appendChild(cb);
+          lbl.appendChild(document.createTextNode(val));
+          list.appendChild(lbl);
+
+          cb.addEventListener('change',()=>{
+            const chosen = Array.from(list.querySelectorAll('input:checked'))
+                              .map(i=>i.value);
             success(chosen);
-            toggle.textContent = chosen.length ? chosen.join(', ') : 'Select...';
-
-            // Redraw chart immediately if it matches the selected category
-            const category = document.querySelector('input[name="category"]:checked')?.value;
-            const chartVisible = document.getElementById("chart-container").style.display !== "none";
-
-            if (
-              chartVisible &&
-              (
-                (category === "Age" && field === "Age") ||
-                field?.toLowerCase().includes(category?.toLowerCase())
-              )
-            ) {
+            toggle.textContent = chosen.length? chosen.join(', '): 'Select...';
+            // if chart is visible & matches category, redraw
+            const category    = document.querySelector('input[name="category"]:checked').value;
+            const chartVis    = document.getElementById('chart-container').style.display!=='none';
+            if(chartVis && ((category==='Age' && field==='Age') || field.toLowerCase().includes(category.toLowerCase()))){
               drawChart();
             }
           });
         });
+
         document.body.appendChild(list);
         const rect = toggle.getBoundingClientRect();
-        list.style.top = rect.bottom + window.scrollY + 'px'; list.style.left = rect.left + window.scrollX + 'px';
+        list.style.top  = rect.bottom + window.scrollY + 'px';
+        list.style.left = rect.left   + window.scrollX + 'px';
         document.addEventListener('click', outsideClick);
       };
-      const closeDropdown = () => { if (list) { list.remove(); list = null; } document.removeEventListener('click', outsideClick); };
-      const outsideClick = e => { if (!toggle.contains(e.target) && list && !list.contains(e.target)) closeDropdown(); };
-      toggle.addEventListener('click', e => { e.stopPropagation(); list ? closeDropdown() : openDropdown(); });
-      onRendered(() => {});
+
+      const closeDropdown = ()=>{
+        if(list){ list.remove(); list=null; }
+        document.removeEventListener('click', outsideClick);
+      };
+
+      const outsideClick = e=>{
+        if(!toggle.contains(e.target) && list && !list.contains(e.target)){
+          closeDropdown();
+        }
+      };
+
+      toggle.addEventListener('click', e=>{
+        e.stopPropagation();
+        list? closeDropdown(): openDropdown();
+      });
+
+      onRendered(()=>{});
       return toggle;
     }
-    function multiSelectFilterFunc(filterVals, cellVal) {
-      if (!filterVals || !filterVals.length) return true;
+
+    function multiSelectFilterFunc(filterVals, cellVal){
+      if(!filterVals || !filterVals.length) return true;
       return filterVals.includes(cellVal);
     }
+    // ──────────────────────────────────────────────────
 
-    let participantsTable, measurementTable, landmarkTable;
-    let currentChart;
+    let participantsTable, measurementTable, landmarkTable, statsTable, currentChart;
 
+    // ─────────────── FETCH & TABLE SETUP ───────────────
     fetch('data.json')
-      .then(r => r.ok ? r.json() : Promise.reject('data.json not found'))
-      .then(participants => {
-        const allMeasurements = participants.flatMap(p =>
-          (p.ParticipantMeasurements || []).map(m => ({
+      .then(r=>r.ok? r.json(): Promise.reject('data.json not found'))
+      .then(participants=>{
+        // flatten measurements & landmarks
+        const allMeasurements = participants.flatMap(p=>
+          (p.ParticipantMeasurements||[]).map(m=>({
             participantFileId: p.participantFileId,
-            measurementName: m.MeasurementName,
-            value: m.Value
+            measurementName:   m.MeasurementName,
+            value:             m.Value
+          }))
+        );
+        const allLandmarks = participants.flatMap(p=>
+          (p.ParticipantLandmarks||[]).map(l=>({
+            participantFileId: p.participantFileId,
+            landmarkName:      l.LandmarkName,
+            xVal:              l.xVal,
+            yVal:              l.yVal,
+            zVal:              l.zVal
           }))
         );
 
-        const allLandmarks = participants.flatMap(p =>
-          (p.ParticipantLandmarks || []).map(l => ({
-            participantFileId: p.participantFileId,
-            landmarkName: l.LandmarkName,
-            xVal: l.xVal,
-            yVal: l.yVal,
-            zVal: l.zVal
-          }))
-        );
-
-        measurementTable = new Tabulator('#measurement-table', {
-  data: allMeasurements,
-  layout: 'fitColumns',
-  pagination: 'local',
-  paginationSize: 10,
-  columns: [
-    { title: 'Participant ID', field: 'participantFileId' },
-    {
-      title: 'Measurement Name',
-      field: 'measurementName',
-      headerFilter: dropdownMultiCheck,
-      headerFilterFunc: multiSelectFilterFunc,
-      headerFilterParams: {
-        values: [
-          "(Inner) Intercanthal Distance/Width", "Ala/Alar Length (left)", "Ala/Alar Length (right)", "Alar Base Width", "Base Bony Width",
-          "Columella Length", "Columella Width", "Distance between sill-base junction and alar flare", "Distance between 1st point - 2nd point",
-          "Eye/palpebral fissure length - left", "Eye/palpebral fissure length - right", "Face Width", "Infratip Lobule Length", "Interalar Distance",
-          "Lower Facial Height", "Mid-Facial Height", "Nasal Bridge Length", "Nasal Root Width", "Nasal Tip Projection", "Nose Height",
-          "Nostril Floor Width (left)", "Nostril Floor Width (right)", "Outer Intercanthal Distance", "Premaxilla - left", "Premaxilla - right",
-          "Radix Projection", "Subnasal Width", "Supratip Lobule", "Tip/Lobule Width", "Upper Facial Height",
-          "Distances - Surface", "(Inner) Intercanthal Distance/Width - Surface", "Ala/Alar Length (left) - Surface", "Ala/Alar Length (right) - Surface",
-          "Alar Base Width - Surface", "Base Bony Width - Surface", "Columella Length - Surface", "Columella Width - Surface",
-          "Distance between sill-base junction and alar flare - Surface", "Distance between 1st point - 2nd point - Surface",
-          "Eye/palpebral fissure length - left - Surface", "Eye/palpebral fissure length - right - Surface", "Face Width - Surface",
-          "Infratip Lobule Length - Surface", "Interalar Distance - Surface", "Lower Facial Height - Surface", "Mid-Facial Height - Surface",
-          "Nasal Bridge Length - Surface", "Nasal Root Width - Surface", "Nasal Tip Projection - Surface", "Nose Height - Surface",
-          "Nostril Floor Width (left) - Surface", "Nostril Floor Width (right) - Surface", "Outer Intercanthal Distance - Surface",
-          "Premaxilla - left - Surface", "Premaxilla - right - Surface", "Radix Projection - Surface", "Subnasal Width - Surface",
-          "Supratip Lobule - Surface", "Tip/Lobule Width - Surface", "Upper Facial Height - Surface",
-          "Angles", "Columellar Labial Angle", "Columellar Lobular Angle", "Degree of Deviation (I-type)", "Domal divergence",
-          "Interalar Angle", "Medium facial third angle - right", "Nasal Tip Angle", "Nasofacial Angle", "Nasofrontal Angle", "Nasolabial Angle I",
-          "Nasolabial contour", "Nasomental Angle I", "Rhinion deviation angle", "Supratip Deviation Angle", "Tip deviation angle",
-          "Ratios", "Ratio: Symmetry - Alar Base (Right) to Nasion to Alar Base (Left)", "Ratio: Symmetry - Alar Base (Right) to Pronasale to Alar Base (Left)",
-          "Ratio: Symmetry - Alar Base (Right) to Subnasale to Alar Base (Left)", "Lobule - Base Ratio", "Nasal Tip Projection: Baum",
-          "Nasal Tip Projection: Byrd and Hobar", "Nasal Tip Projection: Goode", "Nasal Tip Projection: Goode (Left)",
-          "Nasal Tip Projection: Goode (Right)", "Nasal Tip Projection: Powell and Humphries", "Nasal Tip Projection: Simons",
-          "Nasal Width-Length Ratio", "Nasal Width–Intercanthal Distance Ratio", "Ratio: Nasion to Labiale Superios to Alar Base (Left)",
-          "Ratio: Nasion to Labiale Superios to Alar Base (Right)", "Ratio: Nasion to Labiale Superios to Alar Rim’s Highest Point (left)",
-          "Ratio: Nasion to Labiale Superios to Alar Rim’s Highest Point (right)", "Ratio: Nasion to Subnasale to Alar Base (Left)",
-          "Ratio: Nasion to Subnasale to Alar Base (Right)", "Ratio: Nasion to Subnasale to Alar Rim’s Highest Point (left)",
-          "Ratio: Nasion to Subnasale to Alar Rim’s Highest Point (right)",
-          "Areas - Surface", "Alar Base Area", "Dorsal Hump Area", "Area of Entire Nose", "Nasal Dorsum Area", "Root of the Nose Area",
-          "Tip Surface Area", "Area between the vertical fifths and horizontal thirds",
-          "Volumes", "Alar Base Volume", "Dorsal Hump Volume", "Volume of Entire Nose", "Nasal Dorsum Volume", "Root of the Nose Volume",
-          "Tip Volume", "Volume between the vertical fifths and horizontal thirds"
-        ]
-      }
-    },
-    { title: 'Value', field: 'value' },
-  ],
-});
-
-
-        landmarkTable = new Tabulator('#landmark-table', {
-          data: allLandmarks,
+        // 1) PARTICIPANTS TABLE
+        participantsTable = new Tabulator('#participants-table', {
+          data: participants,
           layout: 'fitColumns',
           pagination: 'local',
           paginationSize: 10,
           columns: [
             { title: 'Participant ID', field: 'participantFileId' },
-            {
-              title: 'Landmark Name',
-              field: 'landmarkName',
+            { title: 'Gender',         field: 'Gender',
               headerFilter: dropdownMultiCheck,
               headerFilterFunc: multiSelectFilterFunc,
-              headerFilterParams: {
-                values: [
-                  "1st Point", "2nd Point", "Alar Base Junction/Alar Crease - left", "Alar Base Junction/Alar Crease - right",
-                  "Alare/Alar Flare - left", "Alare/Alar Flare - right", "Alar Rim’s Highest Point - left", "Alar Rim’s Highest Point - right",
-                  "Cervical Point", "Columellar Break Point", "Cheilion - left", "Cheilion - right", "Columellar Rim - left", "Columellar Rim - right",
-                  "Corneal Plane", "Crista Philtri - left", "Crista Philtri - right", "Endocanthion/Medial Canthus - left", "Endocanthion/Medial Canthus - right",
-                  "Exocanthion/Lateral Canthus - left", "Exocanthion/Lateral Canthus - right", "Glabella", "Soft tissue gonion - left", "Soft tissue gonion - right",
-                  "Iris - left", "Iris - right", "Midpoint of left Infraorbital Rim", "Midpoint of right Infraorbital Rim",
-                  "Posterior Point of Nostril - left", "Posterior Point of Nostril - right", "Kyphion", "Lateral helix of ear - left",
-                  "Lateral helix of ear - right", "Labiale Inferius", "Labiale Superius", "Maxilloanteriorale - left", "Maxilloanteriorale - right",
-                  "Menton/Gnathion", "Maxillofrontale - left", "Maxillofrontale - right", "Nasion/Radix", "Nasal Parenthesis - left",
-                  "Nasal Parenthesis - right", "Pupil - left", "Pupil - right", "Pogonion", "Pronasale/Tip", "Rhinion", "Supratip Break Point",
-                  "Subalare - left", "Subalare - right", "Sill-base junction - left", "Sill-base junction - right",
-                  "Supratarsal Crease - left", "Supratarsal Crease - right", "Sellion", "Sublabiale/Mentolabial Sulcus", "Subnasale",
-                  "Subnasale - left", "Subnasale - right", "Subspinale", "Anterior Point of Nostril/Columella Junction left",
-                  "Anterior Point of Nostril/Columella Junction right", "Stomion", "Tragion - left", "Tragion - right",
-                  "Tip Defining Point - left", "Tip Defining Point - right", "Trichion", "Vertex", "Zygion - left", "Zygion - right"
+              headerFilterParams: { values: ['M','F','Other'] }
+            },
+            { title: 'Age Min',        field: 'Age', sorter:'number',
+              headerFilter:'input',
+              headerFilterPlaceholder:'Min…',
+              headerFilterFunc:'>=',
+              headerFilterLiveFilter:true
+            },
+            { title: 'Age Max',        field: 'Age', sorter:'number',
+              headerFilter:'input',
+              headerFilterPlaceholder:'Max…',
+              headerFilterFunc:'<=',
+              headerFilterLiveFilter:true
+            },
+            { title: 'Ethnicity',      field: 'Ethnicity',
+              headerFilter: dropdownMultiCheck,
+              headerFilterFunc: multiSelectFilterFunc,
+              headerFilterParams:{
+                values:[
+                  'White','Black or African American',
+                  'American Indian or Alaska Native','Asian',
+                  'Native Hawaiian or Other Pacific Islander',
+                  'Hispanic','Prefer not to specify'
                 ]
               }
             },
-            { title: 'X Value', field: 'xVal' },
-            { title: 'Y Value', field: 'yVal' },
-            { title: 'Z Value', field: 'zVal' },
+            { title: 'Facial Surgery', field: 'FacialSurgery',
+              headerFilter: dropdownMultiCheck,
+              headerFilterFunc: multiSelectFilterFunc,
+              headerFilterParams:{
+                values:[
+                  'No Facial Surgery','Brow/forehead lift','Ear pinning',
+                  'Chin, cheek, or jaw reshaping','Eyelid lift','Facelift',
+                  'Facial implants','Hair replacement surgery','Lip augmentation',
+                  'Rhinoplasty','Other','Prefer not to specify'
+                ]
+              }
+            },
           ],
         });
 
-        // ─────────────── INITIALIZE STATS TABLE ───────────────
-        const statsTable = new Tabulator("#stats-table", {
-          layout: "fitColumns",
-          columns: [
-            { title: "Name",           field: "Name" },
-            { title: "Average",        field: "Average" },
-            { title: "Std. Deviation", field: "StdDev" },
-            { title: "Minimum",        field: "Min" },
-            { title: "Maximum",        field: "Max" },
-            { title: "Median",         field: "Median" },
+        // sync child tables + stats + chart when participants filter changes
+        participantsTable.on('dataFiltered',(_f,rows)=>{
+          const ids = rows.map(r=>r.getData().participantFileId);
+          measurementTable.replaceData(
+            allMeasurements.filter(m=>ids.includes(m.participantFileId))
+          );
+          landmarkTable.replaceData(
+            allLandmarks.filter(l=>ids.includes(l.participantFileId))
+          );
+          updateStats();
+          if(document.getElementById('chart-container').style.display!=='none'){
+            drawChart();
+          }
+        });
+
+        // 2) MEASUREMENT TABLE
+        measurementTable = new Tabulator('#measurement-table',{
+          data: allMeasurements,
+          layout: 'fitColumns',
+          pagination:'local',
+          paginationSize:10,
+          columns:[
+            { title:'Participant ID', field:'participantFileId' },
+            {
+              title:'Measurement Name', field:'measurementName',
+              headerFilter:dropdownMultiCheck,
+              headerFilterFunc:multiSelectFilterFunc,
+              headerFilterParams:{
+                values:[
+                  "(Inner) Intercanthal Distance/Width","Ala/Alar Length (left)","Ala/Alar Length (right)",
+                  "Alar Base Width","Base Bony Width","Columella Length","Columella Width",
+                  "Distance between sill-base junction and alar flare","Distance between 1st point - 2nd point",
+                  "Eye/palpebral fissure length - left","Eye/palpebral fissure length - right",
+                  "Face Width","Infratip Lobule Length","Interalar Distance","Lower Facial Height",
+                  "Mid-Facial Height","Nasal Bridge Length","Nasal Root Width","Nasal Tip Projection",
+                  "Nose Height","Nostril Floor Width (left)","Nostril Floor Width (right)",
+                  "Outer Intercanthal Distance","Premaxilla - left","Premaxilla - right",
+                  "Radix Projection","Subnasal Width","Supratip Lobule","Tip/Lobule Width",
+                  "Upper Facial Height","Distances - Surface","(Inner) Intercanthal Distance/Width - Surface",
+                  "Ala/Alar Length (left) - Surface","Ala/Alar Length (right) - Surface",
+                  "Alar Base Width - Surface","Base Bony Width - Surface",
+                  "Columella Length - Surface","Columella Width - Surface",
+                  "Distance between sill-base junction and alar flare - Surface",
+                  "Distance between 1st point - 2nd point - Surface",
+                  "Eye/palpebral fissure length - left - Surface",
+                  "Eye/palpebral fissure length - right - Surface",
+                  "Face Width - Surface","Infratip Lobule Length - Surface",
+                  "Interalar Distance - Surface","Lower Facial Height - Surface",
+                  "Mid-Facial Height - Surface","Nasal Bridge Length - Surface",
+                  "Nasal Root Width - Surface","Nasal Tip Projection - Surface",
+                  "Nose Height - Surface","Nostril Floor Width (left) - Surface",
+                  "Nostril Floor Width (right) - Surface",
+                  "Outer Intercanthal Distance - Surface",
+                  "Premaxilla - left - Surface","Premaxilla - right - Surface",
+                  "Radix Projection - Surface","Subnasal Width - Surface",
+                  "Supratip Lobule - Surface","Tip/Lobule Width - Surface",
+                  "Upper Facial Height - Surface","Angles","Columellar Labial Angle",
+                  "Columellar Lobular Angle","Degree of Deviation (I-type)","Domal divergence",
+                  "Interalar Angle","Medium facial third angle - right","Nasal Tip Angle",
+                  "Nasofacial Angle","Nasofrontal Angle","Nasolabial Angle I","Nasolabial contour",
+                  "Nasomental Angle I","Rhinion deviation angle","Supratip Deviation Angle",
+                  "Tip deviation angle","Ratios",
+                  "Ratio: Symmetry - Alar Base (Right) to Nasion to Alar Base (Left)",
+                  "Ratio: Symmetry - Alar Base (Right) to Pronasale to Alar Base (Left)",
+                  "Ratio: Symmetry - Alar Base (Right) to Subnasale to Alar Base (Left)",
+                  "Lobule - Base Ratio","Nasal Tip Projection: Baum",
+                  "Nasal Tip Projection: Byrd and Hobar","Nasal Tip Projection: Goode",
+                  "Nasal Tip Projection: Goode (Left)","Nasal Tip Projection: Goode (Right)",
+                  "Nasal Tip Projection: Powell and Humphries","Nasal Tip Projection: Simons",
+                  "Nasal Width-Length Ratio","Nasal Width–Intercanthal Distance Ratio",
+                  "Ratio: Nasion to Labiale Superios to Alar Base (Left)",
+                  "Ratio: Nasion to Labiale Superios to Alar Base (Right)",
+                  "Ratio: Nasion to Labiale Superios to Alar Rim’s Highest Point (left)",
+                  "Ratio: Nasion to Labiale Superios to Alar Rim’s Highest Point (right)",
+                  "Ratio: Nasion to Subnasale to Alar Base (Left)","Ratio: Nasion to Subnasale to Alar Base (Right)",
+                  "Ratio: Nasion to Subnasale to Alar Rim’s Highest Point (left)",
+                  "Ratio: Nasion to Subnasale to Alar Rim’s Highest Point (right)",
+                  "Areas - Surface","Alar Base Area","Dorsal Hump Area","Area of Entire Nose",
+                  "Nasal Dorsum Area","Root of the Nose Area","Tip Surface Area",
+                  "Area between the vertical fifths and horizontal thirds","Volumes",
+                  "Alar Base Volume","Dorsal Hump Volume","Volume of Entire Nose",
+                  "Nasal Dorsum Volume","Root of the Nose Volume","Tip Volume",
+                  "Volume between the vertical fifths and horizontal thirds"
+                ]
+              }
+            },
+            { title:'Value', field:'value' },
           ],
         });
-        // ────────────────────────────────────────────────────────
 
+        // 3) LANDMARK TABLE
+        landmarkTable = new Tabulator('#landmark-table',{
+          data: allLandmarks,
+          layout:'fitColumns',
+          pagination:'local',
+          paginationSize:10,
+          columns:[
+            { title:'Participant ID', field:'participantFileId' },
+            {
+              title:'Landmark Name', field:'landmarkName',
+              headerFilter:dropdownMultiCheck,
+              headerFilterFunc:multiSelectFilterFunc,
+              headerFilterParams:{
+                values:[
+                  "1st Point","2nd Point","Alar Base Junction/Alar Crease - left",
+                  "Alar Base Junction/Alar Crease - right","Alare/Alar Flare - left","Alare/Alar Flare - right",
+                  "Alar Rim’s Highest Point - left","Alar Rim’s Highest Point - right",
+                  "Cervical Point","Columellar Break Point","Cheilion - left","Cheilion - right",
+                  "Columellar Rim - left","Columellar Rim - right","Corneal Plane",
+                  "Crista Philtri - left","Crista Philtri - right",
+                  "Endocanthion/Medial Canthus - left","Endocanthion/Medial Canthus - right",
+                  "Exocanthion/Lateral Canthus - left","Exocanthion/Lateral Canthus - right",
+                  "Glabella","Soft tissue gonion - left","Soft tissue gonion - right",
+                  "Iris - left","Iris - right","Midpoint of left Infraorbital Rim",
+                  "Midpoint of right Infraorbital Rim","Posterior Point of Nostril - left",
+                  "Posterior Point of Nostril - right","Kyphion","Lateral helix of ear - left",
+                  "Lateral helix of ear - right","Labiale Inferius","Labiale Superius",
+                  "Maxilloanteriorale - left","Maxilloanteriorale - right",
+                  "Menton/Gnathion","Maxillofrontale - left","Maxillofrontale - right",
+                  "Nasion/Radix","Nasal Parenthesis - left","Nasal Parenthesis - right",
+                  "Pupil - left","Pupil - right","Pogonion","Pronasale/Tip","Rhinion",
+                  "Supratip Break Point","Subalare - left","Subalare - right",
+                  "Sill-base junction - left","Sill-base junction - right",
+                  "Supratarsal Crease - left","Supratarsal Crease - right","Sellion",
+                  "Sublabiale/Mentolabial Sulcus","Subnasale","Subnasale - left",
+                  "Subnasale - right","Subspinale","Anterior Point of Nostril/Columella Junction left",
+                  "Anterior Point of Nostril/Columella Junction right","Stomion",
+                  "Tragion - left","Tragion - right","Tip Defining Point - left",
+                  "Tip Defining Point - right","Trichion","Vertex","Zygion - left","Zygion - right"
+                ]
+              }
+            },
+            { title:'X Value', field:'xVal' },
+            { title:'Y Value', field:'yVal' },
+            { title:'Z Value', field:'zVal' },
+          ],
+        });
 
+        // 4) STATS TABLE
+        statsTable = new Tabulator('#stats-table',{
+          layout:'fitColumns',
+          columns:[
+            { title:"Name",           field:"Name" },
+            { title:"Average",        field:"Average" },
+            { title:"Std. Deviation", field:"StdDev" },
+            { title:"Minimum",        field:"Min" },
+            { title:"Maximum",        field:"Max" },
+            { title:"Median",         field:"Median" },
+          ]
+        });
 
-        // ─────────────── UTILITY FUNCTIONS ───────────────
-        function mean(arr) {
-          return arr.reduce((a,b)=>a+b,0)/arr.length;
+        // 5) STAT UTILS & UPDATER
+        function mean(arr){ return arr.reduce((a,b)=>a+b,0)/arr.length; }
+        function stdDev(arr){ const m=mean(arr); return Math.sqrt(arr.reduce((s,x)=>s+(x-m)**2,0)/arr.length); }
+        function median(arr){
+          const s=arr.slice().sort((a,b)=>a-b),mid=Math.floor(s.length/2);
+          return s.length%2? s[mid]: (s[mid-1]+s[mid])/2;
         }
-        function stdDev(arr) {
-          const m = mean(arr);
-          return Math.sqrt(arr.reduce((sum,x)=>sum + (x-m)**2,0)/arr.length);
-        }
-        function median(arr) {
-          const s = arr.slice().sort((a,b)=>a-b),
-                mid = Math.floor(s.length/2);
-          return s.length % 2 ? s[mid] : (s[mid-1] + s[mid]) / 2;
-        }
-        // ────────────────────────────────────────────────────────
 
-
-        // ─────────────── UPDATE STATS ───────────────
         function updateStats(){
-          // **grab the dropdown’s current value****
-          const type  = document.getElementById("statsType").value;
-
-          // pick the filtered rows from the chosen table
-          const table = (type === "measurements") ? measurementTable : landmarkTable;
-          const rows  = table.getData(true); // true = only filtered rows
-
-          // group by name field
+          const type  = document.getElementById('statsType').value;
+          const table = (type==='measurements')? measurementTable: landmarkTable;
+          const rows  = table.getData(true);
           const groups = rows.reduce((acc,row)=>{
-            const name = (type === "measurements")
-              ? row.measurementName
-              : row.landmarkName;
-            // parse whichever coordinate/value you want
-            const val = parseFloat(
-              (type === "measurements") ? row.value : row.xVal
-            );
-            if (!acc[name]) acc[name] = [];
-            if (!isNaN(val)) acc[name].push(val);
+            const name = (type==='measurements')? row.measurementName: row.landmarkName;
+            const val  = parseFloat(type==='measurements'? row.value: row.xVal);
+            if(!acc[name]) acc[name]=[];
+            if(!isNaN(val)) acc[name].push(val);
             return acc;
           },{});
 
-          // build summary array
-          const statsData = Object.entries(groups).map(([Name, vals]) => ({
+          const statsData = Object.entries(groups).map(([Name,vals])=>({
             Name,
             Average: mean(vals).toFixed(2),
             StdDev:  stdDev(vals).toFixed(2),
@@ -339,203 +439,114 @@
             Median:  median(vals).toFixed(2),
           }));
 
-          // reload stats table
           statsTable.replaceData(statsData);
         }
-        // ────────────────────────────────────────────────────────
 
+        // 6) WIRE UP STATS REFRESH & CLEAR
+        document.getElementById('statsType').addEventListener('change', updateStats);
+        measurementTable.on('dataFiltered', updateStats);
+        landmarkTable .on('dataFiltered', updateStats);
 
-        // ─────────────── WIRE UP THE EVENTS ───────────────
-        // when the dropdown changes:
-        document.getElementById("statsType")
-                .addEventListener("change", updateStats);
-
-        // when either table’s filters change:
-        measurementTable.on("dataFiltered", updateStats);
-        landmarkTable  .on("dataFiltered", updateStats);
-
-        // draw once on load
-        updateStats();
-        // ────────────────────────────────────────────────────────
-
-        })  // <-- this closes your .then(participants => { … })
-        .catch(err => { /* … */ });
-
-
-
-
-
-
-
-
-
-
-
-
-        participantsTable = new Tabulator('#participants-table', {
-          data: participants,
-          layout: 'fitColumns',
-          pagination: 'local',
-          paginationSize: 10,
-          columns: [
-            { title: 'Participant ID', field: 'participantFileId' },
-            { title: 'Gender', field: 'Gender', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: ['M','F','Other'] } },
-            
-            { title: 'Age Min', field: 'Age', sorter: 'number', headerFilter: 'input', headerFilterPlaceholder: 'Min…', headerFilterFunc: '>=', headerFilterLiveFilter: true },
-            { title: 'Age Max', field: 'Age', sorter: 'number', headerFilter: 'input', headerFilterPlaceholder: 'Max…', headerFilterFunc: '<=', headerFilterLiveFilter: true  },
-
-            { title: 'Ethnicity', field: 'Ethnicity', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: ['White','Black or African American','American Indian or Alaska Native','Asian','Native Hawaiian or Other Pacific Islander','Hispanic','Prefer not to specify'] } },
-            { title: 'Facial Surgery', field: 'FacialSurgery', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: ['No Facial Surgery','Brow/forehead lift','Ear pinning','Chin, cheek, or jaw reshaping','Eyelid lift','Facelift','Facial implants','Hair replacement surgery','Lip augmentation','Rhinoplasty','Other','Prefer not to specify'] } },
-          ],
-        });
-
-        ["age-min-input", "age-max-input"].forEach(id => {
-          document.addEventListener('input', e => {
-            if (e.target.id === id) {
-              const chartVisible = document.getElementById("chart-container").style.display !== "none";
-              const category = document.querySelector('input[name="category"]:checked')?.value;
-              if (chartVisible && category === "Age") {
-                drawChart();
-              }
-            }
-          });
-        });
-
-        participantsTable.on('dataFiltered', (filters, rows) => {
-          // sync other tables
-          const ids = rows.map(r => r.getData().participantFileId);
-          measurementTable.replaceData(allMeasurements.filter(m => ids.includes(m.participantFileId)));
-          landmarkTable.replaceData(allLandmarks.filter(l => ids.includes(l.participantFileId)));
-
-          // redraw chart if visible
-          const chartContainer = document.getElementById("chart-container");
-          if (chartContainer.style.display !== "none") {
-            drawChart();
-          }
-        });
-
-        // Re-compute stats when the dropdown changes:
-        document.getElementById("statsType")
-                .addEventListener("change", updateStats);
-
-        // Re-compute stats when either source table is filtered:
-        measurementTable.on("dataFiltered", updateStats);
-        landmarkTable  .on("dataFiltered", updateStats);
-
-        // Initial draw:
-        updateStats();
-
-
-
-        document.getElementById('clearFilters').addEventListener('click', () => {
+        document.getElementById('clearFilters').addEventListener('click',()=>{
           participantsTable.clearHeaderFilter();
           measurementTable.clearHeaderFilter();
           landmarkTable.clearHeaderFilter();
         });
-        })
-        .catch(err => {
-          console.error(err);
-          document.querySelector('#participants-table').innerHTML = `<p style="color:red">${err}</p>`;
-        });
 
-        
-
-    function downloadAllFilteredData() {
-      const pd = participantsTable.getData("active"), ids=pd.map(p=>p.participantFileId);
-      const md=measurementTable.getData().filter(m=>ids.includes(m.participantFileId));
-      const ld=landmarkTable.getData().filter(l=>ids.includes(l.participantFileId));
-      const makeSection=(data,title)=>{ if(!data.length) return''; const cols=Object.keys(data[0]); const rows=data.map(r=>cols.map(f=>`"${String(r[f]||'').replace(/"/g,'""')}"`).join(',')); return[`\n\n# ${title}`,cols.join(','),...rows].join('\n'); };
-      const csv=[makeSection(pd,'Participants'),makeSection(md,'Measurements'),makeSection(ld,'Landmarks')].join('\n');
-      const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download='filtered_data.csv'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
-    }
-    document.getElementById('downloadCSV').addEventListener('click', downloadAllFilteredData);
-
-
-
-    // Show chart options + chart canvas and draw chart on button click
-  document.getElementById('create-chart').addEventListener('click', () => {
-    const chartContainer = document.getElementById('chart-container');
-    chartContainer.style.display = 'grid';
-    drawChart(); // draw the initial chart immediately
-  });
-
-  // Re-draw chart when chart options change
-  document.getElementById('chart-options').addEventListener('change', () => {
-    drawChart();
-  });
-
-  function drawChart() {
-    const data = participantsTable.getData("active");
-
-    if (!data.length) return;
-
-    const category = document.querySelector('input[name="category"]:checked').value;
-    const chartType = document.querySelector('input[name="chartType"]:checked').value;
-
-    let labels = [];
-    let values = [];
-
-    if (category === 'Age') {
-      const ageCounts = {};
-      data.forEach(p => {
-        const age = parseInt(p.Age);
-        if (!isNaN(age)) {
-          ageCounts[age] = (ageCounts[age] || 0) + 1;
-        }
+        // 7) INITIAL DRAW
+        updateStats();
+      })
+      .catch(err=>{
+        console.error(err);
+        document.querySelector('#participants-table').innerHTML =
+          `<p style="color:red">${err}</p>`;
       });
 
-      labels = Object.keys(ageCounts).sort((a, b) => a - b);
-      values = labels.map(l => ageCounts[l]);
-    } else {
-      const counts = {};
-      data.forEach(p => {
-        const val = p[category] || 'Unknown';
-        counts[val] = (counts[val] || 0) + 1;
-      });
+    // ─────────────── DOWNLOAD & CHART HANDLERS ───────────────
+    function downloadAllFilteredData(){
+      const pd = participantsTable.getData('active');
+      const ids = pd.map(p=>p.participantFileId);
+      const md = measurementTable.getData().filter(m=>ids.includes(m.participantFileId));
+      const ld = landmarkTable .getData().filter(l=>ids.includes(l.participantFileId));
 
-      labels = Object.keys(counts);
-      values = labels.map(l => counts[l]);
+      const makeSection = (data,title)=>{
+        if(!data.length) return '';
+        const cols = Object.keys(data[0]);
+        const rows = data.map(r=> cols.map(f=>`"${String(r[f]||'').replace(/"/g,'""')}"`).join(','));
+        return ['\n\n# '+title, cols.join(','), ...rows].join('\n');
+      };
+
+      const csv = makeSection(pd,'Participants')
+                + makeSection(md,'Measurements')
+                + makeSection(ld,'Landmarks');
+
+      const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'filtered_data.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
+    document.getElementById('downloadCSV')
+            .addEventListener('click', downloadAllFilteredData);
 
-    const total = values.reduce((sum, val) => sum + val, 0) || 1;
-    const percentages = values.map(val => (val / total * 100).toFixed(2));
-
-    if (window.currentChart) {
-      window.currentChart.destroy();
-    }
-
-    const ctx = document.getElementById('chart-canvas').getContext('2d');
-    window.currentChart = new Chart(ctx, {
-      type: chartType,
-      data: {
-        labels,
-        datasets: [{
-          label: '% of Participants',
-          data: percentages,
-          backgroundColor: labels.map((_, i) => `hsl(${i * 360 / labels.length}, 70%, 60%)`)
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          tooltip: {
-            callbacks: {
-              label: context => `${context.label}: ${context.formattedValue}%`
-            }
-          }
-        }
-      }
+    document.getElementById('create-chart')
+            .addEventListener('click', ()=>{
+      document.getElementById('chart-container').style.display='grid';
+      drawChart();
     });
-  }
+    document.getElementById('chart-options')
+            .addEventListener('change', drawChart);
 
+    function drawChart(){
+      const data = participantsTable.getData('active');
+      if(!data.length) return;
 
+      const category = document.querySelector('input[name="category"]:checked').value;
+      const chartType = document.querySelector('input[name="chartType"]:checked').value;
 
+      let labels=[], values=[];
+      if(category==='Age'){
+        const ageCounts={};
+        data.forEach(p=>{
+          const age = parseInt(p.Age);
+          if(!isNaN(age)) ageCounts[age]=(ageCounts[age]||0)+1;
+        });
+        labels = Object.keys(ageCounts).sort((a,b)=>a-b);
+        values = labels.map(l=>ageCounts[l]);
+      } else {
+        const counts={};
+        data.forEach(p=>{
+          const val = p[category]||'Unknown';
+          counts[val] = (counts[val]||0)+1;
+        });
+        labels = Object.keys(counts);
+        values = labels.map(l=>counts[l]);
+      }
 
+      const total = values.reduce((s,v)=>s+v,0)||1;
+      const percentages = values.map(v=>(v/total*100).toFixed(2));
 
-
-
-
-
+      if(window.currentChart) window.currentChart.destroy();
+      const ctx = document.getElementById('chart-canvas').getContext('2d');
+      window.currentChart = new Chart(ctx,{
+        type: chartType,
+        data: {
+          labels,
+          datasets:[{
+            label: '% of Participants',
+            data: percentages,
+            backgroundColor: labels.map((_,i)=>`hsl(${i*360/labels.length},70%,60%)`)
+          }]
+        },
+        options:{
+          responsive:true,
+          plugins:{ tooltip:{ callbacks:{ label:ctx=>`${ctx.label}: ${ctx.formattedValue}%` } } }
+        }
+      });
+    }
+    // ───────────────────────────────────────────────────────────
   </script>
 </body>
 </html>
