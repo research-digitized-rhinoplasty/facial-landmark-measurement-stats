@@ -53,6 +53,35 @@
     /* Chart options styling */
     #chart-options { border: 1px solid #ccc; padding: 10px; max-width: 400px; }
     #chart-options label { margin-right: 10px; }
+
+    .stats-controls {
+      margin: 1em 0;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    #stats-options {
+      border: none;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0;
+    }
+
+    #stats-options legend {
+      font-weight: bold;
+      margin-right: 10px;
+    }
+
+    #stats-table-container {
+      display: none;
+    }
+
+
+
+
+
   </style>
 </head>
 <body>
@@ -88,9 +117,9 @@
   <div id="landmark-table"></div>
 
   <!-- ─────────────── STATISTICS CONTROLS & TABLE ─────────────── -->
-  <div style="margin: 1em 0; display: flex; align-items: center; gap: 20px;">
-    <fieldset id="stats-options" style="border: none; display: flex; align-items: center; gap: 10px; margin: 0;">
-      <legend style="font-weight: bold; margin-right: 10px;">Show stats for:</legend>
+   <div class="stats-controls">
+  <fieldset id="stats-options">
+    <legend>Show stats for:</legend>
       <label><input type="radio" name="statsType" value="measurements" checked> Measurements</label>
       <label><input type="radio" name="statsType" value="landmarks"> Landmarks</label>
     </fieldset>
@@ -98,7 +127,7 @@
   </div>
 
   <!-- Initially hidden stats table -->
-  <div id="stats-table-container" style="display: none;">
+   <div id="stats-table-container">
     <div id="stats-table"></div>
   </div>
   <!-- ───────────────────────────────────────────────────────────── -->
@@ -412,6 +441,8 @@
           participantsTable.clearHeaderFilter();
           measurementTable.clearHeaderFilter();
           landmarkTable.clearHeaderFilter();
+
+          document.getElementById("stats-table-container").style.display = "none";
         });
         })
         .catch(err => {
