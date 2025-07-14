@@ -291,58 +291,50 @@
 
         // ─────────────── UTILITY FUNCTIONS ───────────────
         function mean(arr) {
-          return arr.reduce((a,b)=>a+b,0)/arr.length;
+          return arr.reduce((a, b) => a + b, 0) / arr.length;
         }
         function stdDev(arr) {
           const m = mean(arr);
-          return Math.sqrt(arr.reduce((sum,x)=>sum + (x-m)**2,0)/arr.length);
+          return Math.sqrt(arr.reduce((sum, x) => sum + (x - m) ** 2, 0) / arr.length);
         }
         function median(arr) {
-          const s = arr.slice().sort((a,b)=>a-b),
-                mid = Math.floor(s.length/2);
-          return s.length % 2 ? s[mid] : (s[mid-1] + s[mid]) / 2;
+          const s = arr.slice().sort((a, b) => a - b),
+                mid = Math.floor(s.length / 2);
+          return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
         }
 
-        // ─────────────── UPDATE STATS ───────────────
-        function updateStats(){
-          const type  = document.getElementById("statsType").value;
-          const table = (type === "measurements") ? measurementTable : landmarkTable;
-          const rows  = table.getData(true); // ✅ filtered rows only
 
-          const groups = rows.reduce((acc,row)=>{
-            const name  = (type==="measurements") ? row.measurementName : row.landmarkName;
-            const val   = parseFloat(type==="measurements" ? row.value : (row.xVal || row.yVal || row.zVal));
+        // ─────────────── UPDATE STATS ───────────────
+        function updateStats() {
+          const type = document.getElementById("statsType").value;
+          const table = (type === "measurements") ? measurementTable : landmarkTable;
+          const rows = table.getData(true); // only filtered rows
+
+          const groups = rows.reduce((acc, row) => {
+            const name = (type === "measurements") ? row.measurementName : row.landmarkName;
+            const val = parseFloat(
+              type === "measurements"
+                ? row.value
+                : row.xVal || row.yVal || row.zVal
+            );
             if (!acc[name]) acc[name] = [];
             if (!isNaN(val)) acc[name].push(val);
             return acc;
-          },{});
+          }, {});
 
-          const statsData = Object.entries(groups).map(([Name, vals])=>({
+          const statsData = Object.entries(groups).map(([Name, vals]) => ({
             Name,
             Average: mean(vals).toFixed(2),
-            StdDev:  stdDev(vals).toFixed(2),
-            Min:     Math.min(...vals).toFixed(2),
-            Max:     Math.max(...vals).toFixed(2),
-            Median:  median(vals).toFixed(2),
+            StdDev: stdDev(vals).toFixed(2),
+            Min: Math.min(...vals).toFixed(2),
+            Max: Math.max(...vals).toFixed(2),
+            Median: median(vals).toFixed(2),
           }));
 
           statsTable.replaceData(statsData);
         }
 
         // ────────────────────────────────────────────────
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
         participantsTable = new Tabulator('#participants-table', {
@@ -362,6 +354,7 @@
           ],
         });
 
+
         ["age-min-input", "age-max-input"].forEach(id => {
           document.addEventListener('input', e => {
             if (e.target.id === id) {
@@ -375,42 +368,34 @@
         });
 
         participantsTable.on('dataFiltered', (filters, rows) => {
-          // sync other tables
           const ids = rows.map(r => r.getData().participantFileId);
           measurementTable.replaceData(allMeasurements.filter(m => ids.includes(m.participantFileId)));
           landmarkTable.replaceData(allLandmarks.filter(l => ids.includes(l.participantFileId)));
 
-          // redraw chart if visible
-          const chartContainer = document.getElementById("chart-container");
-          if (chartContainer.style.display !== "none") {
+          if (document.getElementById("chart-container").style.display !== "none") {
             drawChart();
           }
 
-          
-          updateStats(); // recompute stats based on new measurement/landmark data
+          updateStats();
         });
 
-
-        
-
-        // Re-compute stats when the dropdown changes:
+        // Re-compute stats when the dropdown changes
         document.getElementById("statsType")
                 .addEventListener("change", updateStats);
 
-        // Re-compute stats when either source table is filtered:
+        // Live updates from measurement & landmark tables
         measurementTable.on("dataFiltered", updateStats);
-        landmarkTable  .on("dataFiltered", updateStats);
-
         measurementTable.on("dataChanged", updateStats);
-        landmarkTable.on("dataChanged", updateStats);
+        measurementTable.on("cellEdited", updateStats);
 
-        // Initial draw:
+        landmarkTable.on("dataFiltered", updateStats);
+        landmarkTable.on("dataChanged", updateStats);
+        landmarkTable.on("cellEdited", updateStats);
+
+        // Initial draw
         updateStats();
 
         
-
-
-
 
         document.getElementById('clearFilters').addEventListener('click', () => {
           participantsTable.clearHeaderFilter();
