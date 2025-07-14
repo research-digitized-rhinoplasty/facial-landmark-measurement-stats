@@ -87,6 +87,17 @@
   <h2>Landmarks</h2>
   <div id="landmark-table"></div>
 
+    <!-- ─────────────── STATISTICS CONTROLS & TABLE ─────────────── -->
+  <div style="margin:1em 0">
+    <label for="statsType"><strong>Show stats for:</strong></label>
+    <select id="statsType">
+      <option value="measurements">Measurements</option>
+      <option value="landmarks">Landmarks</option>
+    </select>
+  </div>
+  <div id="stats-table"></div>
+  <!-- ───────────────────────────────────────────────────────────── -->
+
   <!-- Libraries -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -226,42 +237,113 @@
 
 
         landmarkTable = new Tabulator('#landmark-table', {
-  data: allLandmarks,
-  layout: 'fitColumns',
-  pagination: 'local',
-  paginationSize: 10,
-  columns: [
-    { title: 'Participant ID', field: 'participantFileId' },
-    {
-      title: 'Landmark Name',
-      field: 'landmarkName',
-      headerFilter: dropdownMultiCheck,
-      headerFilterFunc: multiSelectFilterFunc,
-      headerFilterParams: {
-        values: [
-          "1st Point", "2nd Point", "Alar Base Junction/Alar Crease - left", "Alar Base Junction/Alar Crease - right",
-          "Alare/Alar Flare - left", "Alare/Alar Flare - right", "Alar Rim’s Highest Point - left", "Alar Rim’s Highest Point - right",
-          "Cervical Point", "Columellar Break Point", "Cheilion - left", "Cheilion - right", "Columellar Rim - left", "Columellar Rim - right",
-          "Corneal Plane", "Crista Philtri - left", "Crista Philtri - right", "Endocanthion/Medial Canthus - left", "Endocanthion/Medial Canthus - right",
-          "Exocanthion/Lateral Canthus - left", "Exocanthion/Lateral Canthus - right", "Glabella", "Soft tissue gonion - left", "Soft tissue gonion - right",
-          "Iris - left", "Iris - right", "Midpoint of left Infraorbital Rim", "Midpoint of right Infraorbital Rim",
-          "Posterior Point of Nostril - left", "Posterior Point of Nostril - right", "Kyphion", "Lateral helix of ear - left",
-          "Lateral helix of ear - right", "Labiale Inferius", "Labiale Superius", "Maxilloanteriorale - left", "Maxilloanteriorale - right",
-          "Menton/Gnathion", "Maxillofrontale - left", "Maxillofrontale - right", "Nasion/Radix", "Nasal Parenthesis - left",
-          "Nasal Parenthesis - right", "Pupil - left", "Pupil - right", "Pogonion", "Pronasale/Tip", "Rhinion", "Supratip Break Point",
-          "Subalare - left", "Subalare - right", "Sill-base junction - left", "Sill-base junction - right",
-          "Supratarsal Crease - left", "Supratarsal Crease - right", "Sellion", "Sublabiale/Mentolabial Sulcus", "Subnasale",
-          "Subnasale - left", "Subnasale - right", "Subspinale", "Anterior Point of Nostril/Columella Junction left",
-          "Anterior Point of Nostril/Columella Junction right", "Stomion", "Tragion - left", "Tragion - right",
-          "Tip Defining Point - left", "Tip Defining Point - right", "Trichion", "Vertex", "Zygion - left", "Zygion - right"
-        ]
-      }
-    },
-    { title: 'X Value', field: 'xVal' },
-    { title: 'Y Value', field: 'yVal' },
-    { title: 'Z Value', field: 'zVal' },
-  ],
-});
+          data: allLandmarks,
+          layout: 'fitColumns',
+          pagination: 'local',
+          paginationSize: 10,
+          columns: [
+            { title: 'Participant ID', field: 'participantFileId' },
+            {
+              title: 'Landmark Name',
+              field: 'landmarkName',
+              headerFilter: dropdownMultiCheck,
+              headerFilterFunc: multiSelectFilterFunc,
+              headerFilterParams: {
+                values: [
+                  "1st Point", "2nd Point", "Alar Base Junction/Alar Crease - left", "Alar Base Junction/Alar Crease - right",
+                  "Alare/Alar Flare - left", "Alare/Alar Flare - right", "Alar Rim’s Highest Point - left", "Alar Rim’s Highest Point - right",
+                  "Cervical Point", "Columellar Break Point", "Cheilion - left", "Cheilion - right", "Columellar Rim - left", "Columellar Rim - right",
+                  "Corneal Plane", "Crista Philtri - left", "Crista Philtri - right", "Endocanthion/Medial Canthus - left", "Endocanthion/Medial Canthus - right",
+                  "Exocanthion/Lateral Canthus - left", "Exocanthion/Lateral Canthus - right", "Glabella", "Soft tissue gonion - left", "Soft tissue gonion - right",
+                  "Iris - left", "Iris - right", "Midpoint of left Infraorbital Rim", "Midpoint of right Infraorbital Rim",
+                  "Posterior Point of Nostril - left", "Posterior Point of Nostril - right", "Kyphion", "Lateral helix of ear - left",
+                  "Lateral helix of ear - right", "Labiale Inferius", "Labiale Superius", "Maxilloanteriorale - left", "Maxilloanteriorale - right",
+                  "Menton/Gnathion", "Maxillofrontale - left", "Maxillofrontale - right", "Nasion/Radix", "Nasal Parenthesis - left",
+                  "Nasal Parenthesis - right", "Pupil - left", "Pupil - right", "Pogonion", "Pronasale/Tip", "Rhinion", "Supratip Break Point",
+                  "Subalare - left", "Subalare - right", "Sill-base junction - left", "Sill-base junction - right",
+                  "Supratarsal Crease - left", "Supratarsal Crease - right", "Sellion", "Sublabiale/Mentolabial Sulcus", "Subnasale",
+                  "Subnasale - left", "Subnasale - right", "Subspinale", "Anterior Point of Nostril/Columella Junction left",
+                  "Anterior Point of Nostril/Columella Junction right", "Stomion", "Tragion - left", "Tragion - right",
+                  "Tip Defining Point - left", "Tip Defining Point - right", "Trichion", "Vertex", "Zygion - left", "Zygion - right"
+                ]
+              }
+            },
+            { title: 'X Value', field: 'xVal' },
+            { title: 'Y Value', field: 'yVal' },
+            { title: 'Z Value', field: 'zVal' },
+          ],
+        });
+
+        // ─────────────── INITIALIZE STATS TABLE ───────────────
+        const statsTable = new Tabulator("#stats-table", {
+          layout: "fitColumns",
+          columns: [
+            { title: "Name",           field: "Name" },
+            { title: "Average",        field: "Average" },
+            { title: "Std. Deviation", field: "StdDev" },
+            { title: "Minimum",        field: "Min" },
+            { title: "Maximum",        field: "Max" },
+            { title: "Median",         field: "Median" },
+          ],
+        });
+        // ────────────────────────────────────────────────────────
+
+
+        // ─────────────── UTILITY FUNCTIONS ───────────────
+        function mean(arr) {
+          return arr.reduce((a,b)=>a+b,0)/arr.length;
+        }
+        function stdDev(arr) {
+          const m = mean(arr);
+          return Math.sqrt(arr.reduce((sum,x)=>sum + (x-m)**2,0)/arr.length);
+        }
+        function median(arr) {
+          const s = arr.slice().sort((a,b)=>a-b),
+                mid = Math.floor(s.length/2);
+          return s.length % 2 ? s[mid] : (s[mid-1] + s[mid]) / 2;
+        }
+
+        // ─────────────── UPDATE STATS ───────────────
+        function updateStats(){
+          const type  = document.getElementById("statsType").value;
+          const table = (type === "measurements") ? measurementTable : landmarkTable;
+          const rows  = table.getData(true); // true → only filtered rows
+
+          // group by Name (measurementName or landmarkName)
+          const groups = rows.reduce((acc,row)=>{
+            const name  = (type==="measurements") ? row.measurementName : row.landmarkName;
+            const val   = parseFloat(type==="measurements" ? row.value : (row.xVal || row.yVal || row.zVal));
+            if (!acc[name]) acc[name] = [];
+            if (!isNaN(val)) acc[name].push(val);
+            return acc;
+          },{});
+
+          // build summary array
+          const statsData = Object.entries(groups).map(([Name, vals])=>({
+            Name,
+            Average: mean(vals).toFixed(2),
+            StdDev:  stdDev(vals).toFixed(2),
+            Min:     Math.min(...vals).toFixed(2),
+            Max:     Math.max(...vals).toFixed(2),
+            Median:  median(vals).toFixed(2),
+          }));
+
+          statsTable.replaceData(statsData);
+        }
+        // ────────────────────────────────────────────────
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
         participantsTable = new Tabulator('#participants-table', {
@@ -305,6 +387,18 @@
             drawChart();
           }
         });
+
+        // Re-compute stats when the dropdown changes:
+        document.getElementById("statsType")
+                .addEventListener("change", updateStats);
+
+        // Re-compute stats when either source table is filtered:
+        measurementTable.on("dataFiltered", updateStats);
+        landmarkTable  .on("dataFiltered", updateStats);
+
+        // Initial draw:
+        updateStats();
+
 
 
         document.getElementById('clearFilters').addEventListener('click', () => {
