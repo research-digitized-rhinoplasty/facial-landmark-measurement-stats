@@ -341,24 +341,39 @@
 
         // ─────────────── UPDATE STATS ───────────────
         function updateStats() {
-
           const type = document.querySelector('input[name="statsType"]:checked').value;
-
           const table = (type === "measurements") ? measurementTable : landmarkTable;
           const rows = table.getData(true); // only filtered rows
 
-          const groups = rows.reduce((acc, row) => {
+          // Get active header filter for name column
+          let allowedNames = [];
+          if (type === "measurements") {
+            allowedNames = measurementTable.getHeaderFilterValue("measurementName") || [];
+          } else {
+            allowedNames = landmarkTable.getHeaderFilterValue("landmarkName") || [];
+          }
+
+          if (!Array.isArray(allowedNames)) allowedNames = [allowedNames];
+          if (allowedNames.length === 0) {
+            statsTable.replaceData([]); // Show nothing if no name is filtered
+            return;
+          }
+
+          // Filter only the rows matching allowed names
+          const filtered = rows.filter(row =>
+            allowedNames.includes(type === "measurements" ? row.measurementName : row.landmarkName)
+          );
+
+          // Group values by name
+          const groups = filtered.reduce((acc, row) => {
             const name = (type === "measurements") ? row.measurementName : row.landmarkName;
-            const val = parseFloat(
-              type === "measurements"
-                ? row.value
-                : row.xVal || row.yVal || row.zVal
-            );
+            const val = parseFloat(type === "measurements" ? row.value : (row.xVal || row.yVal || row.zVal));
             if (!acc[name]) acc[name] = [];
             if (!isNaN(val)) acc[name].push(val);
             return acc;
           }, {});
 
+          // Compute summary statistics
           const statsData = Object.entries(groups).map(([Name, vals]) => ({
             Name,
             Average: mean(vals).toFixed(2),
@@ -371,6 +386,8 @@
           statsTable.replaceData(statsData);
         }
 
+        
+      
         // ────────────────────────────────────────────────
 
         // Handle "Show Stats" button click
