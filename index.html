@@ -6,17 +6,11 @@
   <title>3D Facial Landmark Query Tool</title>
 
   <!-- Tabulator CSS -->
-  <link
-    href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css"
-    rel="stylesheet"
-  />
+  <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet" />
 
   <style>
     body { font-family: Arial; padding: 20px; }
-    #participants-table,
-    #measurement-table,
-    #landmark-table,
-    #stats-table { margin-top: 20px; }
+    #participants-table, #measurement-table, #landmark-table, #stats-table { margin-top: 20px; }
     .button-row { margin: 10px 0; }
 
     /* Hide chart container until 'Chart' is clicked */
@@ -27,6 +21,8 @@
       max-width: 700px;
       text-align: center;
     }
+
+    /* Chart canvas styling */
     #chart-canvas { max-width: 100%; max-height: 400px; }
 
     /* Allow header filters to overflow */
@@ -36,26 +32,29 @@
 
     /* Dropdown checkbox list styles */
     .checkbox-dropdown {
-      position: absolute; top: 100%; left: 0; z-index: 9999;
-      background: white; border: 1px solid #ccc;
-      max-height: 180px; overflow-y: auto; padding: 4px;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      z-index: 9999;
+      background: white;
+      border: 1px solid #ccc;
+      max-height: 180px;
+      overflow-y: auto;
+      padding: 4px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
     .checkbox-dropdown label { display: block; font-size: 12px; cursor: pointer; margin-bottom: 2px; }
     .checkbox-dropdown input { margin-right: 6px; }
-    .dropdown-toggle {
-      cursor: pointer; padding: 4px; border: 1px solid #ccc;
-      background: #fff; width: 100%; box-sizing: border-box;
-    }
+    .dropdown-toggle { cursor: pointer; padding: 4px; border: 1px solid #ccc; background: #fff; width: 100%; box-sizing: border-box; }
 
     /* Chart options styling */
     #chart-options { border: 1px solid #ccc; padding: 10px; max-width: 400px; }
     #chart-options label { margin-right: 10px; }
   </style>
 </head>
-
 <body>
   <h2>3D Facial Landmark Query Tool</h2>
+
   <div class="button-row">
     <button id="clearFilters">Clear All Filters</button>
     <button id="downloadCSV">Download Data</button>
@@ -86,7 +85,7 @@
   <h2>Landmarks</h2>
   <div id="landmark-table"></div>
 
-  <!-- ── STATISTICS CONTROLS & TABLE ── -->
+  <!-- ─────────────── STATISTICS CONTROLS & TABLE ─────────────── -->
   <div style="margin:1em 0">
     <label for="statsType"><strong>Show stats for:</strong></label>
     <select id="statsType">
@@ -95,84 +94,79 @@
     </select>
   </div>
   <div id="stats-table"></div>
-  <!-- ──────────────────────────────────── -->
+  <!-- ───────────────────────────────────────────────────────────── -->
 
   <!-- Libraries -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <script>
-    // ───────────────── FILTER HELPERS ─────────────────
+    // ─────────────── FILTER HELPERS ───────────────
     function exactMatch(h,v){ return h==="All"||h==="Any"||v===h; }
 
     function dropdownMultiCheck(cell, onRendered, success){
-      const col    = cell.getColumn(),
-            field  = col.getField(),
+      const column = cell.getColumn(),
+            field  = column.getField(),
             table  = cell.getTable(),
-            values = col.getDefinition().headerFilterParams.values;
+            values = column.getDefinition().headerFilterParams.values;
 
       const toggle = document.createElement('div');
       toggle.classList.add('dropdown-toggle');
 
-      function updateLabel(){
-        const cur = table.getHeaderFilterValue(field)||[];
-        toggle.textContent = cur.length ? cur.join(', ') : 'Select...';
-      }
+      const updateLabel = ()=>{
+        const current = table.getHeaderFilterValue(field)||[];
+        toggle.textContent = current.length? current.join(', '): 'Select...';
+      };
       updateLabel();
 
       let list;
-      function openDropdown(){
+      const openDropdown = ()=>{
         if(list) return;
         list = document.createElement('div');
         list.classList.add('checkbox-dropdown');
 
-        const cur = table.getHeaderFilterValue(field)||[];
-        values.forEach(val => {
+        const current = table.getHeaderFilterValue(field)||[];
+        values.forEach(val=>{
           const lbl = document.createElement('label');
           const cb  = document.createElement('input');
-          cb.type    = 'checkbox';
-          cb.value   = val;
-          cb.checked = cur.includes(val);
+          cb.type = 'checkbox';
+          cb.value= val;
+          cb.checked = current.includes(val);
           lbl.appendChild(cb);
           lbl.appendChild(document.createTextNode(val));
           list.appendChild(lbl);
 
           cb.addEventListener('change',()=>{
-            const chosen = Array.from(
-              list.querySelectorAll('input:checked')
-            ).map(i=>i.value);
+            const chosen = Array.from(list.querySelectorAll('input:checked'))
+                              .map(i=>i.value);
             success(chosen);
             toggle.textContent = chosen.length? chosen.join(', '): 'Select...';
-
-            // redraw stats/chart if needed
-            updateStats();
-            const cat = document.querySelector('input[name="category"]:checked').value;
-            if(
-              document.getElementById('chart-container').style.display!=='none' &&
-              ((cat==='Age' && field==='Age') || field.toLowerCase().includes(cat.toLowerCase()))
-            ){
+            // if chart is visible & matches category, redraw
+            const category    = document.querySelector('input[name="category"]:checked').value;
+            const chartVis    = document.getElementById('chart-container').style.display!=='none';
+            if(chartVis && ((category==='Age' && field==='Age') || field.toLowerCase().includes(category.toLowerCase()))){
               drawChart();
             }
           });
         });
 
         document.body.appendChild(list);
-        const r = toggle.getBoundingClientRect();
-        list.style.top  = r.bottom + window.scrollY + 'px';
-        list.style.left = r.left   + window.scrollX + 'px';
+        const rect = toggle.getBoundingClientRect();
+        list.style.top  = rect.bottom + window.scrollY + 'px';
+        list.style.left = rect.left   + window.scrollX + 'px';
         document.addEventListener('click', outsideClick);
-      }
+      };
 
-      function closeDropdown(){
+      const closeDropdown = ()=>{
         if(list){ list.remove(); list=null; }
         document.removeEventListener('click', outsideClick);
-      }
+      };
 
-      function outsideClick(e){
+      const outsideClick = e=>{
         if(!toggle.contains(e.target) && list && !list.contains(e.target)){
           closeDropdown();
         }
-      }
+      };
 
       toggle.addEventListener('click', e=>{
         e.stopPropagation();
@@ -189,18 +183,13 @@
     }
     // ──────────────────────────────────────────────────
 
-    let participantsTable,
-        measurementTable,
-        landmarkTable,
-        statsTable,
-        currentChart;
+    let participantsTable, measurementTable, landmarkTable, statsTable, currentChart;
 
-    // ────────── FETCH DATA & INITIALIZE TABLES ──────────
+    // ─────────────── FETCH & TABLE SETUP ───────────────
     fetch('data.json')
-      .then(r=> r.ok ? r.json() : Promise.reject('data.json not found'))
+      .then(r=>r.ok? r.json(): Promise.reject('data.json not found'))
       .then(participants=>{
-
-        // flatten for measures/landmarks
+        // flatten measurements & landmarks
         const allMeasurements = participants.flatMap(p=>
           (p.ParticipantMeasurements||[]).map(m=>({
             participantFileId: p.participantFileId,
@@ -218,40 +207,44 @@
           }))
         );
 
-        // 1) PARTICIPANTS
-        participantsTable = new Tabulator('#participants-table',{
+        // 1) PARTICIPANTS TABLE
+        participantsTable = new Tabulator('#participants-table', {
           data: participants,
-          layout:'fitColumns',
-          pagination:'local',
-          paginationSize:10,
-          columns:[
-            { title:'Participant ID', field:'participantFileId' },
-            { title:'Gender', field:'Gender',
+          layout: 'fitColumns',
+          pagination: 'local',
+          paginationSize: 10,
+          columns: [
+            { title: 'Participant ID', field: 'participantFileId' },
+            { title: 'Gender',         field: 'Gender',
               headerFilter: dropdownMultiCheck,
               headerFilterFunc: multiSelectFilterFunc,
-              headerFilterParams:{ values:['M','F','Other'] }
+              headerFilterParams: { values: ['M','F','Other'] }
             },
-            { title:'Age Min', field:'Age', sorter:'number',
-              headerFilter:'input', headerFilterPlaceholder:'Min…',
-              headerFilterFunc:'>=', headerFilterLiveFilter:true
+            { title: 'Age Min',        field: 'Age', sorter:'number',
+              headerFilter:'input',
+              headerFilterPlaceholder:'Min…',
+              headerFilterFunc:'>=',
+              headerFilterLiveFilter:true
             },
-            { title:'Age Max', field:'Age', sorter:'number',
-              headerFilter:'input', headerFilterPlaceholder:'Max…',
-              headerFilterFunc:'<=', headerFilterLiveFilter:true
+            { title: 'Age Max',        field: 'Age', sorter:'number',
+              headerFilter:'input',
+              headerFilterPlaceholder:'Max…',
+              headerFilterFunc:'<=',
+              headerFilterLiveFilter:true
             },
-            { title:'Ethnicity', field:'Ethnicity',
+            { title: 'Ethnicity',      field: 'Ethnicity',
               headerFilter: dropdownMultiCheck,
               headerFilterFunc: multiSelectFilterFunc,
               headerFilterParams:{
                 values:[
                   'White','Black or African American',
-                  'American Indian or Alaska Native',
-                  'Asian','Native Hawaiian or Other Pacific Islander',
+                  'American Indian or Alaska Native','Asian',
+                  'Native Hawaiian or Other Pacific Islander',
                   'Hispanic','Prefer not to specify'
                 ]
               }
             },
-            { title:'Facial Surgery', field:'FacialSurgery',
+            { title: 'Facial Surgery', field: 'FacialSurgery',
               headerFilter: dropdownMultiCheck,
               headerFilterFunc: multiSelectFilterFunc,
               headerFilterParams:{
@@ -266,7 +259,7 @@
           ],
         });
 
-        // sync child tables & stats on participants filter
+        // sync child tables + stats + chart when participants filter changes
         participantsTable.on('dataFiltered',(_f,rows)=>{
           const ids = rows.map(r=>r.getData().participantFileId);
           measurementTable.replaceData(
@@ -281,25 +274,74 @@
           }
         });
 
-        // 2) MEASUREMENT
+        // 2) MEASUREMENT TABLE
         measurementTable = new Tabulator('#measurement-table',{
           data: allMeasurements,
-          layout:'fitColumns',
+          layout: 'fitColumns',
           pagination:'local',
           paginationSize:10,
           columns:[
             { title:'Participant ID', field:'participantFileId' },
             {
               title:'Measurement Name', field:'measurementName',
-              headerFilter: dropdownMultiCheck,
-              headerFilterFunc: multiSelectFilterFunc,
+              headerFilter:dropdownMultiCheck,
+              headerFilterFunc:multiSelectFilterFunc,
               headerFilterParams:{
                 values:[
-                  "(Inner) Intercanthal Distance/Width","Ala/Alar Length (left)",
-                  "Ala/Alar Length (right)","Alar Base Width","Base Bony Width",
-                  "Columella Length","Columella Width",
-                  /* … all your other measurement names … */
-                  "Tip Volume","Volume between the vertical fifths and horizontal thirds"
+                  "(Inner) Intercanthal Distance/Width","Ala/Alar Length (left)","Ala/Alar Length (right)",
+                  "Alar Base Width","Base Bony Width","Columella Length","Columella Width",
+                  "Distance between sill-base junction and alar flare","Distance between 1st point - 2nd point",
+                  "Eye/palpebral fissure length - left","Eye/palpebral fissure length - right",
+                  "Face Width","Infratip Lobule Length","Interalar Distance","Lower Facial Height",
+                  "Mid-Facial Height","Nasal Bridge Length","Nasal Root Width","Nasal Tip Projection",
+                  "Nose Height","Nostril Floor Width (left)","Nostril Floor Width (right)",
+                  "Outer Intercanthal Distance","Premaxilla - left","Premaxilla - right",
+                  "Radix Projection","Subnasal Width","Supratip Lobule","Tip/Lobule Width",
+                  "Upper Facial Height","Distances - Surface","(Inner) Intercanthal Distance/Width - Surface",
+                  "Ala/Alar Length (left) - Surface","Ala/Alar Length (right) - Surface",
+                  "Alar Base Width - Surface","Base Bony Width - Surface",
+                  "Columella Length - Surface","Columella Width - Surface",
+                  "Distance between sill-base junction and alar flare - Surface",
+                  "Distance between 1st point - 2nd point - Surface",
+                  "Eye/palpebral fissure length - left - Surface",
+                  "Eye/palpebral fissure length - right - Surface",
+                  "Face Width - Surface","Infratip Lobule Length - Surface",
+                  "Interalar Distance - Surface","Lower Facial Height - Surface",
+                  "Mid-Facial Height - Surface","Nasal Bridge Length - Surface",
+                  "Nasal Root Width - Surface","Nasal Tip Projection - Surface",
+                  "Nose Height - Surface","Nostril Floor Width (left) - Surface",
+                  "Nostril Floor Width (right) - Surface",
+                  "Outer Intercanthal Distance - Surface",
+                  "Premaxilla - left - Surface","Premaxilla - right - Surface",
+                  "Radix Projection - Surface","Subnasal Width - Surface",
+                  "Supratip Lobule - Surface","Tip/Lobule Width - Surface",
+                  "Upper Facial Height - Surface","Angles","Columellar Labial Angle",
+                  "Columellar Lobular Angle","Degree of Deviation (I-type)","Domal divergence",
+                  "Interalar Angle","Medium facial third angle - right","Nasal Tip Angle",
+                  "Nasofacial Angle","Nasofrontal Angle","Nasolabial Angle I","Nasolabial contour",
+                  "Nasomental Angle I","Rhinion deviation angle","Supratip Deviation Angle",
+                  "Tip deviation angle","Ratios",
+                  "Ratio: Symmetry - Alar Base (Right) to Nasion to Alar Base (Left)",
+                  "Ratio: Symmetry - Alar Base (Right) to Pronasale to Alar Base (Left)",
+                  "Ratio: Symmetry - Alar Base (Right) to Subnasale to Alar Base (Left)",
+                  "Lobule - Base Ratio","Nasal Tip Projection: Baum",
+                  "Nasal Tip Projection: Byrd and Hobar","Nasal Tip Projection: Goode",
+                  "Nasal Tip Projection: Goode (Left)","Nasal Tip Projection: Goode (Right)",
+                  "Nasal Tip Projection: Powell and Humphries","Nasal Tip Projection: Simons",
+                  "Nasal Width-Length Ratio","Nasal Width–Intercanthal Distance Ratio",
+                  "Ratio: Nasion to Labiale Superios to Alar Base (Left)",
+                  "Ratio: Nasion to Labiale Superios to Alar Base (Right)",
+                  "Ratio: Nasion to Labiale Superios to Alar Rim’s Highest Point (left)",
+                  "Ratio: Nasion to Labiale Superios to Alar Rim’s Highest Point (right)",
+                  "Ratio: Nasion to Subnasale to Alar Base (Left)","Ratio: Nasion to Subnasale to Alar Base (Right)",
+                  "Ratio: Nasion to Subnasale to Alar Rim’s Highest Point (left)",
+                  "Ratio: Nasion to Subnasale to Alar Rim’s Highest Point (right)",
+                  "Areas - Surface","Alar Base Area","Dorsal Hump Area","Area of Entire Nose",
+                  "Nasal Dorsum Area","Root of the Nose Area","Tip Surface Area",
+                  "Area between the vertical fifths and horizontal thirds","Volumes",
+                  "Alar Base Volume","Dorsal Hump Volume","Volume of Entire Nose",
+                  "Nasal Dorsum Volume","Root of the Nose Volume","Tip Volume",
+                  "Volume between the vertical fifths and horizontal thirds"
                 ]
               }
             },
@@ -307,7 +349,7 @@
           ],
         });
 
-        // 3) LANDMARK
+        // 3) LANDMARK TABLE
         landmarkTable = new Tabulator('#landmark-table',{
           data: allLandmarks,
           layout:'fitColumns',
@@ -317,13 +359,35 @@
             { title:'Participant ID', field:'participantFileId' },
             {
               title:'Landmark Name', field:'landmarkName',
-              headerFilter: dropdownMultiCheck,
-              headerFilterFunc: multiSelectFilterFunc,
+              headerFilter:dropdownMultiCheck,
+              headerFilterFunc:multiSelectFilterFunc,
               headerFilterParams:{
                 values:[
                   "1st Point","2nd Point","Alar Base Junction/Alar Crease - left",
-                  /* … all your other landmark names … */
-                  "Zygion - right"
+                  "Alar Base Junction/Alar Crease - right","Alare/Alar Flare - left","Alare/Alar Flare - right",
+                  "Alar Rim’s Highest Point - left","Alar Rim’s Highest Point - right",
+                  "Cervical Point","Columellar Break Point","Cheilion - left","Cheilion - right",
+                  "Columellar Rim - left","Columellar Rim - right","Corneal Plane",
+                  "Crista Philtri - left","Crista Philtri - right",
+                  "Endocanthion/Medial Canthus - left","Endocanthion/Medial Canthus - right",
+                  "Exocanthion/Lateral Canthus - left","Exocanthion/Lateral Canthus - right",
+                  "Glabella","Soft tissue gonion - left","Soft tissue gonion - right",
+                  "Iris - left","Iris - right","Midpoint of left Infraorbital Rim",
+                  "Midpoint of right Infraorbital Rim","Posterior Point of Nostril - left",
+                  "Posterior Point of Nostril - right","Kyphion","Lateral helix of ear - left",
+                  "Lateral helix of ear - right","Labiale Inferius","Labiale Superius",
+                  "Maxilloanteriorale - left","Maxilloanteriorale - right",
+                  "Menton/Gnathion","Maxillofrontale - left","Maxillofrontale - right",
+                  "Nasion/Radix","Nasal Parenthesis - left","Nasal Parenthesis - right",
+                  "Pupil - left","Pupil - right","Pogonion","Pronasale/Tip","Rhinion",
+                  "Supratip Break Point","Subalare - left","Subalare - right",
+                  "Sill-base junction - left","Sill-base junction - right",
+                  "Supratarsal Crease - left","Supratarsal Crease - right","Sellion",
+                  "Sublabiale/Mentolabial Sulcus","Subnasale","Subnasale - left",
+                  "Subnasale - right","Subspinale","Anterior Point of Nostril/Columella Junction left",
+                  "Anterior Point of Nostril/Columella Junction right","Stomion",
+                  "Tragion - left","Tragion - right","Tip Defining Point - left",
+                  "Tip Defining Point - right","Trichion","Vertex","Zygion - left","Zygion - right"
                 ]
               }
             },
@@ -337,39 +401,30 @@
         statsTable = new Tabulator('#stats-table',{
           layout:'fitColumns',
           columns:[
-            { title:'Name',           field:'Name' },
-            { title:'Average',        field:'Average' },
-            { title:'Std. Deviation', field:'StdDev' },
-            { title:'Minimum',        field:'Min' },
-            { title:'Maximum',        field:'Max' },
-            { title:'Median',         field:'Median' },
-          ],
+            { title:"Name",           field:"Name" },
+            { title:"Average",        field:"Average" },
+            { title:"Std. Deviation", field:"StdDev" },
+            { title:"Minimum",        field:"Min" },
+            { title:"Maximum",        field:"Max" },
+            { title:"Median",         field:"Median" },
+          ]
         });
 
-        // 5) STAT HELPERS & UPDATER
-        function mean(arr){ return arr.reduce((a,b)=>a+b,0)/arr.length }
-        function stdDev(arr){
-          const m=mean(arr);
-          return Math.sqrt(arr.reduce((s,x)=>s+(x-m)**2,0)/arr.length);
-        }
+        // 5) STAT UTILS & UPDATER
+        function mean(arr){ return arr.reduce((a,b)=>a+b,0)/arr.length; }
+        function stdDev(arr){ const m=mean(arr); return Math.sqrt(arr.reduce((s,x)=>s+(x-m)**2,0)/arr.length); }
         function median(arr){
-          const s=arr.slice().sort((a,b)=>a-b),
-                mid=Math.floor(s.length/2);
+          const s=arr.slice().sort((a,b)=>a-b),mid=Math.floor(s.length/2);
           return s.length%2? s[mid]: (s[mid-1]+s[mid])/2;
         }
 
         function updateStats(){
           const type  = document.getElementById('statsType').value;
-          const table = type==='measurements'? measurementTable: landmarkTable;
-          const rows  = table.getData(true); // <-- only filtered rows
-
+          const table = (type==='measurements')? measurementTable: landmarkTable;
+          const rows  = table.getData(true);
           const groups = rows.reduce((acc,row)=>{
-            const name = type==='measurements'
-              ? row.measurementName
-              : row.landmarkName;
-            const val = parseFloat(
-              type==='measurements'? row.value: row.xVal
-            );
+            const name = (type==='measurements')? row.measurementName: row.landmarkName;
+            const val  = parseFloat(type==='measurements'? row.value: row.xVal);
             if(!acc[name]) acc[name]=[];
             if(!isNaN(val)) acc[name].push(val);
             return acc;
@@ -388,13 +443,11 @@
         }
 
         // 6) WIRE UP STATS REFRESH & CLEAR
-        document.getElementById('statsType')
-                .addEventListener('change', updateStats);
+        document.getElementById('statsType').addEventListener('change', updateStats);
         measurementTable.on('dataFiltered', updateStats);
         landmarkTable .on('dataFiltered', updateStats);
 
-        document.getElementById('clearFilters')
-                .addEventListener('click', ()=>{
+        document.getElementById('clearFilters').addEventListener('click',()=>{
           participantsTable.clearHeaderFilter();
           measurementTable.clearHeaderFilter();
           landmarkTable.clearHeaderFilter();
@@ -402,22 +455,21 @@
 
         // 7) INITIAL DRAW
         updateStats();
-
-      }) // end .then
+      })
       .catch(err=>{
         console.error(err);
         document.querySelector('#participants-table').innerHTML =
           `<p style="color:red">${err}</p>`;
       });
 
-    // ───── DOWNLOAD & CHART HANDLERS ─────
+    // ─────────────── DOWNLOAD & CHART HANDLERS ───────────────
     function downloadAllFilteredData(){
-      const pd = participantsTable.getData('active'),
-            ids= pd.map(p=>p.participantFileId),
-            md = measurementTable.getData().filter(m=>ids.includes(m.participantFileId)),
-            ld = landmarkTable.getData().filter(l=>ids.includes(l.participantFileId));
+      const pd = participantsTable.getData('active');
+      const ids = pd.map(p=>p.participantFileId);
+      const md = measurementTable.getData().filter(m=>ids.includes(m.participantFileId));
+      const ld = landmarkTable .getData().filter(l=>ids.includes(l.participantFileId));
 
-      const makeSection=(data,title)=>{
+      const makeSection = (data,title)=>{
         if(!data.length) return '';
         const cols = Object.keys(data[0]);
         const rows = data.map(r=> cols.map(f=>`"${String(r[f]||'').replace(/"/g,'""')}"`).join(','));
@@ -428,10 +480,10 @@
                 + makeSection(md,'Measurements')
                 + makeSection(ld,'Landmarks');
 
-      const blob = new Blob([csv],{ type:'text/csv;charset=utf-8;' });
+      const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
       const link = document.createElement('a');
-      link.href    = URL.createObjectURL(blob);
-      link.download= 'filtered_data.csv';
+      link.href = URL.createObjectURL(blob);
+      link.download = 'filtered_data.csv';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -452,29 +504,29 @@
       if(!data.length) return;
 
       const category = document.querySelector('input[name="category"]:checked').value;
-      const chartType= document.querySelector('input[name="chartType"]:checked').value;
+      const chartType = document.querySelector('input[name="chartType"]:checked').value;
 
       let labels=[], values=[];
       if(category==='Age'){
         const ageCounts={};
         data.forEach(p=>{
-          const a = parseInt(p.Age);
-          if(!isNaN(a)) ageCounts[a]=(ageCounts[a]||0)+1;
+          const age = parseInt(p.Age);
+          if(!isNaN(age)) ageCounts[age]=(ageCounts[age]||0)+1;
         });
         labels = Object.keys(ageCounts).sort((a,b)=>a-b);
         values = labels.map(l=>ageCounts[l]);
       } else {
         const counts={};
         data.forEach(p=>{
-          const v = p[category]||'Unknown';
-          counts[v] = (counts[v]||0)+1;
+          const val = p[category]||'Unknown';
+          counts[val] = (counts[val]||0)+1;
         });
         labels = Object.keys(counts);
         values = labels.map(l=>counts[l]);
       }
 
       const total = values.reduce((s,v)=>s+v,0)||1;
-      const perc  = values.map(v=>(v/total*100).toFixed(2));
+      const percentages = values.map(v=>(v/total*100).toFixed(2));
 
       if(window.currentChart) window.currentChart.destroy();
       const ctx = document.getElementById('chart-canvas').getContext('2d');
@@ -482,18 +534,19 @@
         type: chartType,
         data: {
           labels,
-          datasets: [{
+          datasets:[{
             label: '% of Participants',
-            data: perc,
+            data: percentages,
             backgroundColor: labels.map((_,i)=>`hsl(${i*360/labels.length},70%,60%)`)
           }]
         },
         options:{
           responsive:true,
-          plugins:{ tooltip:{ callbacks:{ label:c=>`${c.label}: ${c.formattedValue}%` } } }
+          plugins:{ tooltip:{ callbacks:{ label:ctx=>`${ctx.label}: ${ctx.formattedValue}%` } } }
         }
       });
     }
+    // ───────────────────────────────────────────────────────────
   </script>
 </body>
 </html>
