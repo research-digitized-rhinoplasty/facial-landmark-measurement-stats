@@ -441,13 +441,42 @@
         }
 
         // Auto-switch table + stats when Measurement/Landmark radio changes
-        document.querySelectorAll('input[name="statsType"]').forEach(radio => {
-          radio.addEventListener('change', () => {
-            updateStats(); // update stats table
-            document.getElementById("stats-table-container").style.display = "block"; // auto-show table
-          });
+      document.querySelectorAll('input[name="statsType"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+          updateStats(); // update stats table
+          document.getElementById("stats-table-container").style.display = "block"; // auto-show table
+        });
+      });
+
+      document.getElementById('clearFilters').addEventListener('click', () => {
+        // Clear filters
+        participantsTable.clearHeaderFilter();
+        measurementTable.clearHeaderFilter();
+        landmarkTable.clearHeaderFilter();
+
+        // Restore original full data
+        participantsTable.replaceData(participants);
+        measurementTable.replaceData(allMeasurements);
+        landmarkTable.replaceData(allLandmarks);
+
+        // Hide stats
+        document.getElementById("stats-table-container").style.display = "none";
+
+        // Reset dropdown labels (optional)
+        document.querySelectorAll('.dropdown-toggle').forEach(el => {
+          el.textContent = 'Select...';
         });
 
+        // Optionally redraw chart if visible
+        if (document.getElementById("chart-container").style.display !== "none") {
+          drawChart();
+        }
+      });
+
+
+
+      
+      
         // ────────────────────────────────────────────────
 
         // Handle "Show Stats" button click
