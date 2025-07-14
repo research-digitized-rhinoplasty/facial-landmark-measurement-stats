@@ -412,7 +412,16 @@
             }
           });
 
+          statsTable.setColumns(Object.keys(statsData[0] || {}).map(field => ({
+            title: field,
+            field: field,
+            hozAlign: "right"
+          })));
+
           statsTable.replaceData(statsData);
+
+
+          
         }
       
         // ────────────────────────────────────────────────
