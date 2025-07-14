@@ -272,8 +272,10 @@
           columns: [
             { title: 'Participant ID', field: 'participantFileId' },
             { title: 'Gender', field: 'Gender', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: ['M','F','Other'] } },
-            { title: 'Age Min', field: 'Age', sorter: 'number', headerFilter: 'input', headerFilterPlaceholder: 'Min…', headerFilterFunc: '>=', headerFilterLiveFilter: true, headerFilterParams: { elementAttributes: { id: 'age-min-input' } }},
-            { title: 'Age Max', field: 'Age', sorter: 'number', headerFilter: 'input', headerFilterPlaceholder: 'Max…', headerFilterFunc: '<=', headerFilterLiveFilter: true, headerFilterParams: { elementAttributes: { id: 'age-max-input' }  }},
+            
+            { title: 'Age Min', field: 'Age', sorter: 'number', headerFilter: 'input', headerFilterPlaceholder: 'Min…', headerFilterFunc: '>=', headerFilterLiveFilter: true },
+            { title: 'Age Max', field: 'Age', sorter: 'number', headerFilter: 'input', headerFilterPlaceholder: 'Max…', headerFilterFunc: '<=', headerFilterLiveFilter: true  },
+
             { title: 'Ethnicity', field: 'Ethnicity', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: ['White','Black or African American','American Indian or Alaska Native','Asian','Native Hawaiian or Other Pacific Islander','Hispanic','Prefer not to specify'] } },
             { title: 'Facial Surgery', field: 'FacialSurgery', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: ['No Facial Surgery','Brow/forehead lift','Ear pinning','Chin, cheek, or jaw reshaping','Eyelid lift','Facelift','Facial implants','Hair replacement surgery','Lip augmentation','Rhinoplasty','Other','Prefer not to specify'] } },
           ],
@@ -291,36 +293,19 @@
           });
         });
 
-
-        participantsTable.on('headerFilterChanged', (column) => {
-          const category = document.querySelector('input[name="category"]:checked')?.value;
-          const field = column.getField();
-          const chartVisible = document.getElementById("chart-container").style.display !== "none";
-
-          // Update chart only when the changed field matches the selected chart category
-          if (
-            chartVisible &&
-            (
-              (category === "Age" && (field === "Age" || field === "Age Min" || field === "Age Max")) ||
-              field?.toLowerCase().includes(category?.toLowerCase())
-            )
-          ) {
-            drawChart();
-          }
-        });
-
         participantsTable.on('dataFiltered', (filters, rows) => {
-          const chartVisible = document.getElementById("chart-container").style.display !== "none";
-          const category = document.querySelector('input[name="category"]:checked')?.value;
+          // sync other tables
+          const ids = rows.map(r => r.getData().participantFileId);
+          measurementTable.replaceData(allMeasurements.filter(m => ids.includes(m.participantFileId)));
+          landmarkTable.replaceData(allLandmarks.filter(l => ids.includes(l.participantFileId)));
 
-          if (chartVisible && category === "Age") {
+          // redraw chart if visible
+          const chartContainer = document.getElementById("chart-container");
+          if (chartContainer.style.display !== "none") {
             drawChart();
           }
         });
 
-
-
-        
 
         document.getElementById('clearFilters').addEventListener('click', () => {
           participantsTable.clearHeaderFilter();
