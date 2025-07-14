@@ -87,16 +87,22 @@
   <h2>Landmarks</h2>
   <div id="landmark-table"></div>
 
-    <!-- ─────────────── STATISTICS CONTROLS & TABLE ─────────────── -->
-  <div style="margin:1em 0">
-    <label for="statsType"><strong>Show stats for:</strong></label>
-    <select id="statsType">
-      <option value="measurements">Measurements</option>
-      <option value="landmarks">Landmarks</option>
-    </select>
+  <!-- ─────────────── STATISTICS CONTROLS & TABLE ─────────────── -->
+  <div style="margin: 1em 0; display: flex; align-items: center; gap: 20px;">
+    <fieldset id="stats-options" style="border: none; display: flex; align-items: center; gap: 10px; margin: 0;">
+      <legend style="font-weight: bold; margin-right: 10px;">Show stats for:</legend>
+      <label><input type="radio" name="statsType" value="measurements" checked> Measurements</label>
+      <label><input type="radio" name="statsType" value="landmarks"> Landmarks</label>
+    </fieldset>
+    <button id="show-stats-button">Show Stats</button>
   </div>
-  <div id="stats-table"></div>
+
+  <!-- Initially hidden stats table -->
+  <div id="stats-table-container" style="display: none;">
+    <div id="stats-table"></div>
+  </div>
   <!-- ───────────────────────────────────────────────────────────── -->
+
 
   <!-- Libraries -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
@@ -306,7 +312,9 @@
 
         // ─────────────── UPDATE STATS ───────────────
         function updateStats() {
-          const type = document.getElementById("statsType").value;
+
+          const type = document.querySelector('input[name="statsType"]:checked').value;
+
           const table = (type === "measurements") ? measurementTable : landmarkTable;
           const rows = table.getData(true); // only filtered rows
 
@@ -335,6 +343,13 @@
         }
 
         // ────────────────────────────────────────────────
+
+        // Handle "Show Stats" button click
+        document.getElementById("show-stats-button").addEventListener("click", () => {
+          updateStats(); // compute based on current filters + selected table
+          document.getElementById("stats-table-container").style.display = "block";
+        });
+
 
 
         participantsTable = new Tabulator('#participants-table', {
@@ -379,10 +394,6 @@
           updateStats();
         });
 
-        // Re-compute stats when the dropdown changes
-        document.getElementById("statsType")
-                .addEventListener("change", updateStats);
-
         // Live updates from measurement & landmark tables
         measurementTable.on("dataFiltered", updateStats);
         measurementTable.on("dataChanged", updateStats);
@@ -395,7 +406,7 @@
         // Initial draw
         updateStats();
 
-        
+
 
         document.getElementById('clearFilters').addEventListener('click', () => {
           participantsTable.clearHeaderFilter();
