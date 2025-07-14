@@ -462,14 +462,20 @@
     }
     document.getElementById('downloadCSV').addEventListener('click', downloadAllFilteredData);
 
+    document.getElementById('create-chart').addEventListener('click', () => {
+      const chartContainer = document.getElementById('chart-container');
+      const chartButton = document.getElementById('create-chart');
 
+      if (chartContainer.style.display === 'none' || chartContainer.style.display === '') {
+        chartContainer.style.display = 'grid';
+        chartButton.textContent = 'Hide Chart';
+        drawChart(); // draw chart only when showing
+      } else {
+        chartContainer.style.display = 'none';
+        chartButton.textContent = 'Chart';
+      }
+    });
 
-    // Show chart options + chart canvas and draw chart on button click
-  document.getElementById('create-chart').addEventListener('click', () => {
-    const chartContainer = document.getElementById('chart-container');
-    chartContainer.style.display = 'grid';
-    drawChart(); // draw the initial chart immediately
-  });
 
   // Re-draw chart when chart options change
   document.getElementById('chart-options').addEventListener('change', () => {
