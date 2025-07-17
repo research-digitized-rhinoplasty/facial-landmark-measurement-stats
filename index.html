@@ -15,12 +15,16 @@
 
     /* Hide chart container until 'Chart' is clicked */
     #chart-container {
-        display: none;
-        margin: 0 auto;
-        padding: 10px;
-        max-width: 700px;
-        text-align: center;
+      display: none;
+      margin: 0 auto;
+      padding: 10px;
+      max-width: 700px;
+      text-align: center;
+      /* new: when grid is enabled, make two columns */
+      grid-template-columns: auto auto;
+      gap: 20px;
     }
+
 
     /* Chart canvas styling */
     #chart-canvas {
@@ -597,6 +601,8 @@
   document.getElementById('chart-options').addEventListener('change', () => {
     drawChart();
   });
+
+  document.getElementById('chart-type-options').addEventListener('change', drawChart);
 
   function drawChart() {
     const data = participantsTable.getData("active");
