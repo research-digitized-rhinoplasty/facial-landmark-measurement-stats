@@ -165,20 +165,20 @@
           const lbl = document.createElement('label');
           const cb = document.createElement('input'); cb.type = 'checkbox'; cb.value = val; cb.checked = current.includes(val);
           lbl.appendChild(cb); lbl.appendChild(document.createTextNode(val)); list.appendChild(lbl);
-          
-          
+
           cb.addEventListener('change', () => {
             const chosen = Array.from(list.querySelectorAll('input:checked')).map(i => i.value);
-            success(chosen); // tells Tabulator the new filter value
+            success(chosen); // set new filter value
             toggle.textContent = chosen.length ? chosen.join(', ') : 'Select...';
 
-            // 🔄 Force filter to apply immediately
+            // Explicitly trigger the filter application
             table.setHeaderFilterValue(field, chosen);
+            table.getRows();             // force re-evaluation of filtered rows
+            table.redraw(true);          // force UI update
 
-            // 📊 Redraw chart if it matches current category
+            // Redraw chart if visible and field matches category
             const category = document.querySelector('input[name="category"]:checked')?.value;
             const chartVisible = document.getElementById("chart-container").style.display !== "none";
-
             if (
               chartVisible &&
               (
@@ -189,9 +189,6 @@
               drawChart();
             }
           });
-
-
-
 
 
         });
