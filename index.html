@@ -96,25 +96,19 @@
   <div id="participants-table"></div>
 
   <!-- Chart container hidden until Chart button clicked -->
-   <div id="chart-container">
-
-  <fieldset id="chart-categories">
-    <legend>Category</legend>
-    <label><input type="radio" name="category" value="Gender"> Gender</label>
-    <label><input type="radio" name="category" value="Age"> Age</label>
-    <label><input type="radio" name="category" value="Ethnicity"> Ethnicity</label>
-    <label><input type="radio" name="category" value="FacialSurgery"> Surgery</label>
-  </fieldset>
-
-  <!-- Chart Type Selection -->
-  <fieldset id="chart-type">
-    <legend>Chart Type</legend>
-    <label><input type="radio" name="chartType" value="pie" checked> Pie</label>
-    <label><input type="radio" name="chartType" value="bar"> Bar</label>
-  </fieldset>
-
-  <canvas id="chart-canvas"></canvas>
-</div>
+  <div id="chart-container">
+    <fieldset id="chart-options">
+      <legend>Category</legend>
+      <label><input type="radio" name="category" value="Ethnicity" checked> Ethnicity</label>
+      <label><input type="radio" name="category" value="Gender"> Gender</label>
+      <label><input type="radio" name="category" value="FacialSurgery"> Facial Surgery</label>
+      <label><input type="radio" name="category" value="Age"> Age</label>
+      <br><br>
+      <label><input type="radio" name="chartType" value="pie" checked> Pie</label>
+      <label><input type="radio" name="chartType" value="bar"> Bar</label>
+    </fieldset>
+    <canvas id="chart-canvas"></canvas>
+  </div>
 
   <h2>Measurements</h2>
   <div id="measurement-table"></div>
@@ -156,7 +150,6 @@
         toggle.textContent = current.length ? current.join(', ') : 'Select...';
       };
       updateLabel(); let list;
-
       const openDropdown = () => {
         if (list) return;
         list = document.createElement('div'); list.classList.add('checkbox-dropdown');
@@ -165,20 +158,26 @@
           const lbl = document.createElement('label');
           const cb = document.createElement('input'); cb.type = 'checkbox'; cb.value = val; cb.checked = current.includes(val);
           lbl.appendChild(cb); lbl.appendChild(document.createTextNode(val)); list.appendChild(lbl);
-
           cb.addEventListener('change', () => {
             const chosen = Array.from(list.querySelectorAll('input:checked')).map(i => i.value);
+            success(chosen);
             toggle.textContent = chosen.length ? chosen.join(', ') : 'Select...';
 
-            // trigger its built‐in filtering
-            success(chosen);
+            // Redraw chart immediately if it matches the selected category
+            const category = document.querySelector('input[name="category"]:checked')?.value;
+            const chartVisible = document.getElementById("chart-container").style.display !== "none";
+
+            if (
+              chartVisible &&
+              (
+                (category === "Age" && field === "Age") ||
+                field?.toLowerCase().includes(category?.toLowerCase())
+              )
+            ) {
+              drawChart();
+            }
           });
-
-
-
         });
-
-
         document.body.appendChild(list);
         const rect = toggle.getBoundingClientRect();
         list.style.top = rect.bottom + window.scrollY + 'px'; list.style.left = rect.left + window.scrollX + 'px';
@@ -205,7 +204,6 @@
           (p.ParticipantMeasurements || []).map(m => ({
             participantFileId: p.participantFileId,
             measurementName: m.MeasurementName,
-            measurementType: m.MeasurementType,
             value: m.Value
           }))
         );
@@ -221,57 +219,56 @@
         );
 
         measurementTable = new Tabulator('#measurement-table', {
-          data: allMeasurements,
-          layout: 'fitColumns',
-          pagination: 'local',
-          paginationSize: 10,
-          columns: [
-            { title: 'Participant ID', field: 'participantFileId' },
-            {
-              title: 'Measurement Name',
-              field: 'measurementName',
-              headerFilter: dropdownMultiCheck,
-              headerFilterFunc: multiSelectFilterFunc,
-              headerFilterParams: {
-                values: [
-                  "(Inner) Intercanthal Distance/Width", "Ala/Alar Length (left)", "Ala/Alar Length (right)", "Alar Base Width", "Base Bony Width",
-                  "Columella Length", "Columella Width", "Distance between sill-base junction and alar flare", "Distance between 1st point - 2nd point",
-                  "Eye/palpebral fissure length - left", "Eye/palpebral fissure length - right", "Face Width", "Infratip Lobule Length", "Interalar Distance",
-                  "Lower Facial Height", "Mid-Facial Height", "Nasal Bridge Length", "Nasal Root Width", "Nasal Tip Projection", "Nose Height",
-                  "Nostril Floor Width (left)", "Nostril Floor Width (right)", "Outer Intercanthal Distance", "Premaxilla - left", "Premaxilla - right",
-                  "Radix Projection", "Subnasal Width", "Supratip Lobule", "Tip/Lobule Width", "Upper Facial Height",
-                  "Distances - Surface", "(Inner) Intercanthal Distance/Width - Surface", "Ala/Alar Length (left) - Surface", "Ala/Alar Length (right) - Surface",
-                  "Alar Base Width - Surface", "Base Bony Width - Surface", "Columella Length - Surface", "Columella Width - Surface",
-                  "Distance between sill-base junction and alar flare - Surface", "Distance between 1st point - 2nd point - Surface",
-                  "Eye/palpebral fissure length - left - Surface", "Eye/palpebral fissure length - right - Surface", "Face Width - Surface",
-                  "Infratip Lobule Length - Surface", "Interalar Distance - Surface", "Lower Facial Height - Surface", "Mid-Facial Height - Surface",
-                  "Nasal Bridge Length - Surface", "Nasal Root Width - Surface", "Nasal Tip Projection - Surface", "Nose Height - Surface",
-                  "Nostril Floor Width (left) - Surface", "Nostril Floor Width (right) - Surface", "Outer Intercanthal Distance - Surface",
-                  "Premaxilla - left - Surface", "Premaxilla - right - Surface", "Radix Projection - Surface", "Subnasal Width - Surface",
-                  "Supratip Lobule - Surface", "Tip/Lobule Width - Surface", "Upper Facial Height - Surface",
-                  "Angles", "Columellar Labial Angle", "Columellar Lobular Angle", "Degree of Deviation (I-type)", "Domal divergence",
-                  "Interalar Angle", "Medium facial third angle - right", "Nasal Tip Angle", "Nasofacial Angle", "Nasofrontal Angle", "Nasolabial Angle I",
-                  "Nasolabial contour", "Nasomental Angle I", "Rhinion deviation angle", "Supratip Deviation Angle", "Tip deviation angle",
-                  "Ratios", "Ratio: Symmetry - Alar Base (Right) to Nasion to Alar Base (Left)", "Ratio: Symmetry - Alar Base (Right) to Pronasale to Alar Base (Left)",
-                  "Ratio: Symmetry - Alar Base (Right) to Subnasale to Alar Base (Left)", "Lobule - Base Ratio", "Nasal Tip Projection: Baum",
-                  "Nasal Tip Projection: Byrd and Hobar", "Nasal Tip Projection: Goode", "Nasal Tip Projection: Goode (Left)",
-                  "Nasal Tip Projection: Goode (Right)", "Nasal Tip Projection: Powell and Humphries", "Nasal Tip Projection: Simons",
-                  "Nasal Width-Length Ratio", "Nasal Width–Intercanthal Distance Ratio", "Ratio: Nasion to Labiale Superios to Alar Base (Left)",
-                  "Ratio: Nasion to Labiale Superios to Alar Base (Right)", "Ratio: Nasion to Labiale Superios to Alar Rim’s Highest Point (left)",
-                  "Ratio: Nasion to Labiale Superios to Alar Rim’s Highest Point (right)", "Ratio: Nasion to Subnasale to Alar Base (Left)",
-                  "Ratio: Nasion to Subnasale to Alar Base (Right)", "Ratio: Nasion to Subnasale to Alar Rim’s Highest Point (left)",
-                  "Ratio: Nasion to Subnasale to Alar Rim’s Highest Point (right)",
-                  "Areas - Surface", "Alar Base Area", "Dorsal Hump Area", "Area of Entire Nose", "Nasal Dorsum Area", "Root of the Nose Area",
-                  "Tip Surface Area", "Area between the vertical fifths and horizontal thirds",
-                  "Volumes", "Alar Base Volume", "Dorsal Hump Volume", "Volume of Entire Nose", "Nasal Dorsum Volume", "Root of the Nose Volume",
-                  "Tip Volume", "Volume between the vertical fifths and horizontal thirds"
-                ]
-              }
-            },
-            { title: "Measurement Type", field: "measurementType" },
-            { title: 'Value', field: 'value' }
-          ],
-        });
+  data: allMeasurements,
+  layout: 'fitColumns',
+  pagination: 'local',
+  paginationSize: 10,
+  columns: [
+    { title: 'Participant ID', field: 'participantFileId' },
+    {
+      title: 'Measurement Name',
+      field: 'measurementName',
+      headerFilter: dropdownMultiCheck,
+      headerFilterFunc: multiSelectFilterFunc,
+      headerFilterParams: {
+        values: [
+          "(Inner) Intercanthal Distance/Width", "Ala/Alar Length (left)", "Ala/Alar Length (right)", "Alar Base Width", "Base Bony Width",
+          "Columella Length", "Columella Width", "Distance between sill-base junction and alar flare", "Distance between 1st point - 2nd point",
+          "Eye/palpebral fissure length - left", "Eye/palpebral fissure length - right", "Face Width", "Infratip Lobule Length", "Interalar Distance",
+          "Lower Facial Height", "Mid-Facial Height", "Nasal Bridge Length", "Nasal Root Width", "Nasal Tip Projection", "Nose Height",
+          "Nostril Floor Width (left)", "Nostril Floor Width (right)", "Outer Intercanthal Distance", "Premaxilla - left", "Premaxilla - right",
+          "Radix Projection", "Subnasal Width", "Supratip Lobule", "Tip/Lobule Width", "Upper Facial Height",
+          "Distances - Surface", "(Inner) Intercanthal Distance/Width - Surface", "Ala/Alar Length (left) - Surface", "Ala/Alar Length (right) - Surface",
+          "Alar Base Width - Surface", "Base Bony Width - Surface", "Columella Length - Surface", "Columella Width - Surface",
+          "Distance between sill-base junction and alar flare - Surface", "Distance between 1st point - 2nd point - Surface",
+          "Eye/palpebral fissure length - left - Surface", "Eye/palpebral fissure length - right - Surface", "Face Width - Surface",
+          "Infratip Lobule Length - Surface", "Interalar Distance - Surface", "Lower Facial Height - Surface", "Mid-Facial Height - Surface",
+          "Nasal Bridge Length - Surface", "Nasal Root Width - Surface", "Nasal Tip Projection - Surface", "Nose Height - Surface",
+          "Nostril Floor Width (left) - Surface", "Nostril Floor Width (right) - Surface", "Outer Intercanthal Distance - Surface",
+          "Premaxilla - left - Surface", "Premaxilla - right - Surface", "Radix Projection - Surface", "Subnasal Width - Surface",
+          "Supratip Lobule - Surface", "Tip/Lobule Width - Surface", "Upper Facial Height - Surface",
+          "Angles", "Columellar Labial Angle", "Columellar Lobular Angle", "Degree of Deviation (I-type)", "Domal divergence",
+          "Interalar Angle", "Medium facial third angle - right", "Nasal Tip Angle", "Nasofacial Angle", "Nasofrontal Angle", "Nasolabial Angle I",
+          "Nasolabial contour", "Nasomental Angle I", "Rhinion deviation angle", "Supratip Deviation Angle", "Tip deviation angle",
+          "Ratios", "Ratio: Symmetry - Alar Base (Right) to Nasion to Alar Base (Left)", "Ratio: Symmetry - Alar Base (Right) to Pronasale to Alar Base (Left)",
+          "Ratio: Symmetry - Alar Base (Right) to Subnasale to Alar Base (Left)", "Lobule - Base Ratio", "Nasal Tip Projection: Baum",
+          "Nasal Tip Projection: Byrd and Hobar", "Nasal Tip Projection: Goode", "Nasal Tip Projection: Goode (Left)",
+          "Nasal Tip Projection: Goode (Right)", "Nasal Tip Projection: Powell and Humphries", "Nasal Tip Projection: Simons",
+          "Nasal Width-Length Ratio", "Nasal Width–Intercanthal Distance Ratio", "Ratio: Nasion to Labiale Superios to Alar Base (Left)",
+          "Ratio: Nasion to Labiale Superios to Alar Base (Right)", "Ratio: Nasion to Labiale Superios to Alar Rim’s Highest Point (left)",
+          "Ratio: Nasion to Labiale Superios to Alar Rim’s Highest Point (right)", "Ratio: Nasion to Subnasale to Alar Base (Left)",
+          "Ratio: Nasion to Subnasale to Alar Base (Right)", "Ratio: Nasion to Subnasale to Alar Rim’s Highest Point (left)",
+          "Ratio: Nasion to Subnasale to Alar Rim’s Highest Point (right)",
+          "Areas - Surface", "Alar Base Area", "Dorsal Hump Area", "Area of Entire Nose", "Nasal Dorsum Area", "Root of the Nose Area",
+          "Tip Surface Area", "Area between the vertical fifths and horizontal thirds",
+          "Volumes", "Alar Base Volume", "Dorsal Hump Volume", "Volume of Entire Nose", "Nasal Dorsum Volume", "Root of the Nose Volume",
+          "Tip Volume", "Volume between the vertical fifths and horizontal thirds"
+        ]
+      }
+    },
+    { title: 'Value', field: 'value' },
+  ],
+});
 
 
         landmarkTable = new Tabulator('#landmark-table', {
@@ -587,12 +584,8 @@
 
 
   // Re-draw chart when chart options change
-  document.querySelectorAll('input[name="category"]').forEach(input => {
-    input.addEventListener('change', drawChart);
-  });
-
-  document.querySelectorAll('input[name="chartType"]').forEach(input => {
-    input.addEventListener('change', drawChart);
+  document.getElementById('chart-options').addEventListener('change', () => {
+    drawChart();
   });
 
   function drawChart() {
