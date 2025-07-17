@@ -156,6 +156,7 @@
         toggle.textContent = current.length ? current.join(', ') : 'Select...';
       };
       updateLabel(); let list;
+
       const openDropdown = () => {
         if (list) return;
         list = document.createElement('div'); list.classList.add('checkbox-dropdown');
@@ -164,12 +165,17 @@
           const lbl = document.createElement('label');
           const cb = document.createElement('input'); cb.type = 'checkbox'; cb.value = val; cb.checked = current.includes(val);
           lbl.appendChild(cb); lbl.appendChild(document.createTextNode(val)); list.appendChild(lbl);
+          
+          
           cb.addEventListener('change', () => {
             const chosen = Array.from(list.querySelectorAll('input:checked')).map(i => i.value);
-            success(chosen);
+            success(chosen); // tells Tabulator the new filter value
             toggle.textContent = chosen.length ? chosen.join(', ') : 'Select...';
 
-            // Redraw chart immediately if it matches the selected category
+            // 🔄 Force filter to apply immediately
+            table.setHeaderFilterValue(field, chosen);
+
+            // 📊 Redraw chart if it matches current category
             const category = document.querySelector('input[name="category"]:checked')?.value;
             const chartVisible = document.getElementById("chart-container").style.display !== "none";
 
@@ -183,7 +189,14 @@
               drawChart();
             }
           });
+
+
+
+
+
         });
+
+
         document.body.appendChild(list);
         const rect = toggle.getBoundingClientRect();
         list.style.top = rect.bottom + window.scrollY + 'px'; list.style.left = rect.left + window.scrollX + 'px';
