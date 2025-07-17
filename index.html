@@ -580,7 +580,33 @@
       const pd = participantsTable.getData("active"), ids=pd.map(p=>p.participantFileId);
       const md=measurementTable.getData().filter(m=>ids.includes(m.participantFileId));
       const ld=landmarkTable.getData().filter(l=>ids.includes(l.participantFileId));
-      const makeSection=(data,title)=>{ if(!data.length) return''; const cols=Object.keys(data[0]); const rows=data.map(r=>cols.map(f=>`"${String(r[f]||'').replace(/"/g,'""')}"`).join(',')); return[`\n\n# ${title}`,cols.join(','),...rows].join('\n'); };
+      const makeSection = (data, title) => {
+        if (!data.length) return '';
+
+        const flatten = (value) => {
+          if (Array.isArray(value)) {
+            return value.map(obj => {
+              if (typeof obj === 'object' && obj !== null) {
+                return Object.entries(obj).map(([k, v]) => `${k}: ${v}`).join('; ');
+              }
+              return String(obj);
+            }).join(' | ');
+          }
+          if (typeof value === 'object' && value !== null) {
+            return Object.entries(value).map(([k, v]) => `${k}: ${v}`).join('; ');
+          }
+          return String(value);
+        };
+
+        const cols = Object.keys(data[0]);
+        const rows = data.map(r =>
+          cols.map(f => `"${flatten(r[f]).replace(/"/g, '""')}"`).join(',')
+        );
+
+        return [`\n\n# ${title}`, cols.join(','), ...rows].join('\n');
+      };
+
+
       const csv=[makeSection(pd,'Participants'),makeSection(md,'Measurements'),makeSection(ld,'Landmarks')].join('\n');
       const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download='filtered_data.csv'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
     }
