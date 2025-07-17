@@ -592,8 +592,12 @@
 
 
   // Re-draw chart when chart options change
-  document.getElementById('chart-options').addEventListener('change', () => {
-    drawChart();
+  document.querySelectorAll('input[name="category"]').forEach(input => {
+    input.addEventListener('change', drawChart);
+  });
+
+  document.querySelectorAll('input[name="chartType"]').forEach(input => {
+    input.addEventListener('change', drawChart);
   });
 
   function drawChart() {
