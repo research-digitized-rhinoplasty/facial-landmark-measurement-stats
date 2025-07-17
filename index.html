@@ -168,25 +168,28 @@
 
           cb.addEventListener('change', () => {
             const chosen = Array.from(list.querySelectorAll('input:checked')).map(i => i.value);
-            success(chosen); // pass to Tabulator filter logic
             toggle.textContent = chosen.length ? chosen.join(', ') : 'Select...';
 
-            // Force immediate table filter application
-            setTimeout(() => {
-              const table = cell.getTable();
-              const rows = table.getRows(); // triggers re-evaluation
-              if (table === participantsTable) {
-                // Manually trigger filtering logic that updates other tables + chart
-                const ids = rows.map(r => r.getData().participantFileId);
-                measurementTable.replaceData(allMeasurements.filter(m => ids.includes(m.participantFileId)));
-                landmarkTable.replaceData(allLandmarks.filter(l => ids.includes(l.participantFileId)));
-                updateStats();
-                if (document.getElementById("chart-container").style.display !== "none") {
-                  drawChart();
-                }
+            // Update Tabulator filter value
+            success(chosen);
+
+            // Force Tabulator to re-evaluate filters
+            const field = column.getField();
+            const func = column.getDefinition().headerFilterFunc;
+            table.setFilter(field, func, chosen);
+
+            // Trigger downstream filtering 
+            if (table === participantsTable) {
+              const ids = table.getData("active").map(p => p.participantFileId);
+              measurementTable.replaceData(allMeasurements.filter(m => ids.includes(m.participantFileId)));
+              landmarkTable.replaceData(allLandmarks.filter(l => ids.includes(l.participantFileId)));
+              updateStats();
+              if (document.getElementById("chart-container").style.display !== "none") {
+                drawChart();
               }
-            }, 50); // allow time for Tabulator to set filters first
+            }
           });
+
 
 
           
