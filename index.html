@@ -97,18 +97,26 @@
 
   <!-- Chart container hidden until Chart button clicked -->
   <div id="chart-container">
+    <!-- keep original fieldset for Category only -->
     <fieldset id="chart-options">
       <legend>Category</legend>
       <label><input type="radio" name="category" value="Ethnicity" checked> Ethnicity</label>
       <label><input type="radio" name="category" value="Gender"> Gender</label>
       <label><input type="radio" name="category" value="FacialSurgery"> Facial Surgery</label>
       <label><input type="radio" name="category" value="Age"> Age</label>
-      <br><br>
+    </fieldset>
+
+    <!-- new, separate fieldset for chart type -->
+    <fieldset id="chart-type-options">
+      <legend>Chart Type</legend>
       <label><input type="radio" name="chartType" value="pie" checked> Pie</label>
       <label><input type="radio" name="chartType" value="bar"> Bar</label>
     </fieldset>
+
     <canvas id="chart-canvas"></canvas>
   </div>
+
+
 
   <h2>Measurements</h2>
   <div id="measurement-table"></div>
