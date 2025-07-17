@@ -170,29 +170,10 @@
             const chosen = Array.from(list.querySelectorAll('input:checked')).map(i => i.value);
             toggle.textContent = chosen.length ? chosen.join(', ') : 'Select...';
 
-            // Update Tabulator filter value
+            // trigger its built‐in filtering
             success(chosen);
-
-            // Force Tabulator to re-evaluate filters
-            const field = column.getField();
-            const func = column.getDefinition().headerFilterFunc;
-            
-
-            // Trigger downstream filtering 
-            if (table === participantsTable) {
-              const ids = table.getData("active").map(p => p.participantFileId);
-              measurementTable.replaceData(allMeasurements.filter(m => ids.includes(m.participantFileId)));
-              landmarkTable.replaceData(allLandmarks.filter(l => ids.includes(l.participantFileId)));
-              updateStats();
-              if (document.getElementById("chart-container").style.display !== "none") {
-                drawChart();
-              }
-            }
           });
 
-
-
-          
 
 
         });
