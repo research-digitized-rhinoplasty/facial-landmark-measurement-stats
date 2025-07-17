@@ -459,32 +459,26 @@
         }
 
         // Auto-switch table + stats when Measurement/Landmark radio changes
-        document.querySelectorAll('input[name="statsType"]').forEach(radio => {
-          radio.addEventListener('change', () => {
-            updateStats();
-            statsContainer.style.display = "block";
-            statsButton.textContent      = "Hide Stats";
-          });
+      document.querySelectorAll('input[name="statsType"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+          updateStats(); // update stats table
+          document.getElementById("stats-table-container").style.display = "block"; // auto-show table
         });
-
-        // Clear filters button
-      
+      });
 
       document.getElementById('clearFilters').addEventListener('click', () => {
         // Clear filters
         participantsTable.clearHeaderFilter();
         measurementTable.clearHeaderFilter();
         landmarkTable.clearHeaderFilter();
-        
 
         // Restore original full data
         participantsTable.replaceData(participants);
         measurementTable.replaceData(allMeasurements);
         landmarkTable.replaceData(allLandmarks);
 
-        statsContainer.style.display = "none";
-        statsButton.textContent      = "Show Stats";
-
+        // Hide stats
+        document.getElementById("stats-table-container").style.display = "none";
 
         // Reset dropdown labels (optional)
         document.querySelectorAll('.dropdown-toggle').forEach(el => {
@@ -504,21 +498,10 @@
         // ────────────────────────────────────────────────
 
         // Handle "Show Stats" button click
-        const statsButton    = document.getElementById("show-stats-button");
-        const statsContainer = document.getElementById("stats-table-container");
-
-        // toggle handler
-        statsButton.addEventListener("click", () => {
-          if (!statsContainer.style.display || statsContainer.style.display === "none") {
-            updateStats();
-            statsContainer.style.display = "block";
-            statsButton.textContent      = "Hide Stats";
-          } else {
-            statsContainer.style.display = "none";
-            statsButton.textContent      = "Show Stats";
-          }
+        document.getElementById("show-stats-button").addEventListener("click", () => {
+          updateStats(); // compute based on current filters + selected table
+          document.getElementById("stats-table-container").style.display = "block";
         });
-        
 
 
 
