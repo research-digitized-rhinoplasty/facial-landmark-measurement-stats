@@ -103,20 +103,41 @@
   <div id="participants-table"></div>
 
   <!-- Chart container hidden until Chart button clicked -->
-   <div id="chart-container">
-  <!-- CATEGORY SELECTOR -->
-  <fieldset id="category-options" class="options">
-    <legend>Category</legend>
-    …
-  </fieldset>
+   <!-- CATEGORY SELECTOR -->
+<fieldset id="category-options" class="options">
+  <legend>Category</legend>
+  <label>
+    <input type="radio" name="category" value="Ethnicity" checked>
+    Ethnicity
+  </label>
+  <label>
+    <input type="radio" name="category" value="Gender">
+    Gender
+  </label>
+  <label>
+    <input type="radio" name="category" value="FacialSurgery">
+    Facial Surgery
+  </label>
+  <label>
+    <input type="radio" name="category" value="Age">
+    Age
+  </label>
+</fieldset>
 
-  <!-- CHART-TYPE SELECTOR -->
-  <fieldset id="chart-type-options" class="options">
-    <legend>Chart Type</legend>
-    …
-  </fieldset>
-  <canvas id="chart-canvas"></canvas>
-</div>
+<!-- CHART-TYPE SELECTOR -->
+<fieldset id="chart-type-options" class="options">
+  <legend>Chart Type</legend>
+  <label>
+    <input type="radio" name="chartType" value="pie" checked>
+    Pie
+  </label>
+  <label>
+    <input type="radio" name="chartType" value="bar">
+    Bar
+  </label>
+</fieldset>
+
+
 
 
   <h2>Measurements</h2>
@@ -594,13 +615,10 @@
     });
 
 
-    // whenever any chart radio changes, re-draw:
-    document.querySelectorAll('input[name="category"], input[name="chartType"]')
-      .forEach(radio => radio.addEventListener('change', drawChart));
-
-
-
-
+  // Re-draw chart when chart options change
+  document.getElementById('chart-options').addEventListener('change', () => {
+    drawChart();
+  });
 
   function drawChart() {
     const data = participantsTable.getData("active");
