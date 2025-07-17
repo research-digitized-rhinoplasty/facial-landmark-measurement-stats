@@ -168,27 +168,28 @@
 
           cb.addEventListener('change', () => {
             const chosen = Array.from(list.querySelectorAll('input:checked')).map(i => i.value);
-            success(chosen); // set new filter value
+            success(chosen); // pass to Tabulator filter logic
             toggle.textContent = chosen.length ? chosen.join(', ') : 'Select...';
 
-            // Explicitly trigger the filter application
-            table.setHeaderFilterValue(field, chosen);
-            table.getRows();             // force re-evaluation of filtered rows
-            table.redraw(true);          // force UI update
-
-            // Redraw chart if visible and field matches category
-            const category = document.querySelector('input[name="category"]:checked')?.value;
-            const chartVisible = document.getElementById("chart-container").style.display !== "none";
-            if (
-              chartVisible &&
-              (
-                (category === "Age" && field === "Age") ||
-                field?.toLowerCase().includes(category?.toLowerCase())
-              )
-            ) {
-              drawChart();
-            }
+            // Force immediate table filter application
+            setTimeout(() => {
+              const table = cell.getTable();
+              const rows = table.getRows(); // triggers re-evaluation
+              if (table === participantsTable) {
+                // Manually trigger filtering logic that updates other tables + chart
+                const ids = rows.map(r => r.getData().participantFileId);
+                measurementTable.replaceData(allMeasurements.filter(m => ids.includes(m.participantFileId)));
+                landmarkTable.replaceData(allLandmarks.filter(l => ids.includes(l.participantFileId)));
+                updateStats();
+                if (document.getElementById("chart-container").style.display !== "none") {
+                  drawChart();
+                }
+              }
+            }, 50); // allow time for Tabulator to set filters first
           });
+
+
+          
 
 
         });
