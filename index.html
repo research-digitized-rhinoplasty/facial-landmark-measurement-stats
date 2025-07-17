@@ -139,7 +139,12 @@
       <label><input type="radio" name="statsType" value="measurements" checked> Measurements</label>
       <label><input type="radio" name="statsType" value="landmarks"> Landmarks</label>
     </fieldset>
-    <button id="show-stats-button">Show Stats</button>
+    <button id="stats-toggle">Show Stats</button>
+    <table id="stats-table" style="display: none;">
+  
+    </table>
+    
+    
   </div>
 
   <!-- Initially hidden stats table -->
@@ -671,6 +676,20 @@
       }
     });
   }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const btn   = document.getElementById('stats-toggle');
+    const table = document.getElementById('stats-table');
+
+    btn.addEventListener('click', () => {
+      // check current state
+      const isHidden = table.style.display === 'none';
+      // toggle table visibility
+      table.style.display  = isHidden ? '' : 'none';
+      // flip the button text
+      btn.textContent      = isHidden ? 'Hide Stats' : 'Show Stats';
+    });
+  });
 
 
 
