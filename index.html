@@ -20,17 +20,21 @@
       padding: 10px;
       max-width: 700px;
       text-align: center;
-      /* new: when grid is enabled, make two columns */
+
+      
+      display: grid;
       grid-template-columns: auto auto;
       gap: 20px;
+      justify-content: center;    /* center the whole grid */
     }
 
-
-    /* Chart canvas styling */
+    
     #chart-canvas {
-        max-width: 100%;
-        max-height: 400px;
+      grid-column: 1 / -1;        /* span both columns */
+      justify-self: center;       /* center in that space */
     }
+
+
 
     /* Allow header filters to overflow */
     .tabulator .tabulator-header { overflow: visible !important; }
