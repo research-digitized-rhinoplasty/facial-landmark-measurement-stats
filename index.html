@@ -51,15 +51,8 @@
     .dropdown-toggle { cursor: pointer; padding: 4px; border: 1px solid #ccc; background: #fff; width: 100%; box-sizing: border-box; }
 
     /* Chart options styling */
-    .options {
-      border: 1px solid #ccc;
-      padding: 1em;
-      margin-bottom: 1em;
-      max-width: 400px;   /* keep if you like */
-    }
-    .options label {
-      margin-right: 10px;
-    }
+    #chart-options { border: 1px solid #ccc; padding: 10px; max-width: 400px; }
+    #chart-options label { margin-right: 10px; }
 
     .stats-controls {
       margin: 1em 0;
@@ -103,42 +96,19 @@
   <div id="participants-table"></div>
 
   <!-- Chart container hidden until Chart button clicked -->
-   <!-- CATEGORY SELECTOR -->
-<fieldset id="category-options" class="options">
-  <legend>Category</legend>
-  <label>
-    <input type="radio" name="category" value="Ethnicity" checked>
-    Ethnicity
-  </label>
-  <label>
-    <input type="radio" name="category" value="Gender">
-    Gender
-  </label>
-  <label>
-    <input type="radio" name="category" value="FacialSurgery">
-    Facial Surgery
-  </label>
-  <label>
-    <input type="radio" name="category" value="Age">
-    Age
-  </label>
-</fieldset>
-
-<!-- CHART-TYPE SELECTOR -->
-<fieldset id="chart-type-options" class="options">
-  <legend>Chart Type</legend>
-  <label>
-    <input type="radio" name="chartType" value="pie" checked>
-    Pie
-  </label>
-  <label>
-    <input type="radio" name="chartType" value="bar">
-    Bar
-  </label>
-</fieldset>
-
-
-
+  <div id="chart-container">
+    <fieldset id="chart-options">
+      <legend>Category</legend>
+      <label><input type="radio" name="category" value="Ethnicity" checked> Ethnicity</label>
+      <label><input type="radio" name="category" value="Gender"> Gender</label>
+      <label><input type="radio" name="category" value="FacialSurgery"> Facial Surgery</label>
+      <label><input type="radio" name="category" value="Age"> Age</label>
+      <br><br>
+      <label><input type="radio" name="chartType" value="pie" checked> Pie</label>
+      <label><input type="radio" name="chartType" value="bar"> Bar</label>
+    </fieldset>
+    <canvas id="chart-canvas"></canvas>
+  </div>
 
   <h2>Measurements</h2>
   <div id="measurement-table"></div>
