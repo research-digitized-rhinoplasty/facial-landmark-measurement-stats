@@ -571,19 +571,36 @@
           const ids = rows.map(r => r.getData().participantFileId);
           measurementTable.replaceData(allMeasurements.filter(m => ids.includes(m.participantFileId)));
           landmarkTable.replaceData(allLandmarks.filter(l => ids.includes(l.participantFileId)));
-
-          //if (document.getElementById("chart-container").style.display !== "none") {
-          //  drawChart();
-          //}
-
           updateStats();
 
-          // redraw chart if visible & “Age” is selected
+          // now rebuild the chart from `rows`
           const chartVisible = document.getElementById('chart-container').style.display !== 'none';
-          const category    = document.querySelector('input[name="category"]:checked').value;
+          const category     = document.querySelector('input[name="category"]:checked').value;
+
           if (chartVisible && category === 'Age') {
-            drawChart();
+            // pull raw data objects out of the RowComponents:
+            const data = rows.map(r => r.getData());
+
+            // count ages
+            const counts = {};
+            data.forEach(p => {
+              const age = parseInt(p.Age, 10);
+              if (!isNaN(age)) counts[age] = (counts[age] || 0) + 1;
+            });
+
+            // sort & build labels + percent values
+            const labels     = Object.keys(counts).sort((a, b) => a - b);
+            const rawCounts  = labels.map(l => counts[l]);
+            const total      = rawCounts.reduce((a, b) => a + b, 0) || 1;
+            const percentages= rawCounts.map(c => (c / total * 100).toFixed(2));
+
+            // overwrite Chart.js data & redraw
+            window.currentChart.data.labels           = labels;
+            window.currentChart.data.datasets[0].data = percentages;
+            window.currentChart.update();
           }
+
+
         });
 
 
