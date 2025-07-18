@@ -536,16 +536,17 @@
               headerFilterFunc: function(fv, rv, row) {
                 if (!fv) return true;
                 return parseInt(row.Age, 10) >= parseInt(fv, 10);
-              },                          // ← close headerFilterFunc here
-              sorter: "number",
-              sorterFunc: function(a, b, rowA, rowB) {
-                const ageA = parseInt(rowA.getData().Age, 10);
-                const ageB = parseInt(rowB.getData().Age, 10);
-                return ageA - ageB;
               },
+              accessor: function(value, data) {
+              
+                return parseInt(data.Age, 10);
+              },
+              sorter: "number",    // use the number sorter on the accessor value
+              headerSort: true,    // make sure the sort arrows appear
               formatter: function(cell) {
+                //  display the real age in each cell
                 return cell.getData().Age;
-              }
+              },
             },
             {
               title: "Age Max",
@@ -556,17 +557,17 @@
               headerFilterFunc: function(fv, rv, row) {
                 if (!fv) return true;
                 return parseInt(row.Age, 10) <= parseInt(fv, 10);
-              },                          // ← close headerFilterFunc here
-              sorter: "number",
-              sorterFunc: function(a, b, rowA, rowB) {
-                const ageA = parseInt(rowA.getData().Age, 10);
-                const ageB = parseInt(rowB.getData().Age, 10);
-                return ageA - ageB;
               },
+              accessor: function(value, data) {
+                return parseInt(data.Age, 10);
+              },
+              sorter: "number",
+              headerSort: true,
               formatter: function(cell) {
                 return cell.getData().Age;
-              }
+              },
             },
+
 
 
 
