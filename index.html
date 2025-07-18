@@ -568,48 +568,30 @@
               },
             },
 
-
-
-
-            
             { title: 'Ethnicity', field: 'Ethnicity', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: ['White','Black or African American','American Indian or Alaska Native','Asian','Native Hawaiian or Other Pacific Islander','Hispanic','Prefer not to specify'] } },
             { title: 'Facial Surgery', field: 'FacialSurgery', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: ['No Facial Surgery','Brow/forehead lift','Ear pinning','Chin, cheek, or jaw reshaping','Eyelid lift','Facelift','Facial implants','Hair replacement surgery','Lip augmentation','Rhinoplasty','Other','Prefer not to specify'] } },
             { title: "Age", field: "Age", visible: false, sorter: "number" },
           ],
         });
 
-        setTimeout(() => {
-          const minInput = document.querySelector('input[tabulator-field="AgeMinFilter"]');
-          const maxInput = document.querySelector('input[tabulator-field="AgeMaxFilter"]');
-
-          minInput?.addEventListener("input", () => table.setFilter(customAgeFilter));
-          maxInput?.addEventListener("input", () => table.setFilter(customAgeFilter));
-        }, 500);
-
-
-
-        ["age-min-input", "age-max-input"].forEach(id => {
-          document.addEventListener('input', e => {
-            if (e.target.id === id) {
-              const chartVisible = document.getElementById("chart-container").style.display !== "none";
-              const category = document.querySelector('input[name="category"]:checked')?.value;
-              if (chartVisible && category === "Age") {
-                drawChart();
-              }
-            }
-          });
-        });
 
         participantsTable.on('dataFiltered', (filters, rows) => {
           const ids = rows.map(r => r.getData().participantFileId);
           measurementTable.replaceData(allMeasurements.filter(m => ids.includes(m.participantFileId)));
           landmarkTable.replaceData(allLandmarks.filter(l => ids.includes(l.participantFileId)));
 
-          if (document.getElementById("chart-container").style.display !== "none") {
-            drawChart();
-          }
+          //if (document.getElementById("chart-container").style.display !== "none") {
+          //  drawChart();
+          //}
 
           updateStats();
+
+          // redraw chart if visible & “Age” is selected
+          const chartVisible = document.getElementById('chart-container').style.display !== 'none';
+          const category    = document.querySelector('input[name="category"]:checked').value;
+          if (chartVisible && category === 'Age') {
+            drawChart();
+          }
         });
 
         // Live updates from measurement & landmark tables
