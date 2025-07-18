@@ -690,14 +690,6 @@
 
         });
 
-
-
-
-
-
-
-
-
         // Live updates from measurement & landmark tables
         measurementTable.on("dataFiltered", updateStats);
         measurementTable.on("dataChanged", updateStats);
@@ -709,8 +701,6 @@
 
         // Initial draw
         updateStats();
-
-
 
         document.getElementById('clearFilters').addEventListener('click', () => {
           participantsTable.clearHeaderFilter();
@@ -728,47 +718,44 @@
         
 
     function downloadAllFilteredData() {
+      // 3 filtered tables, exactly as shown on screen
       const pd = participantsTable.getData("active");
-      const ids = pd.map(p => p.participantFileId);
-      const md = measurementTable.getData().filter(m => ids.includes(m.participantFileId));
-      const ld = landmarkTable.getData().filter(l => ids.includes(l.participantFileId));
+      const md = measurementTable.getData("active");
+      const ld = landmarkTable.getData("active");
 
+      // helper to flatten values
       const flatten = (val) => {
         if (Array.isArray(val)) return val.join(" | ");
         if (val && typeof val === "object") return Object.values(val).join(" ");
-        return String(val);
+        return String(val ?? "");
       };
 
+      // builds one CSV section
       const makeSection = (data, title, headers) => {
-        if (!data.length) return '';
-        const rows = data.map(row => headers.map(h => `"${flatten(row[h])}"`).join(','));
-        return [`\n${title}`, headers.join(','), ...rows].join('\n');
+        if (!data.length) return "";
+        const headerRow = headers.map(h => `"${h}"`).join(",");
+        const rows = data.map(row =>
+          headers.map(h => `"${flatten(row[h])}"`).join(",")
+        );
+        return [`${title}`, headerRow, ...rows].join("\r\n");
       };
 
-      const csvSections = [
-        makeSection(pd, "Participant Information", ["participantFileId", "Gender", "Age", "Ethnicity", "FacialSurgery"]),
-        makeSection(md, "Measurements", ["participantFileId", "measurementName", "measurementType", "value"]),
-        makeSection(ld, "Landmarks", ["participantFileId", "landmarkName", "xVal", "yVal", "zVal"]),
-      ];
+      // stitch together the three sections
+      const csv = [
+        makeSection(pd, "Participant Information", ["Participant ID","Gender","Age","Ethnicity","FacialSurgery"]),
+        makeSection(md, "Measurements",             ["Participant ID","Measurement Name","Measurement Type","Value"]),
+        makeSection(ld, "Landmarks",                ["Participant ID","Landmark Name","X Value","Y Value","Z Value"]),
+      ].filter(s => s).join("\r\n\r\n");
 
-      const csv = csvSections.join('\n\n');
-
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
+      // download blob
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = 'filtered_data.csv';
+      link.download = "filtered_data.csv";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     }
-
-
-
-
-
-
-
-
 
 
     document.getElementById('downloadCSV').addEventListener('click', downloadAllFilteredData);
