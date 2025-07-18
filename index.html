@@ -785,22 +785,46 @@
       {
         title: "Participant Information",
         data: visibleParts,
-        fields: ["Participant Id","Gender","Age","Ethnicity","Facial Surgery"],
+        fields: [
+          { label: "Participant Id",    key: "participantFileId" },
+          { label: "Gender",            key: "Gender"            },
+          { label: "Age",               key: "Age"               },
+          { label: "Ethnicity",         key: "Ethnicity"         },
+          { label: "Facial Surgery",    key: "FacialSurgery"     },
+        ],
       },
       {
         title: "Measurements",
         data: measRows,
-        fields: ["Participant Id"," Measurement Name","Measurement Type","Value"],
+        fields: [
+          { label: "Participant Id",    key: "participantFileId" },
+          { label: "Measurement Name",  key: "MeasurementName"   },
+          { label: "Measurement Type",  key: "MeasurementType"   },
+          { label: "Value",             key: "Value"             },
+        ],
       },
       {
         title: "Landmarks",
         data: landRows,
-        fields: ["Participant Id"," Landmark Name","X Value","Y Value","Z Value"],
+        fields: [
+          { label: "Participant Id",    key: "participantFileId" },
+          { label: "Landmark Name",     key: "LandmarkName"      },
+          { label: "X Value",           key: "XValue"            },
+          { label: "Y Value",           key: "YValue"            },
+          { label: "Z Value",           key: "ZValue"            },
+        ],
       },
       {
         title: "Measurement Statistics",
         data: measurementStatsData,
-        fields: ["Name","Average","Std. Deviation","Minimum","Maximum","Median"],
+        fields: [
+          { label: "Name",              key: "Name"              },
+          { label: "Average",           key: "Average"           },
+          { label: "Std. Deviation",    key: "StdDeviation"      },
+          { label: "Minimum",           key: "Minimum"           },
+          { label: "Maximum",           key: "Maximum"           },
+          { label: "Median",            key: "Median"            },
+        ],
       },
       {
         title: "Landmark Statistics",
@@ -820,16 +844,30 @@
     const lines = [];
     sections.forEach(({ title, data, fields }) => {
       if (!data.length) return;
+
+      // section title
       lines.push(title);
-      lines.push(fields.map(f => `"${f}"`).join(","));
+
+      // header row from labels
+      lines.push(fields.map(f => `"${f.label}"`).join(","));
+
+      // data rows from keys
       data.forEach(row => {
-        lines.push(fields.map(f => `"${row[f] ?? ""}"`).join(","));
+        lines.push(
+          fields
+            .map(f => `"${row[f.key] ?? ""}"`)
+            .join(",")
+        );
       });
+
+      // blank line between sections
       lines.push("");
     });
 
     // 7) download
-    const blob = new Blob([ lines.join("\r\n") ], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([ lines.join("\r\n") ], {
+      type: "text/csv;charset=utf-8;"
+    });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.download = "filtered_data.csv";
@@ -837,9 +875,6 @@
     link.click();
     document.body.removeChild(link);
   }
-
-
-
 
     document.getElementById('downloadCSV').addEventListener('click', downloadAllFilteredData);
 
