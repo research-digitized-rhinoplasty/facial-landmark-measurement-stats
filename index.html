@@ -503,6 +503,19 @@
           document.getElementById("stats-table-container").style.display = "block";
         });
 
+        function customAgeFilter(data) {
+          const minInput = document.querySelector('input[tabulator-field="AgeMinFilter"]');
+          const maxInput = document.querySelector('input[tabulator-field="AgeMaxFilter"]');
+
+          const min = parseInt(minInput?.value);
+          const max = parseInt(maxInput?.value);
+          const age = parseInt(data.Age);
+
+          if (!isNaN(min) && age < min) return false;
+          if (!isNaN(max) && age > max) return false;
+          return true;
+        }
+
 
 
         participantsTable = new Tabulator('#participants-table', {
@@ -513,14 +526,41 @@
           columns: [
             { title: 'Participant ID', field: 'participantFileId' },
             { title: 'Gender', field: 'Gender', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: ['M','F','Other'] } },
+            {
+              title: "Age Min",
+              field: "Age",
+              headerFilter: "input",
+              headerFilterPlaceholder: "Min",
+              headerFilterFunc: function(headerValue, rowValue) {
+                if (headerValue === "") return true;
+                return parseInt(rowValue) >= parseInt(headerValue);
+              }
+            },
+            {
+              title: "Age Max",
+              field: "Age",
+              headerFilter: "input",
+              headerFilterPlaceholder: "Max",
+              headerFilterFunc: function(headerValue, rowValue) {
+                if (headerValue === "") return true;
+                return parseInt(rowValue) <= parseInt(headerValue);
+              }
+            },
             
-            { title: 'Age Min', field: 'Age', sorter: 'number', headerFilter: 'input', headerFilterPlaceholder: 'Min…', headerFilterFunc: '>=', headerFilterLiveFilter: true },
-            { title: 'Age Max', field: 'Age', sorter: 'number', headerFilter: 'input', headerFilterPlaceholder: 'Max…', headerFilterFunc: '<=', headerFilterLiveFilter: true  },
-
             { title: 'Ethnicity', field: 'Ethnicity', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: ['White','Black or African American','American Indian or Alaska Native','Asian','Native Hawaiian or Other Pacific Islander','Hispanic','Prefer not to specify'] } },
             { title: 'Facial Surgery', field: 'FacialSurgery', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: ['No Facial Surgery','Brow/forehead lift','Ear pinning','Chin, cheek, or jaw reshaping','Eyelid lift','Facelift','Facial implants','Hair replacement surgery','Lip augmentation','Rhinoplasty','Other','Prefer not to specify'] } },
+            { title: "Age", field: "Age", visible: false }
           ],
         });
+
+        setTimeout(() => {
+          const minInput = document.querySelector('input[tabulator-field="AgeMinFilter"]');
+          const maxInput = document.querySelector('input[tabulator-field="AgeMaxFilter"]');
+
+          minInput?.addEventListener("input", () => table.setFilter(customAgeFilter));
+          maxInput?.addEventListener("input", () => table.setFilter(customAgeFilter));
+        }, 500);
+
 
 
         ["age-min-input", "age-max-input"].forEach(id => {
