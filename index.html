@@ -529,26 +529,35 @@
             
             {
               title: "Age Min",
-              field: "AgeMinFilter",                // fake field, just for the input
+              field: "AgeMinFilter",
               headerFilter: "input",
+              headerFilterLiveFilter: true,
               headerFilterPlaceholder: "Min Age",
-              headerFilterLiveFilter: true,         // filter as user types
-              headerFilterFunc: function(filterValue, rowValue, rowData) {
-                if (filterValue === "") return true;                 // no minimum set
-                return parseInt(rowData.Age) >= parseInt(filterValue);
+              headerFilterFunc: function(fv, rv, row) {
+                if (!fv) return true;
+                return parseInt(row.Age) >= parseInt(fv);
+              },
+              // **new**: show the real age in the cell
+              formatter: function(cell) {
+                return cell.getData().Age;
               }
             },
             {
               title: "Age Max",
-              field: "AgeMaxFilter",                // fake field
+              field: "AgeMaxFilter",
               headerFilter: "input",
-              headerFilterPlaceholder: "Max Age",
               headerFilterLiveFilter: true,
-              headerFilterFunc: function(filterValue, rowValue, rowData) {
-                if (filterValue === "") return true;                 // no maximum set
-                return parseInt(rowData.Age) <= parseInt(filterValue);
+              headerFilterPlaceholder: "Max Age",
+              headerFilterFunc: function(fv, rv, row) {
+                if (!fv) return true;
+                return parseInt(row.Age) <= parseInt(fv);
+              },
+              // **new**: show the real age in the cell
+              formatter: function(cell) {
+                return cell.getData().Age;
               }
             },
+
 
             
             { title: 'Ethnicity', field: 'Ethnicity', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: ['White','Black or African American','American Indian or Alaska Native','Asian','Native Hawaiian or Other Pacific Islander','Hispanic','Prefer not to specify'] } },
