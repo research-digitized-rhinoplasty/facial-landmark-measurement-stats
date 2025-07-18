@@ -156,57 +156,143 @@
     // exact-match helper
     function exactMatch(h, v) { return h === "All" || h === "Any" || v === h; }
 
-    // dropdown checkbox header filter
+    // dropdown checkbox header filter with “Select All” auto-checked
     function dropdownMultiCheck(cell, onRendered, success) {
-      const column = cell.getColumn(), field = column.getField(), table = cell.getTable();
-      const values = column.getDefinition().headerFilterParams.values;
-      const toggle = document.createElement('div'); toggle.classList.add('dropdown-toggle');
+      const column = cell.getColumn(),
+            field  = column.getField(),
+            table  = cell.getTable();
+
+      // grab your defined values, and ensure “Select All” is first
+      const rawValues = column.getDefinition().headerFilterParams.values;
+      const values    = rawValues.includes("Select All")
+                      ? rawValues
+                      : ["Select All", ...rawValues];
+
+      // the clickable label in the header
+      const toggle = document.createElement("div");
+      toggle.classList.add("dropdown-toggle");
+      toggle.textContent = "Select All";
+
+      // helper to refresh the label text
       const updateLabel = () => {
         const current = table.getHeaderFilterValue(field) || [];
-        toggle.textContent = current.length ? current.join(', ') : 'Select...';
+        toggle.textContent = current.length
+          ? current.join(", ")
+          : "Select...";
       };
-      updateLabel(); let list;
-      const openDropdown = () => {
-        if (list) return;
-        list = document.createElement('div'); list.classList.add('checkbox-dropdown');
+
+      let list; // will hold our popup
+
+      function openDropdown() {
+        if (list) return; // already open
+        list = document.createElement("div");
+        list.classList.add("checkbox-dropdown");
+
         const current = table.getHeaderFilterValue(field) || [];
-        values.forEach(val => {
-          const lbl = document.createElement('label');
-          const cb = document.createElement('input'); cb.type = 'checkbox'; cb.value = val; cb.checked = current.includes(val);
-          lbl.appendChild(cb); lbl.appendChild(document.createTextNode(val)); list.appendChild(lbl);
-          cb.addEventListener('change', () => {
-            const chosen = Array.from(list.querySelectorAll('input:checked')).map(i => i.value);
-            success(chosen);
-            toggle.textContent = chosen.length ? chosen.join(', ') : 'Select...';
 
-            // Redraw chart immediately if it matches the selected category
-            const category = document.querySelector('input[name="category"]:checked')?.value;
-            const chartVisible = document.getElementById("chart-container").style.display !== "none";
+        // 1) “Select All” checkbox
+        const saLabel = document.createElement("label");
+        const saCb    = document.createElement("input");
+        saCb.type     = "checkbox";
+        saCb.value    = "Select All";
+        // checked if (on load) everything’s selected
+        saCb.checked  = current.length === values.length;
+        saLabel.appendChild(saCb);
+        saLabel.appendChild(document.createTextNode(" Select All"));
+        list.appendChild(saLabel);
 
-            if (
-              chartVisible &&
-              (
-                (category === "Age" && field === "Age") ||
-                field?.toLowerCase().includes(category?.toLowerCase())
-              )
-            ) {
-              drawChart();
-            }
+        saCb.addEventListener("change", () => {
+          // toggle every checkbox to match “Select All”
+          list.querySelectorAll("input[type=checkbox]").forEach(cb => {
+            cb.checked = saCb.checked;
           });
+          triggerUpdate();
         });
+
+        // 2) one checkbox per real value
+        values
+          .filter(v => v !== "Select All")
+          .forEach(val => {
+            const lbl = document.createElement("label");
+            const cb  = document.createElement("input");
+            cb.type    = "checkbox";
+            cb.value   = val;
+            cb.checked = current.includes(val);
+            lbl.appendChild(cb);
+            lbl.appendChild(document.createTextNode(" " + val));
+            list.appendChild(lbl);
+
+            cb.addEventListener("change", () => {
+              // if any individual is unchecked, uncheck “Select All”
+              saCb.checked = values
+                .filter(v => v !== "Select All")
+                .every(v => 
+                  list.querySelector(`input[value="${v}"]`).checked
+                );
+              triggerUpdate();
+            });
+          });
+
+        // position & show
         document.body.appendChild(list);
         const rect = toggle.getBoundingClientRect();
-        list.style.top = rect.bottom + window.scrollY + 'px'; list.style.left = rect.left + window.scrollX + 'px';
-        document.addEventListener('click', outsideClick);
-      };
-      const closeDropdown = () => { if (list) { list.remove(); list = null; } document.removeEventListener('click', outsideClick); };
-      const outsideClick = e => { if (!toggle.contains(e.target) && list && !list.contains(e.target)) closeDropdown(); };
-      toggle.addEventListener('click', e => { e.stopPropagation(); list ? closeDropdown() : openDropdown(); });
-      onRendered(() => {});
+        list.style.top  = rect.bottom + window.scrollY + "px";
+        list.style.left = rect.left   + window.scrollX + "px";
+
+        document.addEventListener("click", outsideClick);
+      }
+
+      function closeDropdown() {
+        if (list) {
+          list.remove();
+          list = null;
+        }
+        document.removeEventListener("click", outsideClick);
+      }
+
+      function outsideClick(e) {
+        if (list && !toggle.contains(e.target) && !list.contains(e.target)) {
+          closeDropdown();
+        }
+      }
+
+      // gather checked values and fire Tabulator filter
+      function triggerUpdate() {
+        const chosen = Array.from(list.querySelectorAll("input:checked"))
+                            .map(i => i.value);
+        success(chosen);
+        updateLabel();
+      }
+
+      toggle.addEventListener("click", e => {
+        e.stopPropagation();
+        list ? closeDropdown() : openDropdown();
+      });
+
+      // **auto-select everything on first render**
+      onRendered(() => {
+        success(values);
+        updateLabel();
+      });
+
       return toggle;
     }
+
+
+
+
+
+
     function multiSelectFilterFunc(filterVals, cellVal) {
-      if (!filterVals || !filterVals.length) return true;
+      // no filters selected → show all
+      if (!filterVals || !filterVals.length) {
+        return true;
+      }
+      // “Select All” explicitly chosen → show all
+      if (filterVals.includes("Select All")) {
+        return true;
+      }
+      // otherwise only show if the cell’s value is one of the checked ones
       return filterVals.includes(cellVal);
     }
 
@@ -249,6 +335,7 @@
               headerFilterFunc: multiSelectFilterFunc,
               headerFilterParams: {
                 values: [
+                  "Select All",
                   "(Inner) Intercanthal Distance/Width", "Ala/Alar Length (left)", "Ala/Alar Length (right)", "Alar Base Width", "Base Bony Width", 
                   "Columella Length", "Columella Width", "Distance between sill-base junction and alar flare", "Distance between 1st point - 2nd point",
                   "Eye/palpebral fissure length - left", "Eye/palpebral fissure length - right", "Face Width", "Infratip Lobule Length", "Interalar Distance",
@@ -303,7 +390,7 @@
               headerFilterFunc: multiSelectFilterFunc,
               headerFilterParams: {
                 values: [
-                  "1st Point", "2nd Point", "Alar Base Junction/Alar Crease - left", "Alar Base Junction/Alar Crease - right",
+                  "Select All", "1st Point", "2nd Point", "Alar Base Junction/Alar Crease - left", "Alar Base Junction/Alar Crease - right",
                   "Alare/Alar Flare - left", "Alare/Alar Flare - right", "Alar Rim’s Highest Point - left", "Alar Rim’s Highest Point - right",
                   "Cervical Point", "Columellar Break Point", "Cheilion - left", "Cheilion - right", "Columellar Rim - left", "Columellar Rim - right",
                   "Corneal Plane", "Crista Philtri - left", "Crista Philtri - right", "Endocanthion/Medial Canthus - left", "Endocanthion/Medial Canthus - right",
