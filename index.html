@@ -81,14 +81,6 @@
       margin-right: 10px;
     }
 
-    #stats-table-container {
-      display: none;
-    }
-
-
-
-
-
   </style>
 </head>
 <body>
@@ -139,13 +131,10 @@
       <label><input type="radio" name="statsType" value="measurements" checked> Measurements</label>
       <label><input type="radio" name="statsType" value="landmarks"> Landmarks</label>
     </fieldset>
-    <button id="show-stats-button">Show Stats</button>
   </div>
 
-  <!-- Initially hidden stats table -->
-   <div id="stats-table-container">
-    <div id="stats-table"></div>
-  </div>
+  <div id="stats-table"></div>
+
   <!-- ───────────────────────────────────────────────────────────── -->
 
 
@@ -548,7 +537,7 @@
       document.querySelectorAll('input[name="statsType"]').forEach(radio => {
         radio.addEventListener('change', () => {
           updateStats(); // update stats table
-          document.getElementById("stats-table-container").style.display = "block"; // auto-show table
+  
         });
       });
 
@@ -563,8 +552,7 @@
         measurementTable.replaceData(allMeasurements);
         landmarkTable.replaceData(allLandmarks);
 
-        // Hide stats
-        document.getElementById("stats-table-container").style.display = "none";
+
 
         // Reset dropdown labels (optional)
         document.querySelectorAll('.dropdown-toggle').forEach(el => {
@@ -578,16 +566,6 @@
       });
 
 
-
-      
-      
-        // ────────────────────────────────────────────────
-
-        // Handle "Show Stats" button click
-        document.getElementById("show-stats-button").addEventListener("click", () => {
-          updateStats(); // compute based on current filters + selected table
-          document.getElementById("stats-table-container").style.display = "block";
-        });
 
         function customAgeFilter(data) {
           const minInput = document.querySelector('input[tabulator-field="AgeMinFilter"]');
@@ -701,12 +679,16 @@
         // Initial draw
         updateStats();
 
+        // whenever the user flips between Measurements / Landmarks, re-compute the stats
+        document.querySelectorAll('input[name="statsType"]').forEach(radio => {
+          radio.addEventListener('change', updateStats);
+        });
+
         document.getElementById('clearFilters').addEventListener('click', () => {
           participantsTable.clearHeaderFilter();
           measurementTable.clearHeaderFilter();
           landmarkTable.clearHeaderFilter();
 
-          document.getElementById("stats-table-container").style.display = "none";
         });
         })
         .catch(err => {
