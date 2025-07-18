@@ -535,9 +535,14 @@
               headerFilterPlaceholder: "Min Age",
               headerFilterFunc: function(fv, rv, row) {
                 if (!fv) return true;
-                return parseInt(row.Age) >= parseInt(fv);
+                return parseInt(row.Age, 10) >= parseInt(fv, 10);
+              },                          // ← close headerFilterFunc here
+              sorter: "number",
+              sorterFunc: function(a, b, rowA, rowB) {
+                const ageA = parseInt(rowA.getData().Age, 10);
+                const ageB = parseInt(rowB.getData().Age, 10);
+                return ageA - ageB;
               },
-              // **new**: show the real age in the cell
               formatter: function(cell) {
                 return cell.getData().Age;
               }
@@ -550,19 +555,25 @@
               headerFilterPlaceholder: "Max Age",
               headerFilterFunc: function(fv, rv, row) {
                 if (!fv) return true;
-                return parseInt(row.Age) <= parseInt(fv);
+                return parseInt(row.Age, 10) <= parseInt(fv, 10);
+              },                          // ← close headerFilterFunc here
+              sorter: "number",
+              sorterFunc: function(a, b, rowA, rowB) {
+                const ageA = parseInt(rowA.getData().Age, 10);
+                const ageB = parseInt(rowB.getData().Age, 10);
+                return ageA - ageB;
               },
-              // **new**: show the real age in the cell
               formatter: function(cell) {
                 return cell.getData().Age;
               }
             },
 
 
+
             
             { title: 'Ethnicity', field: 'Ethnicity', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: ['White','Black or African American','American Indian or Alaska Native','Asian','Native Hawaiian or Other Pacific Islander','Hispanic','Prefer not to specify'] } },
             { title: 'Facial Surgery', field: 'FacialSurgery', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: ['No Facial Surgery','Brow/forehead lift','Ear pinning','Chin, cheek, or jaw reshaping','Eyelid lift','Facelift','Facial implants','Hair replacement surgery','Lip augmentation','Rhinoplasty','Other','Prefer not to specify'] } },
-            { title: "Age", field: "Age", visible: false }
+            { title: "Age", field: "Age", visible: false, sorter: "number" },
           ],
         });
 
