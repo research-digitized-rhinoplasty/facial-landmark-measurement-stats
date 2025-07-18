@@ -786,64 +786,74 @@
         title: "Participant Information",
         data: visibleParts,
         fields: [
-          { label: "Participant Id",    key: "participantFileId" },
-          { label: "Gender",            key: "Gender"            },
-          { label: "Age",               key: "Age"               },
-          { label: "Ethnicity",         key: "Ethnicity"         },
-          { label: "Facial Surgery",    key: "FacialSurgery"     },
+          { label: "Participant Id", key: "participantFileId" },
+          { label: "Gender",         key: "Gender"            },
+          { label: "Age",            key: "Age"               },
+          { label: "Ethnicity",      key: "Ethnicity"         },
+          { label: "Facial Surgery", key: "FacialSurgery"     },
         ],
       },
       {
         title: "Measurements",
         data: measRows,
         fields: [
-          { label: "Participant Id",    key: "participantFileId" },
-          { label: "Measurement Name",  key: "MeasurementName"   },
-          { label: "Measurement Type",  key: "MeasurementType"   },
-          { label: "Value",             key: "Value"             },
+          { label: "Participant Id",   key: "participantFileId" },
+          { label: "Measurement Name", key: "MeasurementName"   },
+          { label: "Measurement Type", key: "MeasurementType"   },
+          { label: "Value",            key: "Value"             },
         ],
       },
       {
         title: "Landmarks",
         data: landRows,
         fields: [
-          { label: "Participant Id",    key: "participantFileId" },
-          { label: "Landmark Name",     key: "LandmarkName"      },
-          { label: "X Value",           key: "XValue"            },
-          { label: "Y Value",           key: "YValue"            },
-          { label: "Z Value",           key: "ZValue"            },
+          { label: "Participant Id", key: "participantFileId" },
+          { label: "Landmark Name",  key: "LandmarkName"      },
+          { label: "X Value",        key: "XValue"            },
+          { label: "Y Value",        key: "YValue"            },
+          { label: "Z Value",        key: "ZValue"            },
         ],
       },
       {
         title: "Measurement Statistics",
         data: measurementStatsData,
         fields: [
-          { label: "Name",              key: "Name"              },
-          { label: "Average",           key: "Average"           },
-          { label: "Std. Deviation",    key: "StdDeviation"      },
-          { label: "Minimum",           key: "Minimum"           },
-          { label: "Maximum",           key: "Maximum"           },
-          { label: "Median",            key: "Median"            },
+          { label: "Name",           key: "Name"          },
+          { label: "Average",        key: "Average"       },
+          { label: "Std. Deviation", key: "StdDeviation"  },
+          { label: "Minimum",        key: "Minimum"       },
+          { label: "Maximum",        key: "Maximum"       },
+          { label: "Median",         key: "Median"        },
         ],
       },
       {
         title: "Landmark Statistics",
-        data: landmarkStatsData,
+        data: landmarkStatsData,    // ← make sure this is the correct array
         fields: [
-          "Name",
-          "Average X","Average Y","Average Z",
-          "Std. Deviation X","Std. Deviation Y","Std. Deviation Z",
-          "Minimum X","Minimum Y","Minimum Z",
-          "Maximum X","Maximum Y","Maximum Z",
-          "Median X","Median Y","Median Z"
+          { label: "Landmark Name",      key: "Name"        }, // or "LandmarkName" if you used that
+          { label: "Average X",          key: "AverageX"    },
+          { label: "Average Y",          key: "AverageY"    },
+          { label: "Average Z",          key: "AverageZ"    },
+          { label: "Std. Deviation X",   key: "StdDevX"     },
+          { label: "Std. Deviation Y",   key: "StdDevY"     },
+          { label: "Std. Deviation Z",   key: "StdDevZ"     },
+          { label: "Minimum X",          key: "MinX"        },
+          { label: "Minimum Y",          key: "MinY"        },
+          { label: "Minimum Z",          key: "MinZ"        },
+          { label: "Maximum X",          key: "MaxX"        },
+          { label: "Maximum Y",          key: "MaxY"        },
+          { label: "Maximum Z",          key: "MaxZ"        },
+          { label: "Median X",           key: "MedianX"     },
+          { label: "Median Y",           key: "MedianY"     },
+          { label: "Median Z",           key: "MedianZ"     },
         ],
       },
     ];
 
-    // 6) build CSV lines
+    // 6) build CSV lines exactly as before
     const lines = [];
     sections.forEach(({ title, data, fields }) => {
-      if (!data.length) return;
+      if (!data || !data.length) return;      // skip empty sections
 
       // section title
       lines.push(title);
@@ -864,7 +874,7 @@
       lines.push("");
     });
 
-    // 7) download
+    // 7) download as CSV
     const blob = new Blob([ lines.join("\r\n") ], {
       type: "text/csv;charset=utf-8;"
     });
