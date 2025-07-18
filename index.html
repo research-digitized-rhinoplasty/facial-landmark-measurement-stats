@@ -718,44 +718,73 @@
         
 
     function downloadAllFilteredData() {
-      // 3 filtered tables, exactly as shown on screen
-      const pd = participantsTable.getData(true);
-      const md = measurementTable.getData(true);
-      const ld = landmarkTable.getData(true);
+      // 1) Get the currently visible participants (honoring all header-filters AND paging)
+      const visibleParts = participantsTable.getData("active");
+      const partIds      = new Set(visibleParts.map(p => p.participantFileId));
 
-      // helper to flatten values
-      const flatten = (val) => {
-        if (Array.isArray(val)) return val.join(" | ");
-        if (val && typeof val === "object") return Object.values(val).join(" ");
-        return String(val ?? "");
-      };
+      // 2) Read the header-filter selections from the two child tables:
+      let measFilter = measurementTable.getHeaderFilterValue("measurementName") || [];
+      let landFilter = landmarkTable.getHeaderFilterValue("landmarkName")     || [];
 
-      // builds one CSV section
-      const makeSection = (data, title, headers) => {
-        if (!data.length) return "";
-        const headerRow = headers.map(h => `"${h}"`).join(",");
-        const rows = data.map(row =>
-          headers.map(h => `"${flatten(row[h])}"`).join(",")
-        );
-        return [title, headerRow, ...rows].join("\r\n");
-      };
+      // Normalize to arrays:
+      if (!Array.isArray(measFilter)) measFilter = [measFilter];
+      if (!Array.isArray(landFilter)) landFilter = [landFilter];
 
-      // stitch together the three sections
-      const csv = [
-        makeSection(pd, "Participant Information", ["Participant ID","Gender","Age","Ethnicity","FacialSurgery"]),
-        makeSection(md, "Measurements",             ["Participant ID","Measurement Name","Measurement Type","Value"]),
-        makeSection(ld, "Landmarks",                ["Participant ID","Landmark Name","X Value","Y Value","Z Value"]),
-      ].filter(s => s).join("\r\n\r\n");
+      // Remove the “Select All” sentinel if present:
+      measFilter = measFilter.filter(v => v !== "Select All");
+      landFilter = landFilter.filter(v => v !== "Select All");
 
-      // download blob
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "filtered_data.csv";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // 3) Now re-filter the *full* datasets:
+      const measRows = allMeasurements.filter(m =>
+        partIds.has(m.participantFileId) &&
+        (measFilter.length === 0 || measFilter.includes(m.measurementName))
+      );
+      const landRows = allLandmarks.filter(l =>
+        partIds.has(l.participantFileId) &&
+        (landFilter.length === 0 || landFilter.includes(l.landmarkName))
+      );
+
+      // 4) Build CSV sections exactly like the participants:
+      const sections = [
+        {
+          title: "Participant Information",
+          data: visibleParts,
+          fields: ["participantFileId","Gender","Age","Ethnicity","FacialSurgery"],
+        },
+        {
+          title: "Measurements",
+          data: measRows,
+          fields: ["participantFileId","measurementName","measurementType","value"],
+        },
+        {
+          title: "Landmarks",
+          data: landRows,
+          fields: ["participantFileId","landmarkName","xVal","yVal","zVal"],
+        },
+      ];
+
+      // 5) Assemble lines:
+      const lines = [];
+      sections.forEach(({ title, data, fields }) => {
+        if (!data.length) return;
+        lines.push(title);
+        lines.push(fields.map(f => `"${f}"`).join(","));
+        data.forEach(row => {
+          lines.push(fields.map(f => `"${row[f] ?? ""}"`).join(","));
+        });
+        lines.push(""); // blank line
+      });
+
+      // 6) Download:
+      const csvBlob = new Blob([ lines.join("\r\n") ], { type: "text/csv;charset=utf-8;" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(csvBlob);
+      a.download = "filtered_data.csv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     }
+
 
 
     document.getElementById('downloadCSV').addEventListener('click', downloadAllFilteredData);
