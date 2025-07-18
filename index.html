@@ -442,7 +442,7 @@
         function updateStats() {
           const type = document.querySelector('input[name="statsType"]:checked').value;
           const table = (type === "measurements") ? measurementTable : landmarkTable;
-          const rows = table.getData(true); // only filtered rows
+          const rows = table.getFilteredData()
 
           let allowedNames = [];
           if (type === "measurements") {
@@ -737,7 +737,7 @@
         const rows = data.map(row =>
           headers.map(h => `"${flatten(row[h])}"`).join(",")
         );
-        return [`${title}`, headerRow, ...rows].join("\r\n");
+        return [title, headerRow, ...rows].join("\r\n");
       };
 
       // stitch together the three sections
