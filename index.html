@@ -442,7 +442,7 @@
         function updateStats() {
           const type = document.querySelector('input[name="statsType"]:checked').value;
           const table = (type === "measurements") ? measurementTable : landmarkTable;
-          const rows = table.getFilteredData()
+          const rows = table.getData(true); // only filtered rows
 
           let allowedNames = [];
           if (type === "measurements") {
@@ -719,9 +719,9 @@
 
     function downloadAllFilteredData() {
       // 3 filtered tables, exactly as shown on screen
-      const pd = participantsTable.getData("active");
-      const md = measurementTable.getData("active");
-      const ld = landmarkTable.getData("active");
+      const pd = participantsTable.getData(true);
+      const md = measurementTable.getData(true);
+      const ld = landmarkTable.getData(true);
 
       // helper to flatten values
       const flatten = (val) => {
