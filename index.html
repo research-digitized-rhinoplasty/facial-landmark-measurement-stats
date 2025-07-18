@@ -586,14 +586,6 @@
           }
         });
 
-        participantsTable.on("headerFilterChanged", (column, value) => {
-        if (["AgeMinFilter","AgeMaxFilter"].includes(column.getField())) {
-          const chartVisible = document.getElementById("chart-container").style.display !== "none";
-          const category    = document.querySelector('input[name="category"]:checked').value;
-          if (chartVisible && category === "Age") drawChart();
-        }
-      });
-
 
 
 
