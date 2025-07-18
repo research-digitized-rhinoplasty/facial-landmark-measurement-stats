@@ -107,9 +107,9 @@
     <!-- keep original fieldset for Category only -->
     <fieldset id="chart-options">
       <legend>Category</legend>
-      <label><input type="radio" name="category" value="Gender"> Gender</label>
+      <label><input type="radio" name="category" value="Gender" checked> Gender</label>
       <label><input type="radio" name="category" value="Age"> Age</label>
-      <label><input type="radio" name="category" value="Ethnicity" checked> Ethnicity</label>
+      <label><input type="radio" name="category" value="Ethnicity" > Ethnicity</label>
       <label><input type="radio" name="category" value="FacialSurgery"> Facial Surgery</label>
       
     </fieldset>
@@ -529,33 +529,28 @@
             
             {
               title: "Age Min",
-              field: "AgeMinFilter",
-              headerFilter: "input",
-              headerFilterLiveFilter: false,       // ← only filter on blur or Enter
-              headerFilterPlaceholder: "Min Age",
-              headerFilterFunc: function(fv, rv, row) {
-                if (!fv) return true;
-                return parseInt(row.Age, 10) >= parseInt(fv, 10);
+              field: "Age",                     
+              sorter: "number",                   // numeric sort
+              headerSort: true,                   
+              headerFilter: "input",              
+              headerFilterLiveFilter: false,
+              headerFilterPlaceholder: "Min...",
+              headerFilterFunc: function(fv, rv, row){
+                // only rows with row.Age ≥ fv
+                return !fv || row.getData().Age >= fv;
               },
-              accessor: (v,d) => parseInt(d.Age,10),
-              sorter: "number",
-              headerSort: true,
-              formatter: cell => cell.getData().Age,
             },
             {
               title: "Age Max",
-              field: "AgeMaxFilter",
-              headerFilter: "input",
-              headerFilterLiveFilter: false,       // ← only filter on blur or Enter
-              headerFilterPlaceholder: "Max Age",
-              headerFilterFunc: function(fv, rv, row) {
-                if (!fv) return true;
-                return parseInt(row.Age, 10) <= parseInt(fv, 10);
-              },
-              accessor: (v,d) => parseInt(d.Age,10),
+              field: "Age",                 
               sorter: "number",
               headerSort: true,
-              formatter: cell => cell.getData().Age,
+              headerFilter: "input",
+              headerFilterLiveFilter: false,
+              headerFilterPlaceholder: "Max...",
+              headerFilterFunc: function(fv, rv, row){
+                return !fv || row.getData().Age <= fv;
+              },
             },
 
 
