@@ -302,7 +302,7 @@
     fetch('data.json')
       .then(r => r.ok ? r.json() : Promise.reject('data.json not found'))
       .then(participants => {
-        const allMeasurements = participants.flatMap(p =>
+        allMeasurements = participants.flatMap(p =>
           (p.ParticipantMeasurements || []).map(m => ({
             participantFileId: p.participantFileId,
             measurementName: m.MeasurementName,
@@ -310,8 +310,7 @@
             value: m.Value
           }))
         );
-
-        const allLandmarks = participants.flatMap(p =>
+         allLandmarks = participants.flatMap(p =>
           (p.ParticipantLandmarks || []).map(l => ({
             participantFileId: p.participantFileId,
             landmarkName: l.LandmarkName,
