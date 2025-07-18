@@ -532,7 +532,7 @@
               field: "AgeMinFilter",
               headerFilter: "input",
               headerFilterLiveFilter: true,
-              headerFilterPlaceholder: "Min Age",
+              headerFilterPlaceholder: "Min...",
               headerFilterFunc: function(fv, rv, row) {
                 if (!fv) return true;
                 return parseInt(row.Age, 10) >= parseInt(fv, 10);
@@ -553,7 +553,7 @@
               field: "AgeMaxFilter",
               headerFilter: "input",
               headerFilterLiveFilter: true,
-              headerFilterPlaceholder: "Max Age",
+              headerFilterPlaceholder: "Max...",
               headerFilterFunc: function(fv, rv, row) {
                 if (!fv) return true;
                 return parseInt(row.Age, 10) <= parseInt(fv, 10);
@@ -593,6 +593,37 @@
             drawChart();
           }
         });
+
+        // — only for the Age Min / Age Max inputs —
+        // when the user types, wait one tick for Tabulator to finish filtering,
+        // then redraw everything (tables, stats, chart) if Age is the current category.
+        setTimeout(() => {
+          const ageMinInput = document.querySelector('input[tabulator-field="AgeMinFilter"]');
+          const ageMaxInput = document.querySelector('input[tabulator-field="AgeMaxFilter"]');
+
+          [ageMinInput, ageMaxInput].forEach((input) => {
+            if (!input) return;
+            input.addEventListener('input', () => {
+              // tiny delay to let Tabulator apply the header filter
+              setTimeout(() => {
+                // re-draw the chart only if it's visible and "Age" is selected
+                const chartVisible = document.getElementById('chart-container').style.display !== 'none';
+                const category    = document.querySelector('input[name="category"]:checked').value;
+
+                // measurement & landmark tables, and stats are already in your dataFiltered listener,
+                // which *will* fire on the filter change—so here we only need to redraw the chart.
+                if (chartVisible && category === 'Age') {
+                  drawChart();
+                }
+              }, 20);
+            });
+          });
+        }, 500);
+
+
+
+
+
 
         // Live updates from measurement & landmark tables
         measurementTable.on("dataFiltered", updateStats);
