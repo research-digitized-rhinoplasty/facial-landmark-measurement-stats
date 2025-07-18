@@ -827,14 +827,31 @@
       lines.push("");
     });
 
-    // 7) download
+    // 7) download with timestamped filename
     const blob = new Blob([ lines.join("\r\n") ], { type: "text/csv;charset=utf-8;" });
+
+    // generate YYMMDD-HHMMSS timestamp
+    const now = new Date();
+    const pad2 = n => String(n).padStart(2, '0');
+    const YY = String(now.getFullYear()).slice(2);
+    const MM = pad2(now.getMonth() + 1);
+    const DD = pad2(now.getDate());
+    const hh = pad2(now.getHours());
+    const mm = pad2(now.getMinutes());
+    const ss = pad2(now.getSeconds());
+    const timestamp = `${YY}${MM}${DD}-${hh}${mm}${ss}`;
+
+    // compose filename
+    const filename = `facial-landmark-measurement-stats-${timestamp}.csv`;
+
+    // create and click download link
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "filtered_data.csv";
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
   }
 
 
