@@ -172,19 +172,19 @@
     <legend>Show stats for:</legend>
       <label><input type="radio" name="statsType" value="measurements" checked> Measurements</label>
       <label><input type="radio" name="statsType" value="landmarks"> Landmarks</label>
+      <button id="toggle-stats-chart">Show Statistics Chart</button>
     </fieldset>
   </div>
   <div id="stats-row-count" class="row-count-label"></div>  
   <div id="stats-table"></div>
   <!-- Chart toggle button and chart canvas -->
    <div class="stats-chart-controls">
-    <button id="toggle-stats-chart">Show Statistics Chart</button>
+    
   </div>
   <div id="stats-chart-wrapper" class="hidden-chart">
 
     <canvas id="stats-bar-chart"></canvas>
   </div>
-
 
 
   
@@ -974,7 +974,7 @@
       },
       {
         label: "Std Dev",
-        data: statsData.map(row => parseFloat(row.StdDev)),
+        data: statsData.map(row => parseFloat(row["Std. Deviation"])),
         backgroundColor: "rgba(201, 203, 207, 0.6)"
       }
     ];
