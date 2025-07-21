@@ -94,6 +94,17 @@
       margin-right: 10px;
     }
 
+    .table-footer {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      padding: 4px 10px;
+      font-size: 14px;
+      background-color: #eaeaea;
+      border-top: 1px solid #ccc;
+      margin-bottom: 20px;
+    }
+
   </style>
 </head>
 <body>
@@ -106,6 +117,7 @@
 
   <h2>Participant Information</h2>
   <div id="participants-table"></div>
+  <div id="participants-footer" class="table-footer"><span id="participants-row-count"></span></div>
 
   <!-- Chart container hidden until Chart button clicked -->
   <div id="chart-container">
@@ -133,11 +145,14 @@
 
   <h2>Measurements</h2>
   <div id="measurement-table"></div>
+  <div id="measurement-footer" class="table-footer"><span id="measurement-row-count"></span></div>
+
 
   <h2>Landmarks</h2>
   <div id="landmark-table"></div>
+  <div id="landmark-footer" class="table-footer"><span id="landmark-row-count"></span></div>
 
-  <!-- ─────────────── STATISTICS CONTROLS & TABLE ─────────────── -->
+
    <div class="stats-controls">
   <fieldset id="stats-options">
     <legend>Show stats for:</legend>
@@ -147,8 +162,9 @@
   </div>
 
   <div id="stats-table"></div>
+  <div id="stats-footer" class="table-footer"><span id="stats-row-count"></span></div>
 
-  <!-- ───────────────────────────────────────────────────────────── -->
+
 
 
   <!-- Libraries -->
@@ -337,6 +353,7 @@
           layout: 'fitColumns',
           pagination: 'local',
           paginationSize: 10,
+          footerElement: document.getElementById("measurement-footer"),
           columns: [
             { title: 'Participant ID', field: 'participantFileId' },
             {
@@ -361,6 +378,10 @@
             { title: 'Value', field: 'value' },
           ],
         });
+        updateRowCount(measurementTable, "measurement-row-count");
+        measurementTable.on("dataFiltered", () => updateRowCount(measurementTable, "measurement-row-count"));
+        measurementTable.on("pageLoaded", () => updateRowCount(measurementTable, "measurement-row-count"));
+
 
 
         landmarkTable = new Tabulator('#landmark-table', {
@@ -368,6 +389,7 @@
           layout: 'fitColumns',
           pagination: 'local',
           paginationSize: 10,
+          footerElement: document.getElementById("landmark-footer"),
           columns: [
             { title: 'Participant ID', field: 'participantFileId' },
             {
@@ -384,14 +406,18 @@
             { title: 'Z Value', field: 'zVal' },
           ],
         });
+        updateRowCount(landmarkTable, "landmark-row-count");
+        landmarkTable.on("dataFiltered", () => updateRowCount(landmarkTable, "landmark-row-count"));
+        landmarkTable.on("pageLoaded", () => updateRowCount(landmarkTable, "landmark-row-count"));
 
-        // ─────────────── INITIALIZE STATS TABLE ───────────────
+
         const statsTable = new Tabulator("#stats-table", {
           layout: "fitColumns",
+          footerElement: document.getElementById("stats-footer"),
           columns: [], // will be auto-detected from data keys
         });
-
-        // ────────────────────────────────────────────────────────
+        updateRowCount(statsTable, "stats-row-count");
+        statsTable.on("dataChanged", () => updateRowCount(statsTable, "stats-row-count"));
 
 
         // ─────────────── UTILITY FUNCTIONS ───────────────
@@ -515,6 +541,12 @@
           statsTable.setColumns(columns);
           statsTable.replaceData(statsData);
         }
+        updateRowCount(participantsTable, "participants-row-count");
+        participantsTable.on("dataFiltered", () => updateRowCount(participantsTable, "participants-row-count"));
+        participantsTable.on("pageLoaded", () => updateRowCount(participantsTable, "participants-row-count"));
+
+
+
 
         // Auto-switch table + stats when Measurement/Landmark radio changes
       document.querySelectorAll('input[name="statsType"]').forEach(radio => {
@@ -548,6 +580,12 @@
         }
       });
 
+      function updateRowCount(table, spanId) {
+        const count = table.getData("active").length;
+        document.getElementById(spanId).textContent = `Rows shown: ${count}`;
+      }
+
+
 
 
         function customAgeFilter(data) {
@@ -570,6 +608,7 @@
           layout: 'fitColumns',
           pagination: 'local',
           paginationSize: 10,
+          footerElement: document.getElementById("participants-footer"),
           columns: [
             { title: 'Participant ID', field: 'participantFileId' },
             { title: 'Gender', field: 'Gender', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueGenders } },
