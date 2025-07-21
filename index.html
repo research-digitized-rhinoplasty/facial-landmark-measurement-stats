@@ -923,6 +923,7 @@
   document.getElementById('chart-type-options').addEventListener('change', drawChart);
 
   function drawChart() {
+    if (!participantsTable) return;
     const data = participantsTable.getData("active");
 
     if (!data.length) return;
