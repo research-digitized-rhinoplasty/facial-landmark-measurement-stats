@@ -658,6 +658,7 @@
           columns: [
             { title: 'Participant ID', field: 'participantFileId' },
             { title: 'Gender', field: 'Gender', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueGenders } },
+           
             {
               title: "Age Min",
               field: "Age",
@@ -668,12 +669,10 @@
                 if (!fv) return true;
                 return parseInt(row.Age, 10) >= parseInt(fv, 10);
               },
-              accessor: (v,d) => parseInt(d.Age, 10),
               sorter: "number",
               headerSort: true,
               formatter: cell => cell.getData().Age,
             },
-              
             {
               title: "Age Max",
               field: "AgeMaxFilter",
@@ -684,11 +683,11 @@
                 if (!fv) return true;
                 return parseInt(row.Age, 10) <= parseInt(fv, 10);
               },
-              accessor: (v,d) => parseInt(d.Age, 10),
               sorter: "number",
               headerSort: true,
               formatter: cell => cell.getData().Age,
             },
+
 
             { title: 'Ethnicity', field: 'Ethnicity', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueEthnicities } },
             { title: 'Facial Surgery', field: 'FacialSurgery', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueFacialSurgeries } },
