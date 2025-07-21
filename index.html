@@ -349,36 +349,35 @@
 
     fetch('data.json')
       .then(r => r.ok ? r.json() : Promise.reject('data.json not found'))
-      .then(fetchedData => {
-        participants = fetchedData;
- 
+      .then(participants => {
         allMeasurements = participants.flatMap(p =>
-          (p.ParticipantMeasurements || []).map(m => ({
-            participantFileId: p.participantFileId,
-            measurementName: m.MeasurementName,
-            measurementType:  m.MeasurementType,
-            value: m.Value
-          }))
-        );
-         allLandmarks = participants.flatMap(p =>
-          (p.ParticipantLandmarks || []).map(l => ({
-            participantFileId: p.participantFileId,
-            landmarkName: l.LandmarkName,
-            xVal: l.xVal,
-            yVal: l.yVal,
-            zVal: l.zVal
-          }))
-        );
-        const uniqueGenders = Array.from(new Set(participants.map(p => p.Gender).filter(Boolean))).sort();
-        const uniqueEthnicities = Array.from(new Set(participants.map(p => p.Ethnicity).filter(Boolean))).sort();
-        const uniqueFacialSurgeries = Array.from(new Set(participants.map(p => p.FacialSurgery).filter(Boolean))).sort();
-        const uniqueMeasurementNames = Array.from(new Set(allMeasurements.map(m => m.measurementName).filter(Boolean))).sort();
-        const measurementTypes = [...new Set(allMeasurements.map(m => m.measurementType).filter(Boolean))].sort();
-        const uniqueLandmarkNames = Array.from(new Set(allLandmarks.map(l => l.landmarkName).filter(Boolean))).sort();
+        (p.ParticipantMeasurements || []).map(m => ({
+          participantFileId: p.participantFileId,
+          measurementName: m.MeasurementName,
+          measurementType:  m.MeasurementType,
+          value: m.Value
+        }))
+      );
+      allLandmarks = participants.flatMap(p =>
+      (p.ParticipantLandmarks || []).map(l => ({
+        participantFileId: p.participantFileId,
+        landmarkName: l.LandmarkName,
+        xVal: l.xVal,
+        yVal: l.yVal,
+        zVal: l.zVal
+      }))
+    );
+    const uniqueGenders = Array.from(new Set(participants.map(p => p.Gender).filter(Boolean))).sort();
+    const uniqueEthnicities = Array.from(new Set(participants.map(p => p.Ethnicity).filter(Boolean))).sort();
+    const uniqueFacialSurgeries = Array.from(new Set(participants.map(p => p.FacialSurgery).filter(Boolean))).sort();
+    const uniqueMeasurementNames = Array.from(new Set(allMeasurements.map(m => m.measurementName).filter(Boolean))).sort();
+    const measurementTypes = [...new Set(allMeasurements.map(m => m.measurementType).filter(Boolean))].sort();
+    const uniqueLandmarkNames = Array.from(new Set(allLandmarks.map(l => l.landmarkName).filter(Boolean))).sort();
 
 
         participantsTable = new Tabulator('#participants-table', 
         {
+          data: participants,
           layout: 'fitColumns',
           pagination: 'local',
           paginationSize: 10,
@@ -423,7 +422,7 @@
           ],
         });
 
-        participantsTable.replaceData(participants);
+
 
 
         updateRowCount(participantsTable, "participants-row-count");
