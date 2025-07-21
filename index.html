@@ -329,7 +329,7 @@
         const uniqueFacialSurgeries = Array.from(new Set(participants.map(p => p.FacialSurgery).filter(Boolean))).sort();
         const uniqueMeasurementNames = Array.from(new Set(allMeasurements.map(m => m.measurementName).filter(Boolean))).sort();
         const measurementTypes = [...new Set(allMeasurements.map(m => m.measurementType).filter(Boolean))].sort();
-         const uniqueLandmarkNames = Array.from(new Set(allLandmarks.map(l => l.landmarkName).filter(Boolean))).sort();
+        const uniqueLandmarkNames = Array.from(new Set(allLandmarks.map(l => l.landmarkName).filter(Boolean))).sort();
 
 
         measurementTable = new Tabulator('#measurement-table', {
@@ -350,7 +350,7 @@
             },
             {
               title: "Measurement Type",
-              field: "MeasurementType",
+              field: "measurementType",
               headerFilter: dropdownMultiCheck,
               headerFilterFunc: multiSelectFilterFunc,
               headerFilterParams: {
