@@ -94,17 +94,13 @@
       margin-right: 10px;
     }
 
-
-    .table-footer {
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-      padding: 4px 10px;
+    .row-count-label {
       font-size: 14px;
-      background-color: #eaeaea;
-      border-top: 1px solid #ccc;
-      margin-bottom: 20px;
+      font-weight: normal;
+      margin: -10px 0 10px 0;
+      color: #333;
     }
+
 
   </style>
 </head>
@@ -117,8 +113,9 @@
   </div>
 
   <h2>Participant Information</h2>
+  <div id="participants-row-count" class="row-count-label"></div>
   <div id="participants-table"></div>
-  <div id="participants-footer" class="table-footer"><span id="participants-row-count"></span></div>
+
 
   <!-- Chart container hidden until Chart button clicked -->
   <div id="chart-container">
@@ -145,28 +142,25 @@
 
 
   <h2>Measurements</h2>
+  <div id="measurement-row-count" class="row-count-label"></div>
   <div id="measurement-table"></div>
-  <div id="measurement-footer" class="table-footer"><span id="measurement-row-count"></span></div>
-    <div id="measurement-pagination"></div> <!-- ADD THIS -->
-    <span id="measurement-row-count"></span>
-  </div>  
+
 
 
   <h2>Landmarks</h2>
+  <div id="landmark-row-count" class="row-count-label"></div>
   <div id="landmark-table"></div>
-  <div id="landmark-footer" class="table-footer"><span id="landmark-row-count"></span></div>
 
-
-   <div class="stats-controls">
+  <div class="stats-controls">
   <fieldset id="stats-options">
     <legend>Show stats for:</legend>
       <label><input type="radio" name="statsType" value="measurements" checked> Measurements</label>
       <label><input type="radio" name="statsType" value="landmarks"> Landmarks</label>
     </fieldset>
   </div>
-
+  <div id="stats-row-count" class="row-count-label"></div>  
   <div id="stats-table"></div>
-  <div id="stats-footer" class="table-footer"><span id="stats-row-count"></span></div>
+
 
 
 
@@ -357,7 +351,7 @@
           layout: 'fitColumns',
           pagination: 'local',
           paginationSize: 10,
-          footerElement: document.getElementById("measurement-footer"),
+
           paginationElement: document.getElementById("measurement-pagination"),
           columns: [
             { title: 'Participant ID', field: 'participantFileId' },
@@ -394,7 +388,6 @@
           layout: 'fitColumns',
           pagination: 'local',
           paginationSize: 10,
-          footerElement: document.getElementById("landmark-footer"),
           columns: [
             { title: 'Participant ID', field: 'participantFileId' },
             {
@@ -418,7 +411,6 @@
 
         const statsTable = new Tabulator("#stats-table", {
           layout: "fitColumns",
-          footerElement: document.getElementById("stats-footer"),
           columns: [], // will be auto-detected from data keys
         });
         updateRowCount(statsTable, "stats-row-count");
@@ -614,6 +606,7 @@
 
 
 
+
         function customAgeFilter(data) {
           const minInput = document.querySelector('input[tabulator-field="AgeMinFilter"]');
           const maxInput = document.querySelector('input[tabulator-field="AgeMaxFilter"]');
@@ -634,7 +627,6 @@
           layout: 'fitColumns',
           pagination: 'local',
           paginationSize: 10,
-          footerElement: document.getElementById("participants-footer"),
           columns: [
             { title: 'Participant ID', field: 'participantFileId' },
             { title: 'Gender', field: 'Gender', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueGenders } },
