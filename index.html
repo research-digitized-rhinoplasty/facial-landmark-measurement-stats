@@ -94,6 +94,7 @@
       margin-right: 10px;
     }
 
+
     .table-footer {
       display: flex;
       justify-content: flex-end;
@@ -146,6 +147,9 @@
   <h2>Measurements</h2>
   <div id="measurement-table"></div>
   <div id="measurement-footer" class="table-footer"><span id="measurement-row-count"></span></div>
+    <div id="measurement-pagination"></div> <!-- ADD THIS -->
+    <span id="measurement-row-count"></span>
+  </div>  
 
 
   <h2>Landmarks</h2>
@@ -354,6 +358,7 @@
           pagination: 'local',
           paginationSize: 10,
           footerElement: document.getElementById("measurement-footer"),
+          paginationElement: document.getElementById("measurement-pagination"),
           columns: [
             { title: 'Participant ID', field: 'participantFileId' },
             {
