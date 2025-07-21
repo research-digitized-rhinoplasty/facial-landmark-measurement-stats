@@ -266,7 +266,12 @@
         const chosen = Array.from(list.querySelectorAll("input:checked"))
                             .map(i => i.value);
         success(chosen);
+        
         updateLabel();
+
+
+        const filteredData = participantsTable.getData("active");
+        updateParticipantChart(filteredData);
       }
 
       toggle.addEventListener("click", e => {
