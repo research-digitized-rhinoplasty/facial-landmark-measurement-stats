@@ -318,115 +318,109 @@
 
       // **auto-select everything on first render**
       onRendered(() => {
-        success(values);
+        success(values.filter(v => v !== "Select All"));
         updateLabel();
       });
 
       return toggle;
     }
 
-
-
-
-
-
     function multiSelectFilterFunc(filterVals, cellVal) {
-      // no filters selected → show all
-      if (!filterVals || !filterVals.length) {
-        return true;
-      }
-      // “Select All” explicitly chosen → show all
-      if (filterVals.includes("Select All")) {
-        return true;
-      }
-      // otherwise only show if the cell’s value is one of the checked ones
-      return filterVals.includes(cellVal);
+      if (!filterVals || !filterVals.length) return true;
+      if (filterVals.includes("Select All")) return true;
+
+      const cleanedCell = (cellVal || "").toString().trim().toLowerCase();
+      return filterVals.some(fv => fv.toString().trim().toLowerCase() === cleanedCell);
     }
 
+
+
+
+    let participants        = [];
+    let allMeasurements     = [];
+    let allLandmarks        = [];
     let participantsTable, measurementTable, landmarkTable, statsTable;
-    let participants = [];
-    let currentChart;
+    let currentChart, statsChart;
+
+
 
     fetch('data.json')
-    .then(r => r.ok ? r.json() : Promise.reject('data.json not found'))
-    .then(fetchedData => {
-      participants = fetchedData; // ✅ FIXED HERE
+      .then(r => r.ok ? r.json() : Promise.reject('data.json not found'))
+      .then(fetchedData => {
+        participants = fetchedData; 
 
-      allMeasurements = participants.flatMap(p =>
-        (p.ParticipantMeasurements || []).map(m => ({
-          participantFileId: p.participantFileId,
-          measurementName: m.MeasurementName,
-          measurementType:  m.MeasurementType,
-          value: m.Value
-        }))
-      );
+        allMeasurements = participants.flatMap(p =>
+          (p.ParticipantMeasurements || []).map(m => ({
+            participantFileId: p.participantFileId,
+            measurementName: m.MeasurementName,
+            measurementType:  m.MeasurementType,
+            value: m.Value
+          }))
+        );
 
-      allLandmarks = participants.flatMap(p =>
-        (p.ParticipantLandmarks || []).map(l => ({
-          participantFileId: p.participantFileId,
-          landmarkName: l.LandmarkName,
-          xVal: l.xVal,
-          yVal: l.yVal,
-          zVal: l.zVal
-        }))
-      );
-      const uniqueGenders = Array.from(new Set(participants.map(p => p.Gender).filter(Boolean))).sort();
-      const uniqueEthnicities = Array.from(new Set(participants.map(p => p.Ethnicity).filter(Boolean))).sort();
-      const uniqueFacialSurgeries = Array.from(new Set(participants.map(p => p.FacialSurgery).filter(Boolean))).sort();
-      const uniqueMeasurementNames = Array.from(new Set(allMeasurements.map(m => m.measurementName).filter(Boolean))).sort();
-      const measurementTypes = [...new Set(allMeasurements.map(m => m.measurementType).filter(Boolean))].sort();
-      const uniqueLandmarkNames = Array.from(new Set(allLandmarks.map(l => l.landmarkName).filter(Boolean))).sort();
+        allLandmarks = participants.flatMap(p =>
+          (p.ParticipantLandmarks || []).map(l => ({
+            participantFileId: p.participantFileId,
+            landmarkName: l.LandmarkName,
+            xVal: l.xVal,
+            yVal: l.yVal,
+            zVal: l.zVal
+          }))
+        );
+
+        const uniqueGenders = Array.from(new Set(participants.map(p => p.Gender).filter(Boolean))).sort();
+        const uniqueEthnicities = Array.from(new Set(participants.map(p => p.Ethnicity?.trim()).filter(Boolean))).sort();
+        const uniqueFacialSurgeries = Array.from(new Set(participants.map(p => p.FacialSurgery).filter(Boolean))).sort();
+        const uniqueMeasurementNames = Array.from(new Set(allMeasurements.map(m => m.measurementName).filter(Boolean))).sort();
+        const measurementTypes = [...new Set(allMeasurements.map(m => m.measurementType).filter(Boolean))].sort();
+        const uniqueLandmarkNames = Array.from(new Set(allLandmarks.map(l => l.landmarkName).filter(Boolean))).sort();
       
-      participantsTable = new Tabulator('#participants-table', 
-      {
-        data: participants,
-        layout: 'fitColumns',
-        pagination: 'local',
-        paginationSize: 10,
-        columns: [
-          { title: 'Participant ID', field: 'participantFileId' },
-          { title: 'Gender', field: 'Gender', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueGenders } },
-          
-          {
-            title: "Age Min",
-            field: "Age",
-            headerFilter: "input",
-            headerFilterLiveFilter: true,       
-            headerFilterPlaceholder: "Min...",
-            headerFilterFunc: function(fv, rv, row) {
-              if (!fv) return true;
-              return parseInt(row.Age, 10) >= parseInt(fv, 10);
+        participantsTable = new Tabulator('#participants-table', 
+        {
+          data: participants,
+          layout: 'fitColumns',
+          pagination: 'local',
+          paginationSize: 10,
+          columns: [
+            { title: 'Participant ID', field: 'participantFileId' },
+            { title: 'Gender', field: 'Gender', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueGenders } },
+            
+            {
+              title: "Age Min",
+              field: "Age",
+              headerFilter: "input",
+              headerFilterLiveFilter: true,       
+              headerFilterPlaceholder: "Min...",
+              headerFilterFunc: function(fv, rv, row) {
+                if (!fv) return true;
+                return parseInt(row.Age, 10) >= parseInt(fv, 10);
+              },
+              sorter: "number",
+              headerSort: true,
+              formatter: cell => cell.getData().Age,
             },
-            sorter: "number",
-            headerSort: true,
-            formatter: cell => cell.getData().Age,
-          },
-          {
-            title: "Age Max",
-            field: "AgeMaxFilter",
-            headerFilter: "input",
-            headerFilterLiveFilter: true,      
-            headerFilterPlaceholder: "Max...",
-            headerFilterFunc: function(fv, rv, row) {
-              if (!fv) return true;
-              return parseInt(row.Age, 10) <= parseInt(fv, 10);
+            {
+              title: "Age Max",
+              field: "AgeMaxFilter",
+              headerFilter: "input",
+              headerFilterLiveFilter: true,      
+              headerFilterPlaceholder: "Max...",
+              headerFilterFunc: function(fv, rv, row) {
+                if (!fv) return true;
+                return parseInt(row.Age, 10) <= parseInt(fv, 10);
+              },
+              sorter: "number",
+              headerSort: true,
+              formatter: cell => cell.getData().Age,
             },
-            sorter: "number",
-            headerSort: true,
-            formatter: cell => cell.getData().Age,
-          },
 
 
-          { title: 'Ethnicity', field: 'Ethnicity', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueEthnicities } },
-          { title: 'Facial Surgery', field: 'FacialSurgery', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueFacialSurgeries } },
+            { title: 'Ethnicity', field: 'Ethnicity', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueEthnicities } },
+            { title: 'Facial Surgery', field: 'FacialSurgery', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueFacialSurgeries } },
 
-          { title: "Age", field: "Age", visible: false, sorter: "number" },
-        ],
-      });
-
-
-
-
+            { title: "Age", field: "Age", visible: false, sorter: "number" },
+          ],
+        });
         updateRowCount(participantsTable, "participants-row-count");
         participantsTable.on("dataFiltered", () => updateRowCount(participantsTable, "participants-row-count"));
         participantsTable.on("pageLoaded", () => updateRowCount(participantsTable, "participants-row-count"));
@@ -468,9 +462,6 @@
 
 
         });
-
-        
-
 
         measurementTable = new Tabulator('#measurement-table', {
           data: allMeasurements,
