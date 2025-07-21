@@ -324,6 +324,12 @@
             zVal: l.zVal
           }))
         );
+        const uniqueGenders = Array.from(new Set(participants.map(p => p.Gender).filter(Boolean))).sort();
+        const uniqueEthnicities = Array.from(new Set(participants.map(p => p.Ethnicity).filter(Boolean))).sort();
+        const uniqueFacialSurgeries = Array.from(new Set(participants.map(p => p.FacialSurgery).filter(Boolean))).sort();
+        const uniqueMeasurementNames = Array.from(new Set(allMeasurements.map(m => m.measurementName).filter(Boolean))).sort();
+        const uniqueLandmarkNames = Array.from(new Set(allLandmarks.map(l => l.landmarkName).filter(Boolean))).sort();
+
 
         measurementTable = new Tabulator('#measurement-table', {
           data: allMeasurements,
@@ -338,40 +344,7 @@
               headerFilter: dropdownMultiCheck,
               headerFilterFunc: multiSelectFilterFunc,
               headerFilterParams: {
-                values: [
-                  "Select All",
-                  "(Inner) Intercanthal Distance/Width", "Ala/Alar Length (left)", "Ala/Alar Length (right)", "Alar Base Width", "Base Bony Width", 
-                  "Columella Length", "Columella Width", "Distance between sill-base junction and alar flare", "Distance between 1st point - 2nd point",
-                  "Eye/palpebral fissure length - left", "Eye/palpebral fissure length - right", "Face Width", "Infratip Lobule Length", "Interalar Distance",
-                  "Lower Facial Height", "Mid-Facial Height", "Nasal Bridge Length", "Nasal Root Width", "Nasal Tip Projection", "Nose Height",
-                  "Nostril Floor Width (left)", "Nostril Floor Width (right)", "Outer Intercanthal Distance", "Premaxilla - left", "Premaxilla - right",
-                  "Radix Projection", "Subnasal Width", "Supratip Lobule", "Tip/Lobule Width", "Upper Facial Height",
-                  "Distances - Surface", "(Inner) Intercanthal Distance/Width - Surface", "Ala/Alar Length (left) - Surface", "Ala/Alar Length (right) - Surface",
-                  "Alar Base Width - Surface", "Base Bony Width - Surface", "Columella Length - Surface", "Columella Width - Surface",
-                  "Distance between sill-base junction and alar flare - Surface", "Distance between 1st point - 2nd point - Surface",
-                  "Eye/palpebral fissure length - left - Surface", "Eye/palpebral fissure length - right - Surface", "Face Width - Surface",
-                  "Infratip Lobule Length - Surface", "Interalar Distance - Surface", "Lower Facial Height - Surface", "Mid-Facial Height - Surface",
-                  "Nasal Bridge Length - Surface", "Nasal Root Width - Surface", "Nasal Tip Projection - Surface", "Nose Height - Surface",
-                  "Nostril Floor Width (left) - Surface", "Nostril Floor Width (right) - Surface", "Outer Intercanthal Distance - Surface",
-                  "Premaxilla - left - Surface", "Premaxilla - right - Surface", "Radix Projection - Surface", "Subnasal Width - Surface",
-                  "Supratip Lobule - Surface", "Tip/Lobule Width - Surface", "Upper Facial Height - Surface",
-                  "Angles", "Columellar Labial Angle", "Columellar Lobular Angle", "Degree of Deviation (I-type)", "Domal divergence",
-                  "Interalar Angle", "Medium facial third angle - right", "Nasal Tip Angle", "Nasofacial Angle", "Nasofrontal Angle", "Nasolabial Angle I",
-                  "Nasolabial contour", "Nasomental Angle I", "Rhinion deviation angle", "Supratip Deviation Angle", "Tip deviation angle",
-                  "Ratios", "Ratio: Symmetry - Alar Base (Right) to Nasion to Alar Base (Left)", "Ratio: Symmetry - Alar Base (Right) to Pronasale to Alar Base (Left)",
-                  "Ratio: Symmetry - Alar Base (Right) to Subnasale to Alar Base (Left)", "Lobule - Base Ratio", "Nasal Tip Projection: Baum",
-                  "Nasal Tip Projection: Byrd and Hobar", "Nasal Tip Projection: Goode", "Nasal Tip Projection: Goode (Left)",
-                  "Nasal Tip Projection: Goode (Right)", "Nasal Tip Projection: Powell and Humphries", "Nasal Tip Projection: Simons",
-                  "Nasal Width-Length Ratio", "Nasal Width–Intercanthal Distance Ratio", "Ratio: Nasion to Labiale Superios to Alar Base (Left)",
-                  "Ratio: Nasion to Labiale Superios to Alar Base (Right)", "Ratio: Nasion to Labiale Superios to Alar Rim’s Highest Point (left)",
-                  "Ratio: Nasion to Labiale Superios to Alar Rim’s Highest Point (right)", "Ratio: Nasion to Subnasale to Alar Base (Left)",
-                  "Ratio: Nasion to Subnasale to Alar Base (Right)", "Ratio: Nasion to Subnasale to Alar Rim’s Highest Point (left)",
-                  "Ratio: Nasion to Subnasale to Alar Rim’s Highest Point (right)",
-                  "Areas - Surface", "Alar Base Area", "Dorsal Hump Area", "Area of Entire Nose", "Nasal Dorsum Area", "Root of the Nose Area",
-                  "Tip Surface Area", "Area between the vertical fifths and horizontal thirds",
-                  "Volumes", "Alar Base Volume", "Dorsal Hump Volume", "Volume of Entire Nose", "Nasal Dorsum Volume", "Root of the Nose Volume",
-                  "Tip Volume", "Volume between the vertical fifths and horizontal thirds"
-                ]
+                values: uniqueMeasurementNames
               }
             },
             { title: 'Measurement Type',  field: 'measurementType' },
@@ -393,23 +366,7 @@
               headerFilter: dropdownMultiCheck,
               headerFilterFunc: multiSelectFilterFunc,
               headerFilterParams: {
-                values: [
-                  "Select All", "1st Point", "2nd Point", "Alar Base Junction/Alar Crease - left", "Alar Base Junction/Alar Crease - right",
-                  "Alare/Alar Flare - left", "Alare/Alar Flare - right", "Alar Rim’s Highest Point - left", "Alar Rim’s Highest Point - right",
-                  "Cervical Point", "Columellar Break Point", "Cheilion - left", "Cheilion - right", "Columellar Rim - left", "Columellar Rim - right",
-                  "Corneal Plane", "Crista Philtri - left", "Crista Philtri - right", "Endocanthion/Medial Canthus - left", "Endocanthion/Medial Canthus - right",
-                  "Exocanthion/Lateral Canthus - left", "Exocanthion/Lateral Canthus - right", "Glabella", "Soft tissue gonion - left", "Soft tissue gonion - right",
-                  "Iris - left", "Iris - right", "Midpoint of left Infraorbital Rim", "Midpoint of right Infraorbital Rim",
-                  "Posterior Point of Nostril - left", "Posterior Point of Nostril - right", "Kyphion", "Lateral helix of ear - left",
-                  "Lateral helix of ear - right", "Labiale Inferius", "Labiale Superius", "Maxilloanteriorale - left", "Maxilloanteriorale - right",
-                  "Menton/Gnathion", "Maxillofrontale - left", "Maxillofrontale - right", "Nasion/Radix", "Nasal Parenthesis - left",
-                  "Nasal Parenthesis - right", "Pupil - left", "Pupil - right", "Pogonion", "Pronasale/Tip", "Rhinion", "Supratip Break Point",
-                  "Subalare - left", "Subalare - right", "Sill-base junction - left", "Sill-base junction - right",
-                  "Supratarsal Crease - left", "Supratarsal Crease - right", "Sellion", "Sublabiale/Mentolabial Sulcus", "Subnasale",
-                  "Subnasale - left", "Subnasale - right", "Subspinale", "Anterior Point of Nostril/Columella Junction left",
-                  "Anterior Point of Nostril/Columella Junction right", "Stomion", "Tragion - left", "Tragion - right",
-                  "Tip Defining Point - left", "Tip Defining Point - right", "Trichion", "Vertex", "Zygion - left", "Zygion - right"
-                ]
+                values: uniqueLandmarkNames
               }
             },
             { title: 'X Value', field: 'xVal' },
@@ -605,18 +562,7 @@
           paginationSize: 10,
           columns: [
             { title: 'Participant ID', field: 'participantFileId' },
-
-            {
-              title: 'Gender',
-              field: 'Gender',
-              headerFilter: dropdownMultiCheck,
-              headerFilterFunc: multiSelectFilterFunc,
-              headerFilterParams: {
-                values: Array.from(new Set(participants.map(p => p.Gender).filter(Boolean))).sort()
-              }
-            },
-
-            
+            { title: 'Gender', field: 'Gender', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueGenders } },
             {
               title: "Age Min",
               field: "Age",
@@ -649,9 +595,9 @@
               formatter: cell => cell.getData().Age,
             },
 
+            { title: 'Ethnicity', field: 'Ethnicity', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueEthnicities } },
+            { title: 'Facial Surgery', field: 'FacialSurgery', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueFacialSurgeries } },
 
-            { title: 'Ethnicity', field: 'Ethnicity', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: ['White','Black or African American','American Indian or Alaska Native','Asian','Native Hawaiian or Other Pacific Islander','Hispanic','Prefer not to specify'] } },
-            { title: 'Facial Surgery', field: 'FacialSurgery', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: ['No Facial Surgery','Brow/forehead lift','Ear pinning','Chin, cheek, or jaw reshaping','Eyelid lift','Facelift','Facial implants','Hair replacement surgery','Lip augmentation','Rhinoplasty','Other','Prefer not to specify'] } },
             { title: "Age", field: "Age", visible: false, sorter: "number" },
           ],
         });
