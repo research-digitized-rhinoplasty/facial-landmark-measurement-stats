@@ -344,11 +344,14 @@
     }
 
     let participantsTable, measurementTable, landmarkTable, statsTable;
+    let participants = [];
     let currentChart;
 
     fetch('data.json')
       .then(r => r.ok ? r.json() : Promise.reject('data.json not found'))
-      .then(participants => {
+      .then(fetchedData => {
+        participants = fetchedData;
+ 
         allMeasurements = participants.flatMap(p =>
           (p.ParticipantMeasurements || []).map(m => ({
             participantFileId: p.participantFileId,
