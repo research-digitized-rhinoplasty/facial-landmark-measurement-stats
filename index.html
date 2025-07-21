@@ -382,8 +382,6 @@
           layout: 'fitColumns',
           pagination: 'local',
           paginationSize: 10,
-
-          paginationElement: document.getElementById("measurement-pagination"),
           columns: [
             { title: 'Participant ID', field: 'participantFileId' },
             {
@@ -440,7 +438,7 @@
         landmarkTable.on("pageLoaded", () => updateRowCount(landmarkTable, "landmark-row-count"));
 
 
-        const statsTable = new Tabulator("#stats-table", {
+        statsTable = new Tabulator("#stats-table", {
           layout: "fitColumns",
           columns: [], // will be auto-detected from data keys
         });
@@ -606,27 +604,22 @@
 
 
       document.getElementById('clearFilters').addEventListener('click', () => {
-        // Clear filters
-        participantsTable.clearHeaderFilter();
-        measurementTable.clearHeaderFilter();
-        landmarkTable.clearHeaderFilter();
-
-        // Restore original full data
-        participantsTable.replaceData(participants);
-        measurementTable.replaceData(allMeasurements);
-        landmarkTable.replaceData(allLandmarks);
-
-
-
-        // Reset dropdown labels (optional)
-        document.querySelectorAll('.dropdown-toggle').forEach(el => {
-          el.textContent = 'Select...';
+          participantsTable.clearHeaderFilter();
+          measurementTable.clearHeaderFilter();
+          landmarkTable.clearHeaderFilter();
+          participantsTable.replaceData(participants);
+          measurementTable.replaceData(allMeasurements);
+          landmarkTable.replaceData(allLandmarks);
+          document.querySelectorAll('.dropdown-toggle').forEach(el => el.textContent = 'Select...');
+          updateStats();
+          if (document.getElementById('chart-container').style.display !== 'none') drawChart();
         });
 
-        // Optionally redraw chart if visible
-        if (document.getElementById("chart-container").style.display !== "none") {
-          drawChart();
-        }
+        // Other event bindings (measure/landmark filtering, stats toggles, chart toggles) unchanged...
+      })
+      .catch(err => {
+        console.error(err);
+        document.querySelector('#participants-table').innerHTML = `<p style="color:red">${err}</p>`;
       });
 
 
@@ -759,17 +752,7 @@
           radio.addEventListener('change', updateStats);
         });
 
-        document.getElementById('clearFilters').addEventListener('click', () => {
-          participantsTable.clearHeaderFilter();
-          measurementTable.clearHeaderFilter();
-          landmarkTable.clearHeaderFilter();
-
-        });
-        })
-        .catch(err => {
-          console.error(err);
-          document.querySelector('#participants-table').innerHTML = `<p style="color:red">${err}</p>`;
-        });
+ 
 
         
 
