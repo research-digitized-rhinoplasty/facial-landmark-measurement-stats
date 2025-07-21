@@ -101,6 +101,22 @@
       color: #333;
     }
 
+    .stats-chart-controls {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    #stats-chart-wrapper.hidden-chart {
+      display: none;
+    }
+
+    #stats-chart-wrapper {
+      max-width: 900px;
+      margin-top: 20px;
+    }
+
 
   </style>
 </head>
@@ -160,6 +176,18 @@
   </div>
   <div id="stats-row-count" class="row-count-label"></div>  
   <div id="stats-table"></div>
+  <!-- Chart toggle button and chart canvas -->
+   <div class="stats-chart-controls">
+    <button id="toggle-stats-chart">Show Statistics Chart</button>
+  </div>
+  <div id="stats-chart-wrapper" class="hidden-chart">
+
+    <canvas id="stats-bar-chart"></canvas>
+  </div>
+
+
+
+  
 
 
 
@@ -557,6 +585,8 @@
 
           statsTable.setColumns(columns);
           statsTable.replaceData(statsData);
+          if (statsChartWrapper.style.display !== "none") updateStatsChart();
+
         }
 
 
@@ -898,23 +928,95 @@
   }
 
 
-  
+  // Toggle chart display
+  const statsChartWrapper = document.getElementById("stats-chart-wrapper");
+  const toggleStatsChartBtn = document.getElementById("toggle-stats-chart");
 
-    document.getElementById('downloadCSV').addEventListener('click', downloadAllFilteredData);
+  toggleStatsChartBtn.addEventListener("click", () => {
+    const isHidden = statsChartWrapper.style.display === "none";
+    statsChartWrapper.classList.toggle("hidden-chart", !isHidden);
+    toggleStatsChartBtn.textContent = isHidden ? "Hide Statistics Chart" : "Show Statistics Chart";
+    if (isHidden) updateStatsChart();
+  });
 
-    document.getElementById('create-chart').addEventListener('click', () => {
-      const chartContainer = document.getElementById('chart-container');
-      const chartButton = document.getElementById('create-chart');
+  let statsChart;
 
-      if (chartContainer.style.display === 'none' || chartContainer.style.display === '') {
-        chartContainer.style.display = 'grid';
-        chartButton.textContent = 'Hide Chart';
-        drawChart(); // draw chart only when showing
-      } else {
-        chartContainer.style.display = 'none';
-        chartButton.textContent = 'Show Chart';
+  function updateStatsChart() {
+    const type = document.querySelector('input[name="statsType"]:checked').value;
+    const statsData = statsTable.getData();
+
+    if (!statsData.length || type !== "measurements") {
+      if (statsChart) statsChart.destroy();
+      return;
+    }
+
+    const labels = statsData.map(row => row.Name);
+    const datasets = [
+      {
+        label: "Average",
+        data: statsData.map(row => parseFloat(row.Average)),
+        backgroundColor: "rgba(75, 192, 192, 0.6)"
+      },
+      {
+        label: "Median",
+        data: statsData.map(row => parseFloat(row.Median)),
+        backgroundColor: "rgba(255, 205, 86, 0.6)"
+      },
+      {
+        label: "Min",
+        data: statsData.map(row => parseFloat(row.Min)),
+        backgroundColor: "rgba(255, 99, 132, 0.6)"
+      },
+      {
+        label: "Max",
+        data: statsData.map(row => parseFloat(row.Max)),
+        backgroundColor: "rgba(54, 162, 235, 0.6)"
+      },
+      {
+        label: "Std Dev",
+        data: statsData.map(row => parseFloat(row.StdDev)),
+        backgroundColor: "rgba(201, 203, 207, 0.6)"
+      }
+    ];
+
+    const ctx = document.getElementById("stats-bar-chart").getContext("2d");
+    if (statsChart) statsChart.destroy();
+    statsChart = new Chart(ctx, {
+      type: "bar",
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        scales: { y: { beginAtZero: true } },
+        plugins: {
+          legend: { position: "top" },
+          title: { display: true, text: "Measurement Statistics Summary" }
+        }
       }
     });
+  }
+
+
+
+
+
+
+  
+
+  document.getElementById('downloadCSV').addEventListener('click', downloadAllFilteredData);
+
+  document.getElementById('create-chart').addEventListener('click', () => {
+    const chartContainer = document.getElementById('chart-container');
+    const chartButton = document.getElementById('create-chart');
+
+    if (chartContainer.style.display === 'none' || chartContainer.style.display === '') {
+      chartContainer.style.display = 'grid';
+      chartButton.textContent = 'Hide Chart';
+      drawChart(); // draw chart only when showing
+    } else {
+      chartContainer.style.display = 'none';
+      chartButton.textContent = 'Show Chart';
+    }
+  });
 
 
   // Re-draw chart when chart options change
@@ -988,14 +1090,6 @@
       }
     });
   }
-
-
-
-
-
-
-
-
 
   </script>
 </body>
