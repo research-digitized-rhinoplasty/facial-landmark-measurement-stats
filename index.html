@@ -94,30 +94,6 @@
       margin-right: 10px;
     }
 
-    .row-count-label {
-      font-size: 14px;
-      font-weight: normal;
-      margin: -10px 0 10px 0;
-      color: #333;
-    }
-
-    .stats-chart-controls {
-      margin-top: 10px;
-      display: flex;
-      align-items: center;
-      gap: 20px;
-    }
-
-    #stats-chart-wrapper.hidden-chart {
-      display: none;
-    }
-
-    #stats-chart-wrapper {
-      max-width: 900px;
-      margin-top: 20px;
-    }
-
-
   </style>
 </head>
 <body>
@@ -129,9 +105,7 @@
   </div>
 
   <h2>Participant Information</h2>
-  <div id="participants-row-count" class="row-count-label"></div>
   <div id="participants-table"></div>
-
 
   <!-- Chart container hidden until Chart button clicked -->
   <div id="chart-container">
@@ -158,39 +132,23 @@
 
 
   <h2>Measurements</h2>
-  <div id="measurement-row-count" class="row-count-label"></div>
   <div id="measurement-table"></div>
 
-
-
   <h2>Landmarks</h2>
-  <div id="landmark-row-count" class="row-count-label"></div>
   <div id="landmark-table"></div>
 
-  <div class="stats-controls">
+  <!-- ─────────────── STATISTICS CONTROLS & TABLE ─────────────── -->
+   <div class="stats-controls">
   <fieldset id="stats-options">
     <legend>Show stats for:</legend>
       <label><input type="radio" name="statsType" value="measurements" checked> Measurements</label>
       <label><input type="radio" name="statsType" value="landmarks"> Landmarks</label>
-      <button id="toggle-stats-chart">Show Statistics Chart</button>
     </fieldset>
   </div>
-  <div id="stats-row-count" class="row-count-label"></div>  
+
   <div id="stats-table"></div>
-  <!-- Chart toggle button and chart canvas -->
-   <div class="stats-chart-controls">
-    
-  </div>
-  <div id="stats-chart-wrapper" class="hidden-chart">
 
-    <canvas id="stats-bar-chart"></canvas>
-  </div>
-
-
-  
-
-
-
+  <!-- ───────────────────────────────────────────────────────────── -->
 
 
   <!-- Libraries -->
@@ -318,37 +276,37 @@
 
       // **auto-select everything on first render**
       onRendered(() => {
-        success(values.filter(v => v !== "Select All"));
+        success(values);
         updateLabel();
       });
 
       return toggle;
     }
 
-    function multiSelectFilterFunc(filterVals, cellVal) {
-      if (!filterVals || !filterVals.length) return true;
-      if (filterVals.includes("Select All")) return true;
 
-      const cleanedCell = (cellVal || "").toString().trim().toLowerCase();
-      return filterVals.some(fv => fv.toString().trim().toLowerCase() === cleanedCell);
+
+
+
+
+    function multiSelectFilterFunc(filterVals, cellVal) {
+      // no filters selected → show all
+      if (!filterVals || !filterVals.length) {
+        return true;
+      }
+      // “Select All” explicitly chosen → show all
+      if (filterVals.includes("Select All")) {
+        return true;
+      }
+      // otherwise only show if the cell’s value is one of the checked ones
+      return filterVals.includes(cellVal);
     }
 
-
-
-
-    let participants        = [];
-    let allMeasurements     = [];
-    let allLandmarks        = [];
-    let participantsTable, measurementTable, landmarkTable, statsTable;
-    let currentChart, statsChart;
-
-
+    let participantsTable, measurementTable, landmarkTable;
+    let currentChart;
 
     fetch('data.json')
       .then(r => r.ok ? r.json() : Promise.reject('data.json not found'))
-      .then(fetchedData => {
-        participants = fetchedData; 
-
+      .then(participants => {
         allMeasurements = participants.flatMap(p =>
           (p.ParticipantMeasurements || []).map(m => ({
             participantFileId: p.participantFileId,
@@ -357,8 +315,7 @@
             value: m.Value
           }))
         );
-
-        allLandmarks = participants.flatMap(p =>
+         allLandmarks = participants.flatMap(p =>
           (p.ParticipantLandmarks || []).map(l => ({
             participantFileId: p.participantFileId,
             landmarkName: l.LandmarkName,
@@ -367,101 +324,13 @@
             zVal: l.zVal
           }))
         );
-
         const uniqueGenders = Array.from(new Set(participants.map(p => p.Gender).filter(Boolean))).sort();
-        const uniqueEthnicities = Array.from(new Set(participants.map(p => p.Ethnicity?.trim()).filter(Boolean))).sort();
+        const uniqueEthnicities = Array.from(new Set(participants.map(p => p.Ethnicity).filter(Boolean))).sort();
         const uniqueFacialSurgeries = Array.from(new Set(participants.map(p => p.FacialSurgery).filter(Boolean))).sort();
         const uniqueMeasurementNames = Array.from(new Set(allMeasurements.map(m => m.measurementName).filter(Boolean))).sort();
         const measurementTypes = [...new Set(allMeasurements.map(m => m.measurementType).filter(Boolean))].sort();
         const uniqueLandmarkNames = Array.from(new Set(allLandmarks.map(l => l.landmarkName).filter(Boolean))).sort();
-      
-        participantsTable = new Tabulator('#participants-table', 
-        {
-          data: participants,
-          layout: 'fitColumns',
-          pagination: 'local',
-          paginationSize: 10,
-          columns: [
-            { title: 'Participant ID', field: 'participantFileId' },
-            { title: 'Gender', field: 'Gender', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueGenders } },
-            
-            {
-              title: "Age Min",
-              field: "Age",
-              headerFilter: "input",
-              headerFilterLiveFilter: true,       
-              headerFilterPlaceholder: "Min...",
-              headerFilterFunc: function(fv, rv, row) {
-                if (!fv) return true;
-                return parseInt(row.Age, 10) >= parseInt(fv, 10);
-              },
-              sorter: "number",
-              headerSort: true,
-              formatter: cell => cell.getData().Age,
-            },
-            {
-              title: "Age Max",
-              field: "AgeMaxFilter",
-              headerFilter: "input",
-              headerFilterLiveFilter: true,      
-              headerFilterPlaceholder: "Max...",
-              headerFilterFunc: function(fv, rv, row) {
-                if (!fv) return true;
-                return parseInt(row.Age, 10) <= parseInt(fv, 10);
-              },
-              sorter: "number",
-              headerSort: true,
-              formatter: cell => cell.getData().Age,
-            },
 
-
-            { title: 'Ethnicity', field: 'Ethnicity', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueEthnicities } },
-            { title: 'Facial Surgery', field: 'FacialSurgery', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueFacialSurgeries } },
-
-            { title: "Age", field: "Age", visible: false, sorter: "number" },
-          ],
-        });
-        updateRowCount(participantsTable, "participants-row-count");
-        participantsTable.on("dataFiltered", () => updateRowCount(participantsTable, "participants-row-count"));
-        participantsTable.on("pageLoaded", () => updateRowCount(participantsTable, "participants-row-count"));
-           
-
-        participantsTable.on('dataFiltered', (filters, rows) => 
-        {
-          const ids = rows.map(r => r.getData().participantFileId);
-          measurementTable.replaceData(allMeasurements.filter(m => ids.includes(m.participantFileId)));
-          landmarkTable.replaceData(allLandmarks.filter(l => ids.includes(l.participantFileId)));
-          updateStats();
-
-          // now rebuild the chart from `rows`
-          const chartVisible = document.getElementById('chart-container').style.display !== 'none';
-          const category     = document.querySelector('input[name="category"]:checked').value;
-
-          if (chartVisible && category === 'Age') {
-            // pull raw data objects out of the RowComponents:
-            const data = rows.map(r => r.getData());
-
-            // count ages
-            const counts = {};
-            data.forEach(p => {
-              const age = parseInt(p.Age, 10);
-              if (!isNaN(age)) counts[age] = (counts[age] || 0) + 1;
-            });
-
-            // sort & build labels + percent values
-            const labels     = Object.keys(counts).sort((a, b) => a - b);
-            const rawCounts  = labels.map(l => counts[l]);
-            const total      = rawCounts.reduce((a, b) => a + b, 0) || 1;
-            const percentages= rawCounts.map(c => (c / total * 100).toFixed(2));
-
-            // overwrite Chart.js data & redraw
-            window.currentChart.data.labels           = labels;
-            window.currentChart.data.datasets[0].data = percentages;
-            window.currentChart.update();
-          }
-
-
-        });
 
         measurementTable = new Tabulator('#measurement-table', {
           data: allMeasurements,
@@ -492,10 +361,6 @@
             { title: 'Value', field: 'value' },
           ],
         });
-        updateRowCount(measurementTable, "measurement-row-count");
-        measurementTable.on("dataFiltered", () => updateRowCount(measurementTable, "measurement-row-count"));
-        measurementTable.on("pageLoaded", () => updateRowCount(measurementTable, "measurement-row-count"));
-
 
 
         landmarkTable = new Tabulator('#landmark-table', {
@@ -519,17 +384,14 @@
             { title: 'Z Value', field: 'zVal' },
           ],
         });
-        updateRowCount(landmarkTable, "landmark-row-count");
-        landmarkTable.on("dataFiltered", () => updateRowCount(landmarkTable, "landmark-row-count"));
-        landmarkTable.on("pageLoaded", () => updateRowCount(landmarkTable, "landmark-row-count"));
 
-
-        statsTable = new Tabulator("#stats-table", {
+        // ─────────────── INITIALIZE STATS TABLE ───────────────
+        const statsTable = new Tabulator("#stats-table", {
           layout: "fitColumns",
           columns: [], // will be auto-detected from data keys
         });
-        updateRowCount(statsTable, "stats-row-count");
-        statsTable.on("dataChanged", () => updateRowCount(statsTable, "stats-row-count"));
+
+        // ────────────────────────────────────────────────────────
 
 
         // ─────────────── UTILITY FUNCTIONS ───────────────
@@ -553,25 +415,12 @@
           const table = (type === "measurements") ? measurementTable : landmarkTable;
           const rows = table.getData(true); // only filtered rows
 
-          let allowedNames = [], allowedTypes = [];
-
+          let allowedNames = [];
           if (type === "measurements") {
             allowedNames = measurementTable.getHeaderFilterValue("measurementName") || [];
-            allowedTypes = measurementTable.getHeaderFilterValue("measurementType") || [];
           } else {
             allowedNames = landmarkTable.getHeaderFilterValue("landmarkName") || [];
           }
-
-          // Normalize to arrays
-          if (!Array.isArray(allowedNames)) allowedNames = [allowedNames];
-          if (!Array.isArray(allowedTypes)) allowedTypes = [allowedTypes];
-
-          // Treat "Select All" or empty as showing everything
-          const showAllNames = allowedNames.length === 0 || allowedNames.includes("Select All");
-          const showAllTypes = type !== "measurements" || allowedTypes.length === 0 || allowedTypes.includes("Select All");
-
-
-
 
           if (!Array.isArray(allowedNames)) allowedNames = [allowedNames];
           if (allowedNames.length === 0) {
@@ -580,16 +429,9 @@
             return;
           }
 
-          const filtered = rows.filter(row => {
-            if (type === "measurements") {
-              const nameMatch = showAllNames || allowedNames.includes(row.measurementName);
-              const typeMatch = showAllTypes || allowedTypes.includes(row.measurementType);
-              return nameMatch && typeMatch;
-            } else {
-              return showAllNames || allowedNames.includes(row.landmarkName);
-            }
-          });
-
+          const filtered = rows.filter(row =>
+            allowedNames.includes(type === "measurements" ? row.measurementName : row.landmarkName)
+          );
 
           const groups = filtered.reduce((acc, row) => {
             const name = type === "measurements" ? row.measurementName : row.landmarkName;
@@ -672,12 +514,7 @@
 
           statsTable.setColumns(columns);
           statsTable.replaceData(statsData);
-          if (statsChartWrapper.style.display !== "none") updateStatsChart();
-
         }
-
-
-
 
         // Auto-switch table + stats when Measurement/Landmark radio changes
       document.querySelectorAll('input[name="statsType"]').forEach(radio => {
@@ -687,30 +524,29 @@
         });
       });
 
-
-
       document.getElementById('clearFilters').addEventListener('click', () => {
-          participantsTable.clearHeaderFilter();
-          measurementTable.clearHeaderFilter();
-          landmarkTable.clearHeaderFilter();
-          participantsTable.replaceData(participants);
-          measurementTable.replaceData(allMeasurements);
-          landmarkTable.replaceData(allLandmarks);
-          document.querySelectorAll('.dropdown-toggle').forEach(el => el.textContent = 'Select...');
-          updateStats();
-          if (document.getElementById('chart-container').style.display !== 'none') drawChart();
+        // Clear filters
+        participantsTable.clearHeaderFilter();
+        measurementTable.clearHeaderFilter();
+        landmarkTable.clearHeaderFilter();
+
+        // Restore original full data
+        participantsTable.replaceData(participants);
+        measurementTable.replaceData(allMeasurements);
+        landmarkTable.replaceData(allLandmarks);
+
+
+
+        // Reset dropdown labels (optional)
+        document.querySelectorAll('.dropdown-toggle').forEach(el => {
+          el.textContent = 'Select...';
         });
 
-        // Other event bindings (measure/landmark filtering, stats toggles, chart toggles) unchanged...
-      })
-      .catch(err => {
-        console.error(err);
-        document.querySelector('#participants-table').innerHTML = `<p style="color:red">${err}</p>`;
+        // Optionally redraw chart if visible
+        if (document.getElementById("chart-container").style.display !== "none") {
+          drawChart();
+        }
       });
-
-
-
-
 
 
 
@@ -729,15 +565,89 @@
 
 
 
-     
+        participantsTable = new Tabulator('#participants-table', {
+          data: participants,
+          layout: 'fitColumns',
+          pagination: 'local',
+          paginationSize: 10,
+          columns: [
+            { title: 'Participant ID', field: 'participantFileId' },
+            { title: 'Gender', field: 'Gender', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueGenders } },
+            {
+              title: "Age Min",
+              field: "Age",
+              headerFilter: "input",
+              headerFilterLiveFilter: true,       
+              headerFilterPlaceholder: "Min...",
+              headerFilterFunc: function(fv, rv, row) {
+                if (!fv) return true;
+                return parseInt(row.Age, 10) >= parseInt(fv, 10);
+              },
+              accessor: (v,d) => parseInt(d.Age, 10),
+              sorter: "number",
+              headerSort: true,
+              formatter: cell => cell.getData().Age,
+            },
+              
+            {
+              title: "Age Max",
+              field: "AgeMaxFilter",
+              headerFilter: "input",
+              headerFilterLiveFilter: true,      
+              headerFilterPlaceholder: "Max...",
+              headerFilterFunc: function(fv, rv, row) {
+                if (!fv) return true;
+                return parseInt(row.Age, 10) <= parseInt(fv, 10);
+              },
+              accessor: (v,d) => parseInt(d.Age, 10),
+              sorter: "number",
+              headerSort: true,
+              formatter: cell => cell.getData().Age,
+            },
 
-        function updateRowCount(table, spanId) {
-        const count = table.getData("active").length;
-        document.getElementById(spanId).textContent = `Rows filtered: ${count}`;
-      }
+            { title: 'Ethnicity', field: 'Ethnicity', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueEthnicities } },
+            { title: 'Facial Surgery', field: 'FacialSurgery', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueFacialSurgeries } },
+
+            { title: "Age", field: "Age", visible: false, sorter: "number" },
+          ],
+        });
 
 
-  
+        participantsTable.on('dataFiltered', (filters, rows) => {
+          const ids = rows.map(r => r.getData().participantFileId);
+          measurementTable.replaceData(allMeasurements.filter(m => ids.includes(m.participantFileId)));
+          landmarkTable.replaceData(allLandmarks.filter(l => ids.includes(l.participantFileId)));
+          updateStats();
+
+          // now rebuild the chart from `rows`
+          const chartVisible = document.getElementById('chart-container').style.display !== 'none';
+          const category     = document.querySelector('input[name="category"]:checked').value;
+
+          if (chartVisible && category === 'Age') {
+            // pull raw data objects out of the RowComponents:
+            const data = rows.map(r => r.getData());
+
+            // count ages
+            const counts = {};
+            data.forEach(p => {
+              const age = parseInt(p.Age, 10);
+              if (!isNaN(age)) counts[age] = (counts[age] || 0) + 1;
+            });
+
+            // sort & build labels + percent values
+            const labels     = Object.keys(counts).sort((a, b) => a - b);
+            const rawCounts  = labels.map(l => counts[l]);
+            const total      = rawCounts.reduce((a, b) => a + b, 0) || 1;
+            const percentages= rawCounts.map(c => (c / total * 100).toFixed(2));
+
+            // overwrite Chart.js data & redraw
+            window.currentChart.data.labels           = labels;
+            window.currentChart.data.datasets[0].data = percentages;
+            window.currentChart.update();
+          }
+
+
+        });
 
         // Live updates from measurement & landmark tables
         measurementTable.on("dataFiltered", updateStats);
@@ -756,7 +666,17 @@
           radio.addEventListener('change', updateStats);
         });
 
- 
+        document.getElementById('clearFilters').addEventListener('click', () => {
+          participantsTable.clearHeaderFilter();
+          measurementTable.clearHeaderFilter();
+          landmarkTable.clearHeaderFilter();
+
+        });
+        })
+        .catch(err => {
+          console.error(err);
+          document.querySelector('#participants-table').innerHTML = `<p style="color:red">${err}</p>`;
+        });
 
         
 
@@ -917,95 +837,23 @@
   }
 
 
-  // Toggle chart display
-  const statsChartWrapper = document.getElementById("stats-chart-wrapper");
-  const toggleStatsChartBtn = document.getElementById("toggle-stats-chart");
-
-  toggleStatsChartBtn.addEventListener("click", () => {
-    const isHidden = statsChartWrapper.style.display === "none";
-    statsChartWrapper.classList.toggle("hidden-chart", !isHidden);
-    toggleStatsChartBtn.textContent = isHidden ? "Hide Statistics Chart" : "Show Statistics Chart";
-    if (isHidden) updateStatsChart();
-  });
-
-  let statsChart;
-
-  function updateStatsChart() {
-    const type = document.querySelector('input[name="statsType"]:checked').value;
-    const statsData = statsTable.getData();
-
-    if (!statsData.length || type !== "measurements") {
-      if (statsChart) statsChart.destroy();
-      return;
-    }
-
-    const labels = statsData.map(row => row.Name);
-    const datasets = [
-      {
-        label: "Average",
-        data: statsData.map(row => parseFloat(row.Average)),
-        backgroundColor: "rgba(75, 192, 192, 0.6)"
-      },
-      {
-        label: "Median",
-        data: statsData.map(row => parseFloat(row.Median)),
-        backgroundColor: "rgba(255, 205, 86, 0.6)"
-      },
-      {
-        label: "Min",
-        data: statsData.map(row => parseFloat(row.Min)),
-        backgroundColor: "rgba(255, 99, 132, 0.6)"
-      },
-      {
-        label: "Max",
-        data: statsData.map(row => parseFloat(row.Max)),
-        backgroundColor: "rgba(54, 162, 235, 0.6)"
-      },
-      {
-        label: "Std Dev",
-        data: statsData.map(row => parseFloat(row["Std. Deviation"])),
-        backgroundColor: "rgba(201, 203, 207, 0.6)"
-      }
-    ];
-
-    const ctx = document.getElementById("stats-bar-chart").getContext("2d");
-    if (statsChart) statsChart.destroy();
-    statsChart = new Chart(ctx, {
-      type: "bar",
-      data: { labels, datasets },
-      options: {
-        responsive: true,
-        scales: { y: { beginAtZero: true } },
-        plugins: {
-          legend: { position: "top" },
-          title: { display: true, text: "Measurement Statistics Summary" }
-        }
-      }
-    });
-  }
-
-
-
-
-
-
   
 
-  document.getElementById('downloadCSV').addEventListener('click', downloadAllFilteredData);
+    document.getElementById('downloadCSV').addEventListener('click', downloadAllFilteredData);
 
-  document.getElementById('create-chart').addEventListener('click', () => {
-    const chartContainer = document.getElementById('chart-container');
-    const chartButton = document.getElementById('create-chart');
+    document.getElementById('create-chart').addEventListener('click', () => {
+      const chartContainer = document.getElementById('chart-container');
+      const chartButton = document.getElementById('create-chart');
 
-    if (chartContainer.style.display === 'none' || chartContainer.style.display === '') {
-      chartContainer.style.display = 'grid';
-      chartButton.textContent = 'Hide Chart';
-      drawChart(); // draw chart only when showing
-    } else {
-      chartContainer.style.display = 'none';
-      chartButton.textContent = 'Show Chart';
-    }
-  });
+      if (chartContainer.style.display === 'none' || chartContainer.style.display === '') {
+        chartContainer.style.display = 'grid';
+        chartButton.textContent = 'Hide Chart';
+        drawChart(); // draw chart only when showing
+      } else {
+        chartContainer.style.display = 'none';
+        chartButton.textContent = 'Show Chart';
+      }
+    });
 
 
   // Re-draw chart when chart options change
@@ -1016,7 +864,6 @@
   document.getElementById('chart-type-options').addEventListener('change', drawChart);
 
   function drawChart() {
-    if (!participantsTable) return;
     const data = participantsTable.getData("active");
 
     if (!data.length) return;
@@ -1079,6 +926,14 @@
       }
     });
   }
+
+
+
+
+
+
+
+
 
   </script>
 </body>
