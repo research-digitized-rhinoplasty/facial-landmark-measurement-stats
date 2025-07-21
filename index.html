@@ -569,9 +569,7 @@
   
         });
       });
-      updateRowCount(participantsTable, "participants-row-count");
-      participantsTable.on("dataFiltered", () => updateRowCount(participantsTable, "participants-row-count"));
-      participantsTable.on("pageLoaded", () => updateRowCount(participantsTable, "participants-row-count"));
+
 
 
       document.getElementById('clearFilters').addEventListener('click', () => {
@@ -598,10 +596,7 @@
         }
       });
 
-      function updateRowCount(table, spanId) {
-        const count = table.getData("active").length;
-        document.getElementById(spanId).textContent = `Rows shown: ${count}`;
-      }
+
 
 
 
@@ -668,6 +663,15 @@
             { title: "Age", field: "Age", visible: false, sorter: "number" },
           ],
         });
+        updateRowCount(participantsTable, "participants-row-count");
+        participantsTable.on("dataFiltered", () => updateRowCount(participantsTable, "participants-row-count"));
+        participantsTable.on("pageLoaded", () => updateRowCount(participantsTable, "participants-row-count"));
+                
+
+        function updateRowCount(table, spanId) {
+        const count = table.getData("active").length;
+        document.getElementById(spanId).textContent = `Rows filtered: ${count}`;
+      }
 
 
         participantsTable.on('dataFiltered', (filters, rows) => {
