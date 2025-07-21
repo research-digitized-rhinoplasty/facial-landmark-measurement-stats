@@ -377,6 +377,99 @@
         const uniqueLandmarkNames = Array.from(new Set(allLandmarks.map(l => l.landmarkName).filter(Boolean))).sort();
 
 
+        participantsTable = new Tabulator('#participants-table', 
+        {
+          data: participants,
+          layout: 'fitColumns',
+          pagination: 'local',
+          paginationSize: 10,
+          columns: [
+            { title: 'Participant ID', field: 'participantFileId' },
+            { title: 'Gender', field: 'Gender', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueGenders } },
+           
+            {
+              title: "Age Min",
+              field: "Age",
+              headerFilter: "input",
+              headerFilterLiveFilter: true,       
+              headerFilterPlaceholder: "Min...",
+              headerFilterFunc: function(fv, rv, row) {
+                if (!fv) return true;
+                return parseInt(row.Age, 10) >= parseInt(fv, 10);
+              },
+              sorter: "number",
+              headerSort: true,
+              formatter: cell => cell.getData().Age,
+            },
+            {
+              title: "Age Max",
+              field: "AgeMaxFilter",
+              headerFilter: "input",
+              headerFilterLiveFilter: true,      
+              headerFilterPlaceholder: "Max...",
+              headerFilterFunc: function(fv, rv, row) {
+                if (!fv) return true;
+                return parseInt(row.Age, 10) <= parseInt(fv, 10);
+              },
+              sorter: "number",
+              headerSort: true,
+              formatter: cell => cell.getData().Age,
+            },
+
+
+            { title: 'Ethnicity', field: 'Ethnicity', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueEthnicities } },
+            { title: 'Facial Surgery', field: 'FacialSurgery', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueFacialSurgeries } },
+
+            { title: "Age", field: "Age", visible: false, sorter: "number" },
+          ],
+        });
+
+
+        updateRowCount(participantsTable, "participants-row-count");
+        participantsTable.on("dataFiltered", () => updateRowCount(participantsTable, "participants-row-count"));
+        participantsTable.on("pageLoaded", () => updateRowCount(participantsTable, "participants-row-count"));
+           
+
+        participantsTable.on('dataFiltered', (filters, rows) => 
+        {
+          const ids = rows.map(r => r.getData().participantFileId);
+          measurementTable.replaceData(allMeasurements.filter(m => ids.includes(m.participantFileId)));
+          landmarkTable.replaceData(allLandmarks.filter(l => ids.includes(l.participantFileId)));
+          updateStats();
+
+          // now rebuild the chart from `rows`
+          const chartVisible = document.getElementById('chart-container').style.display !== 'none';
+          const category     = document.querySelector('input[name="category"]:checked').value;
+
+          if (chartVisible && category === 'Age') {
+            // pull raw data objects out of the RowComponents:
+            const data = rows.map(r => r.getData());
+
+            // count ages
+            const counts = {};
+            data.forEach(p => {
+              const age = parseInt(p.Age, 10);
+              if (!isNaN(age)) counts[age] = (counts[age] || 0) + 1;
+            });
+
+            // sort & build labels + percent values
+            const labels     = Object.keys(counts).sort((a, b) => a - b);
+            const rawCounts  = labels.map(l => counts[l]);
+            const total      = rawCounts.reduce((a, b) => a + b, 0) || 1;
+            const percentages= rawCounts.map(c => (c / total * 100).toFixed(2));
+
+            // overwrite Chart.js data & redraw
+            window.currentChart.data.labels           = labels;
+            window.currentChart.data.datasets[0].data = percentages;
+            window.currentChart.update();
+          }
+
+
+        });
+
+        
+
+
         measurementTable = new Tabulator('#measurement-table', {
           data: allMeasurements,
           layout: 'fitColumns',
@@ -643,55 +736,7 @@
 
 
 
-        participantsTable = new Tabulator('#participants-table', {
-          data: participants,
-          layout: 'fitColumns',
-          pagination: 'local',
-          paginationSize: 10,
-          columns: [
-            { title: 'Participant ID', field: 'participantFileId' },
-            { title: 'Gender', field: 'Gender', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueGenders } },
-           
-            {
-              title: "Age Min",
-              field: "Age",
-              headerFilter: "input",
-              headerFilterLiveFilter: true,       
-              headerFilterPlaceholder: "Min...",
-              headerFilterFunc: function(fv, rv, row) {
-                if (!fv) return true;
-                return parseInt(row.Age, 10) >= parseInt(fv, 10);
-              },
-              sorter: "number",
-              headerSort: true,
-              formatter: cell => cell.getData().Age,
-            },
-            {
-              title: "Age Max",
-              field: "AgeMaxFilter",
-              headerFilter: "input",
-              headerFilterLiveFilter: true,      
-              headerFilterPlaceholder: "Max...",
-              headerFilterFunc: function(fv, rv, row) {
-                if (!fv) return true;
-                return parseInt(row.Age, 10) <= parseInt(fv, 10);
-              },
-              sorter: "number",
-              headerSort: true,
-              formatter: cell => cell.getData().Age,
-            },
-
-
-            { title: 'Ethnicity', field: 'Ethnicity', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueEthnicities } },
-            { title: 'Facial Surgery', field: 'FacialSurgery', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueFacialSurgeries } },
-
-            { title: "Age", field: "Age", visible: false, sorter: "number" },
-          ],
-        });
-        updateRowCount(participantsTable, "participants-row-count");
-        participantsTable.on("dataFiltered", () => updateRowCount(participantsTable, "participants-row-count"));
-        participantsTable.on("pageLoaded", () => updateRowCount(participantsTable, "participants-row-count"));
-                
+     
 
         function updateRowCount(table, spanId) {
         const count = table.getData("active").length;
@@ -699,41 +744,7 @@
       }
 
 
-        participantsTable.on('dataFiltered', (filters, rows) => {
-          const ids = rows.map(r => r.getData().participantFileId);
-          measurementTable.replaceData(allMeasurements.filter(m => ids.includes(m.participantFileId)));
-          landmarkTable.replaceData(allLandmarks.filter(l => ids.includes(l.participantFileId)));
-          updateStats();
-
-          // now rebuild the chart from `rows`
-          const chartVisible = document.getElementById('chart-container').style.display !== 'none';
-          const category     = document.querySelector('input[name="category"]:checked').value;
-
-          if (chartVisible && category === 'Age') {
-            // pull raw data objects out of the RowComponents:
-            const data = rows.map(r => r.getData());
-
-            // count ages
-            const counts = {};
-            data.forEach(p => {
-              const age = parseInt(p.Age, 10);
-              if (!isNaN(age)) counts[age] = (counts[age] || 0) + 1;
-            });
-
-            // sort & build labels + percent values
-            const labels     = Object.keys(counts).sort((a, b) => a - b);
-            const rawCounts  = labels.map(l => counts[l]);
-            const total      = rawCounts.reduce((a, b) => a + b, 0) || 1;
-            const percentages= rawCounts.map(c => (c / total * 100).toFixed(2));
-
-            // overwrite Chart.js data & redraw
-            window.currentChart.data.labels           = labels;
-            window.currentChart.data.datasets[0].data = percentages;
-            window.currentChart.update();
-          }
-
-
-        });
+  
 
         // Live updates from measurement & landmark tables
         measurementTable.on("dataFiltered", updateStats);
