@@ -589,7 +589,17 @@
           paginationSize: 10,
           columns: [
             { title: 'Participant ID', field: 'participantFileId' },
-            { title: 'Gender', field: 'Gender', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: ['M','F','Other'] } },
+
+            {
+              title: 'Gender',
+              field: 'Gender',
+              headerFilter: dropdownMultiCheck,
+              headerFilterFunc: multiSelectFilterFunc,
+              headerFilterParams: {
+                values: Array.from(new Set(participants.map(p => p.Gender).filter(Boolean))).sort()
+              }
+            },
+
             
             {
               title: "Age Min",
