@@ -55,7 +55,20 @@
     }
     .checkbox-dropdown label { display: block; font-size: 12px; cursor: pointer; margin-bottom: 2px; }
     .checkbox-dropdown input { margin-right: 6px; }
-    .dropdown-toggle { cursor: pointer; padding: 4px; border: 1px solid #ccc; background: #fff; width: 100%; box-sizing: border-box; }
+
+    .dropdown-toggle {
+      cursor: pointer;
+      padding: 4px;
+      border: 1px solid #ccc;
+      background: #fff;
+      width: 100%;
+      box-sizing: border-box;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      display: inline-block;
+    }
 
     /* Chart options styling */
     #chart-options { border: 1px solid #ccc; padding: 10px; max-width: 400px; }
@@ -162,12 +175,15 @@
       toggle.classList.add("dropdown-toggle");
       toggle.textContent = "Select All";
 
+
+
       // helper to refresh the label text
       const updateLabel = () => {
         const current = table.getHeaderFilterValue(field) || [];
         toggle.textContent = current.length
           ? current.join(", ")
           : "Select...";
+        toggle.title = current.join(", ");
       };
 
       let list; // will hold our popup
