@@ -566,9 +566,6 @@
           statsTable.setColumns(columns);
           statsTable.replaceData(statsData);
         }
-        updateRowCount(participantsTable, "participants-row-count");
-        participantsTable.on("dataFiltered", () => updateRowCount(participantsTable, "participants-row-count"));
-        participantsTable.on("pageLoaded", () => updateRowCount(participantsTable, "participants-row-count"));
 
 
 
@@ -580,6 +577,10 @@
   
         });
       });
+      updateRowCount(participantsTable, "participants-row-count");
+      participantsTable.on("dataFiltered", () => updateRowCount(participantsTable, "participants-row-count"));
+      participantsTable.on("pageLoaded", () => updateRowCount(participantsTable, "participants-row-count"));
+
 
       document.getElementById('clearFilters').addEventListener('click', () => {
         // Clear filters
