@@ -441,12 +441,25 @@
           const table = (type === "measurements") ? measurementTable : landmarkTable;
           const rows = table.getData(true); // only filtered rows
 
-          let allowedNames = [];
+          let allowedNames = [], allowedTypes = [];
+
           if (type === "measurements") {
             allowedNames = measurementTable.getHeaderFilterValue("measurementName") || [];
+            allowedTypes = measurementTable.getHeaderFilterValue("measurementType") || [];
           } else {
             allowedNames = landmarkTable.getHeaderFilterValue("landmarkName") || [];
           }
+
+          // Normalize to arrays
+          if (!Array.isArray(allowedNames)) allowedNames = [allowedNames];
+          if (!Array.isArray(allowedTypes)) allowedTypes = [allowedTypes];
+
+          // Treat "Select All" or empty as showing everything
+          const showAllNames = allowedNames.length === 0 || allowedNames.includes("Select All");
+          const showAllTypes = type !== "measurements" || allowedTypes.length === 0 || allowedTypes.includes("Select All");
+
+
+
 
           if (!Array.isArray(allowedNames)) allowedNames = [allowedNames];
           if (allowedNames.length === 0) {
@@ -455,9 +468,16 @@
             return;
           }
 
-          const filtered = rows.filter(row =>
-            allowedNames.includes(type === "measurements" ? row.measurementName : row.landmarkName)
-          );
+          const filtered = rows.filter(row => {
+            if (type === "measurements") {
+              const nameMatch = showAllNames || allowedNames.includes(row.measurementName);
+              const typeMatch = showAllTypes || allowedTypes.includes(row.measurementType);
+              return nameMatch && typeMatch;
+            } else {
+              return showAllNames || allowedNames.includes(row.landmarkName);
+            }
+          });
+
 
           const groups = filtered.reduce((acc, row) => {
             const name = type === "measurements" ? row.measurementName : row.landmarkName;
