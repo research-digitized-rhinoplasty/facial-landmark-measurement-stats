@@ -269,9 +269,10 @@
         
         updateLabel();
 
-
-        const filteredData = participantsTable.getData("active");
-        updateParticipantChart(filteredData);
+        const chartVisible = document.getElementById("chart-container").style.display !== "none";
+        if (chartVisible) {
+          drawChart();
+        }
       }
 
       toggle.addEventListener("click", e => {
