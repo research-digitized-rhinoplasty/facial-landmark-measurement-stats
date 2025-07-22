@@ -129,15 +129,12 @@
     <canvas id="chart-canvas"></canvas>
   </div>
 
-
-
   <h2>Measurements</h2>
   <div id="measurement-table"></div>
 
   <h2>Landmarks</h2>
   <div id="landmark-table"></div>
 
-  <!-- ─────────────── STATISTICS CONTROLS & TABLE ─────────────── -->
    <div class="stats-controls">
   <fieldset id="stats-options">
     <legend>Show stats for:</legend>
@@ -147,9 +144,6 @@
   </div>
 
   <div id="stats-table"></div>
-
-  <!-- ───────────────────────────────────────────────────────────── -->
-
 
   <!-- Libraries -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
@@ -175,8 +169,6 @@
       toggle.classList.add("dropdown-toggle");
       toggle.textContent = "Select All";
 
-
-
       // helper to refresh the label text
       const updateLabel = () => {
         const current = table.getHeaderFilterValue(field) || [];
@@ -186,7 +178,7 @@
         toggle.title = current.join(", ");
       };
 
-      let list; // will hold our popup
+      let list;
 
       function openDropdown() {
         if (list) return; // already open
@@ -289,11 +281,6 @@
       return toggle;
     }
 
-
-
-
-
-
     function multiSelectFilterFunc(filterVals, cellVal) {
       // no filters selected → show all
       if (!filterVals || !filterVals.length) {
@@ -391,14 +378,11 @@
           ],
         });
 
-        // ─────────────── INITIALIZE STATS TABLE ───────────────
+
         const statsTable = new Tabulator("#stats-table", {
           layout: "fitColumns",
           columns: [], // will be auto-detected from data keys
         });
-
-        // ────────────────────────────────────────────────────────
-
 
         // ─────────────── UTILITY FUNCTIONS ───────────────
         function mean(arr) {
@@ -422,11 +406,15 @@
           const rows = table.getData(true); // only filtered rows
 
           let allowedNames = [];
+          let allowedTypes = [];
+
           if (type === "measurements") {
             allowedNames = measurementTable.getHeaderFilterValue("measurementName") || [];
+            allowedTypes = measurementTable.getHeaderFilterValue("measurementType") || [];
           } else {
             allowedNames = landmarkTable.getHeaderFilterValue("landmarkName") || [];
           }
+
 
           if (!Array.isArray(allowedNames)) allowedNames = [allowedNames];
           if (allowedNames.length === 0) {
@@ -435,9 +423,23 @@
             return;
           }
 
-          const filtered = rows.filter(row =>
-            allowedNames.includes(type === "measurements" ? row.measurementName : row.landmarkName)
-          );
+          if (!Array.isArray(allowedTypes)) allowedTypes = [allowedTypes];
+
+          let filtered = rows;
+
+          if (type === "measurements") {
+            if (allowedNames.length > 0) {
+              filtered = filtered.filter(row => allowedNames.includes(row.measurementName));
+            }
+            if (allowedTypes.length > 0) {
+              filtered = filtered.filter(row => allowedTypes.includes(row.measurementType));
+            }
+          } else {
+            if (allowedNames.length > 0) {
+              filtered = filtered.filter(row => allowedNames.includes(row.landmarkName));
+            }
+          }
+
 
           const groups = filtered.reduce((acc, row) => {
             const name = type === "measurements" ? row.measurementName : row.landmarkName;
