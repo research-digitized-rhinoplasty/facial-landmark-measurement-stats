@@ -162,7 +162,7 @@
   <button id="toggle-stats-chart">Show Stats Chart</button>
 
   <div id="stats-table"></div>
-  
+
   <div id="stats-chart-container">
   <fieldset id="stats-chart-options">
     <legend>Chart Type:</legend>
@@ -665,16 +665,14 @@
         const statsChartOptions = document.getElementById('stats-chart-options');
 
         toggleStatsBtn.addEventListener('click', () => {
-          const hidden = statsChartDiv.style.display === 'none' || statsChartDiv.style.display === '';
+          const isHidden = getComputedStyle(statsChartDiv).display === 'none';
 
-          if (hidden) {
-            // reveal both the chart and its options
+          if (isHidden) {
             statsChartDiv.style.display     = 'block';
             statsChartOptions.style.display = 'block';
             toggleStatsBtn.textContent      = 'Hide Stats Chart';
             updateStatsChart();
           } else {
-            // hide both again
             statsChartDiv.style.display     = 'none';
             statsChartOptions.style.display = 'none';
             toggleStatsBtn.textContent      = 'Show Stats Chart';
@@ -682,10 +680,6 @@
         });
 
 
-
-
-
-        // ─── wire it all up ────────────────────────────────────────────────────────────────
         initStatsChart();
         updateStatsChart();
 
