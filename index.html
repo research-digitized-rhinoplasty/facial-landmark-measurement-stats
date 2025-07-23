@@ -645,9 +645,10 @@
           ],
         });
 
-        participantTable.on("dataFiltered", () => updateRowCount(participantTable, "participant-row-count"));
-        participantTable.on("renderComplete", () => updateRowCount(participantTable, "participant-row-count"));
-        updateRowCount(participantTable, "participant-row-count");
+        participantsTable.on("dataFiltered", () => updateRowCount(participantsTable, "participant-row-count"));
+        participantsTable.on("renderComplete", () => updateRowCount(participantsTable, "participant-row-count"));
+        updateRowCount(participantsTable, "participant-row-count");
+
 
 
         participantsTable.on('dataFiltered', (filters, rows) => {
