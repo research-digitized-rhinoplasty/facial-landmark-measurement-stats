@@ -94,6 +94,11 @@
       margin-right: 10px;
     }
 
+    #stats-chart {
+      max-width: 100%;
+      margin-top: 1em;
+    }
+
   </style>
 </head>
 <body>
@@ -135,19 +140,29 @@
   <h2>Landmarks</h2>
   <div id="landmark-table"></div>
 
-   <div class="stats-controls">
+  <div class="stats-controls">
   <fieldset id="stats-options">
     <legend>Show stats for:</legend>
       <label><input type="radio" name="statsType" value="measurements" checked> Measurements</label>
       <label><input type="radio" name="statsType" value="landmarks"> Landmarks</label>
     </fieldset>
+    <fieldset id="stats-chart-options">
+      <legend>Chart Type:</legend>
+      <label><input type="radio" name="statsChartType" value="histogram" checked> Histogram</label>
+      <label><input type="radio" name="statsChartType" value="boxplot"> Box Plot</label>
+    </fieldset>
   </div>
 
+
   <div id="stats-table"></div>
+  <canvas id="stats-chart" width="800" height="400"></canvas>
+
 
   <!-- Libraries -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-box-and-violin-plot"></script>
+
   <script>
     // exact-match helper
     function exactMatch(h, v) { return h === "All" || h === "Any" || v === h; }
@@ -522,39 +537,153 @@
 
           statsTable.setColumns(columns);
           statsTable.replaceData(statsData);
+          updateStatsChart();
         }
+
+        // ─── build raw arrays for each Name ─────────────────────────────────────────────────
+        let measurementRaw = {}, landmarkRaw = {};
+        function buildRawMaps() {
+          measurementRaw = {};
+          measurementTable.getData().forEach(r => {
+            measurementRaw[r.measurementName] ??= [];
+            measurementRaw[r.measurementName].push(+r.value);
+          });
+          landmarkRaw = {};
+          landmarkTable.getData().forEach(r => {
+            landmarkRaw[r.landmarkName] ??= [];
+            // if you want separate X/Y/Z, switch to xVal/yVal/zVal here
+            landmarkRaw[r.landmarkName].push(+r.xVal); 
+          });
+        }
+
+        // ─── simple histogram helper ──────────────────────────────────────────────────────
+        function histogramBins(data, bins=10) {
+          if (!data.length) return { bins:[], counts:[] };
+          let min = Math.min(...data), max = Math.max(...data), w = (max-min)/bins;
+          let edges = Array.from({length:bins+1}, (_,i)=>min + i*w),
+              counts = Array(bins).fill(0);
+          data.forEach(v => {
+            let idx = Math.min(Math.floor((v-min)/w), bins-1);
+            counts[idx]++;
+          });
+          // midpoints as labels
+          let mids = edges.slice(0,-1).map((e,i)=>((e+edges[i+1])/2).toFixed(1));
+          return { bins:mids, counts };
+        }
+
+        // ─── color palette ────────────────────────────────────────────────────────────────
+        function pickColor(i){
+          let pal = [
+            'rgba(54,162,235,0.6)',
+            'rgba(255,99,132,0.6)',
+            'rgba(255,206,86,0.6)',
+            'rgba(75,192,192,0.6)'
+          ];
+          return pal[i % pal.length];
+        }
+
+        // ─── init + update your statsChart ────────────────────────────────────────────────
+        let statsChart;
+        function initStatsChart(){
+          const ctx = document.getElementById('stats-chart').getContext('2d');
+          statsChart = new Chart(ctx, {
+            type: 'bar',
+            data: { labels:[], datasets:[] },
+            options:{ responsive:true }
+          });
+        }
+
+        // this reads your statsTable *rows* and raw maps, then redraws
+        function updateStatsChart(){
+          buildRawMaps();
+          const type = document.querySelector('input[name="statsChartType"]:checked').value;
+          const statsType = document.querySelector('input[name="statsType"]:checked').value;
+          const rows = statsTable.getData(true); // filtered rows
+          let dataMap = statsType==='measurements'? measurementRaw : landmarkRaw;
+
+          if (type === 'histogram') {
+            // one histogram per Name
+            let labels=[], sets=[];
+            rows.forEach((r,i)=>{
+              let vals = dataMap[r.Name]||[];
+              let {bins,counts} = histogramBins(vals,8);
+              if (!labels.length) labels=bins;
+              sets.push({
+                label: r.Name,
+                data: counts,
+                backgroundColor: pickColor(i)
+              });
+            });
+            statsChart.config.type='bar';
+            statsChart.config.data = { labels, datasets: sets };
+            statsChart.config.options = {
+              scales:{ x:{ stacked:false }, y:{ beginAtZero:true } }
+            };
+          } else {
+            // boxplot
+            let labels = rows.map(r=>r.Name);
+            let data   = rows.map(r=> dataMap[r.Name] || []);
+            statsChart.config.type='boxplot';
+            statsChart.config.data = {
+              labels,
+              datasets: [{
+                label: 'Distribution',
+                data,
+                backgroundColor: 'rgba(54,162,235,0.6)',
+                borderColor: 'black'
+              }]
+            };
+            statsChart.config.options = {};
+          }
+
+          statsChart.update();
+        }
+
+        // ─── wire it all up ────────────────────────────────────────────────────────────────
+        initStatsChart();
+        updateStatsChart();
+
+        // redraw whenever statsTable changes or user flips radios
+        statsTable.on('dataFiltered',  updateStatsChart);
+        statsTable.on('renderComplete',updateStatsChart);
+        document.querySelectorAll('input[name="statsType"]').forEach(r=>r.addEventListener('change', updateStatsChart));
+        document.querySelectorAll('input[name="statsChartType"]').forEach(r=>r.addEventListener('change', updateStatsChart));
+
+
+
+
 
         // Auto-switch table + stats when Measurement/Landmark radio changes
-      document.querySelectorAll('input[name="statsType"]').forEach(radio => {
-        radio.addEventListener('change', () => {
-          updateStats(); // update stats table
-  
-        });
-      });
-
-      document.getElementById('clearFilters').addEventListener('click', () => {
-        // Clear filters
-        participantsTable.clearHeaderFilter();
-        measurementTable.clearHeaderFilter();
-        landmarkTable.clearHeaderFilter();
-
-        // Restore original full data
-        participantsTable.replaceData(participants);
-        measurementTable.replaceData(allMeasurements);
-        landmarkTable.replaceData(allLandmarks);
-
-
-
-        // Reset dropdown labels (optional)
-        document.querySelectorAll('.dropdown-toggle').forEach(el => {
-          el.textContent = 'Select...';
+        document.querySelectorAll('input[name="statsType"]').forEach(radio => {
+          radio.addEventListener('change', () => {
+            updateStats(); // update stats table
+    
+          });
         });
 
-        // Optionally redraw chart if visible
-        if (document.getElementById("chart-container").style.display !== "none") {
-          drawChart();
-        }
-      });
+        document.getElementById('clearFilters').addEventListener('click', () => {
+          // Clear filters
+          participantsTable.clearHeaderFilter();
+          measurementTable.clearHeaderFilter();
+          landmarkTable.clearHeaderFilter();
+
+          // Restore original full data
+          participantsTable.replaceData(participants);
+          measurementTable.replaceData(allMeasurements);
+          landmarkTable.replaceData(allLandmarks);
+
+
+
+          // Reset dropdown labels (optional)
+          document.querySelectorAll('.dropdown-toggle').forEach(el => {
+            el.textContent = 'Select...';
+          });
+
+          // Optionally redraw chart if visible
+          if (document.getElementById("chart-container").style.display !== "none") {
+            drawChart();
+          }
+        });
 
 
 
