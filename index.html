@@ -99,6 +99,10 @@
       margin-top: 1em;
     }
 
+    #stats-chart-options {
+      display: none;
+    }
+
   </style>
 </head>
 <body>
@@ -642,22 +646,29 @@
           statsChart.update();
         }
 
-        // toggle visibility of the stats chart
-        const statsToggleBtn = document.getElementById('toggle-stats-chart');
-        const statsContainer = document.getElementById('stats-chart-container');
+        const toggleStatsBtn    = document.getElementById('toggle-stats-chart');
+        const statsChartDiv     = document.getElementById('stats-chart-container');
+        const statsChartOptions = document.getElementById('stats-chart-options');
 
-        statsToggleBtn.addEventListener('click', () => {
-          const isHidden = statsContainer.style.display === 'none' || statsContainer.style.display === '';
-          if (isHidden) {
-            statsContainer.style.display = 'block';
-            statsToggleBtn.textContent   = 'Hide Stats Chart';
-            // make sure chart is up-to-date
+        toggleStatsBtn.addEventListener('click', () => {
+          const hidden = statsChartDiv.style.display === 'none' || statsChartDiv.style.display === '';
+
+          if (hidden) {
+            // reveal both the chart and its options
+            statsChartDiv.style.display     = 'block';
+            statsChartOptions.style.display = 'block';
+            toggleStatsBtn.textContent      = 'Hide Stats Chart';
             updateStatsChart();
           } else {
-            statsContainer.style.display = 'none';
-            statsToggleBtn.textContent   = 'Show Stats Chart';
+            // hide both again
+            statsChartDiv.style.display     = 'none';
+            statsChartOptions.style.display = 'none';
+            toggleStatsBtn.textContent      = 'Show Stats Chart';
           }
         });
+
+
+
 
 
         // ─── wire it all up ────────────────────────────────────────────────────────────────
