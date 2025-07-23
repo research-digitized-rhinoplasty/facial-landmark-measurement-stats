@@ -363,9 +363,19 @@
           ],
         });
 
-        measurementTable.on("dataFiltered", () => updateRowCount(measurementTable, "measurement-row-count"));
-        measurementTable.on("renderComplete", () => updateRowCount(measurementTable, "measurement-row-count"));
-        updateRowCount(measurementTable, "measurement-row-count");
+        // ─────────────── UPDATE MEASUREMENT COUNT ───────────────
+      function updateMeasurementCount() {
+        // get only the rows currently passing filters
+        const filteredCount = measurementTable.getData(true).length;
+        document.getElementById("measurement-row-count").textContent =
+          `Showing ${filteredCount} measurements`;
+      }
+
+      // fire on initial load
+      measurementTable.on("dataLoaded", updateMeasurementCount);
+
+      // fire whenever filters change
+      measurementTable.on("dataFiltered", updateMeasurementCount);
 
 
 
@@ -390,19 +400,39 @@
             { title: 'Z Value', field: 'zVal' },
           ],
         });
-        landmarkTable.on("dataFiltered", () => updateRowCount(landmarkTable, "landmark-row-count"));
-        landmarkTable.on("renderComplete", () => updateRowCount(landmarkTable, "landmark-row-count"));
-        updateRowCount(landmarkTable, "landmark-row-count");
 
+        // ─────────────── UPDATE LANDMARK COUNT ───────────────
+        function updateLandmarkCount() {
+          // get only the rows currently passing filters
+          const filteredCount = landmarkTable.getData(true).length;
+          document.getElementById("landmark-row-count").textContent =
+            `Showing ${filteredCount} landmarks`;
+        }
+
+        // fire on initial load
+        landmarkTable.on("dataLoaded", updateLandmarkCount);
+
+        // fire whenever filters change
+        landmarkTable.on("dataFiltered", updateLandmarkCount);
 
 
         const statsTable = new Tabulator("#stats-table", {
           layout: "fitColumns",
           columns: [], // will be auto-detected from data keys
         });
-        statsTable.on("dataFiltered", () => updateRowCount(statsTable, "stats-row-count"));
-        statsTable.on("renderComplete", () => updateRowCount(statsTable, "stats-row-count"));
-        updateRowCount(statsTable, "stats-row-count");
+        function updateStatisticsCount() {
+          // only the rows currently passing filters
+          const filteredCount = statsTable.getData(true).length;
+          document.getElementById("statistics-row-count").textContent =
+            `Showing ${filteredCount} stats`;
+        }
+
+        // initial count on load
+        statsTable.on("dataLoaded", updateStatisticsCount);
+
+        // update count whenever filters change
+        statsTable.on("dataFiltered", updateStatisticsCount);
+
 
 
         // ─────────────── UTILITY FUNCTIONS ───────────────
