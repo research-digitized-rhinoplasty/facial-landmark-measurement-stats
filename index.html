@@ -105,9 +105,7 @@
   </div>
 
   <h2>Participant Information</h2>
-  <div id="participant-row-count" class="row-count-label"></div>
   <div id="participants-table"></div>
-
 
   <!-- Chart container hidden until Chart button clicked -->
   <div id="chart-container">
@@ -132,23 +130,18 @@
   </div>
 
   <h2>Measurements</h2>
-  <div id="measurement-row-count" class="row-count-label"></div>
   <div id="measurement-table"></div>
-  
 
   <h2>Landmarks</h2>
-  <div id="landmark-row-count" class="row-count-label"></div>
   <div id="landmark-table"></div>
 
-  <h2>Statistics</h2>
-  <div class="stats-controls">
+   <div class="stats-controls">
   <fieldset id="stats-options">
     <legend>Show stats for:</legend>
       <label><input type="radio" name="statsType" value="measurements" checked> Measurements</label>
       <label><input type="radio" name="statsType" value="landmarks"> Landmarks</label>
     </fieldset>
   </div>
-  <div id="stats-row-count" class="row-count-label"></div>
 
   <div id="stats-table"></div>
 
@@ -158,7 +151,6 @@
   <script>
     // exact-match helper
     function exactMatch(h, v) { return h === "All" || h === "Any" || v === h; }
-
 
     // dropdown checkbox header filter with “Select All” auto-checked
     function dropdownMultiCheck(cell, onRendered, success) {
@@ -363,21 +355,6 @@
           ],
         });
 
-        // ─────────────── UPDATE MEASUREMENT COUNT ───────────────
-      function updateMeasurementCount() {
-        // get only the rows currently passing filters
-        const filteredCount = measurementTable.getData(true).length;
-        document.getElementById("measurement-row-count").textContent =
-          `Showing ${filteredCount} measurements`;
-      }
-
-      // fire on initial load
-      measurementTable.on("dataLoaded", updateMeasurementCount);
-
-      // fire whenever filters change
-      measurementTable.on("dataFiltered", updateMeasurementCount);
-
-
 
         landmarkTable = new Tabulator('#landmark-table', {
           data: allLandmarks,
@@ -401,39 +378,11 @@
           ],
         });
 
-        // ─────────────── UPDATE LANDMARK COUNT ───────────────
-        function updateLandmarkCount() {
-          // get only the rows currently passing filters
-          const filteredCount = landmarkTable.getData(true).length;
-          document.getElementById("landmark-row-count").textContent =
-            `Showing ${filteredCount} landmarks`;
-        }
-
-        // fire on initial load
-        landmarkTable.on("dataLoaded", updateLandmarkCount);
-
-        // fire whenever filters change
-        landmarkTable.on("dataFiltered", updateLandmarkCount);
-
 
         const statsTable = new Tabulator("#stats-table", {
           layout: "fitColumns",
           columns: [], // will be auto-detected from data keys
         });
-        function updateStatisticsCount() {
-          // only the rows currently passing filters
-          const filteredCount = statsTable.getData(true).length;
-          document.getElementById("statistics-row-count").textContent =
-            `Showing ${filteredCount} stats`;
-        }
-
-        // initial count on load
-        statsTable.on("dataLoaded", updateStatisticsCount);
-
-        // update count whenever filters change
-        statsTable.on("dataFiltered", updateStatisticsCount);
-
-
 
         // ─────────────── UTILITY FUNCTIONS ───────────────
         function mean(arr) {
@@ -670,22 +619,6 @@
             { title: "Age", field: "Age", visible: false, sorter: "number" },
           ],
         });
-
-        // helper to update the count label
-      function updateParticipantCount() {
-        // get only the rows currently passing filters
-        const filteredRows = participantsTable.getData(true).length;
-        document.getElementById("participant-row-count").textContent =
-          `Showing ${filteredRows} participants`;
-      }
-
-      // fire on initial load
-      participantsTable.on("dataLoaded", updateParticipantCount);
-
-      // fire whenever filters change
-      participantsTable.on("dataFiltered", updateParticipantCount);
-
-
 
 
         participantsTable.on('dataFiltered', (filters, rows) => {
@@ -1001,13 +934,6 @@
       }
     });
   }
-
-
-
-
-
-
-
 
 
   </script>
