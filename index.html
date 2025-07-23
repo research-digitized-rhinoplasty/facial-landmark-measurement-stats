@@ -183,6 +183,22 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-box-and-violin-plot@3.0.3/dist/chartjs-chart-box-and-violin-plot.min.js"></script>
 
+  <script>
+    // Register the boxplot controller and its elements with Chart.js
+    Chart.register(
+      Chart.BoxPlotController,
+      Chart.BoxAndWhiskers,
+      // if you plan to use violin: add these too
+      // Chart.ViolinController,
+      // Chart.ViolinDensity,
+      Chart.CategoryScale,
+      Chart.LinearScale,
+      Chart.Title,
+      Chart.Legend,
+      Chart.Tooltip
+    );
+  </script>
+
 
   <script>
     // exact-match helper
