@@ -164,41 +164,12 @@
   <div id="stats-table"></div>
 
   <div id="stats-chart-container">
-  <fieldset id="stats-chart-options">
-    <legend>Chart Type:</legend>
-    <label>
-      <input type="radio" name="statsChartType" value="histogram" checked>
-      Histogram
-    </label>
-    <label>
-      <input type="radio" name="statsChartType" value="boxplot">
-      Box Plot
-    </label>
-  </fieldset>
-  <canvas id="stats-chart" width="800" height="400"></canvas>
-</div>
+    <canvas id="stats-chart" width="800" height="400"></canvas>
+  </div>
 
   <!-- Libraries -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-box-and-violin-plot@3.0.3/dist/chartjs-chart-box-and-violin-plot.min.js"></script>
-
-  <script>
-    // Register the boxplot controller and its elements with Chart.js
-    Chart.register(
-      Chart.BoxPlotController,
-      Chart.BoxAndWhiskers,
-      // if you plan to use violin: add these too
-      // Chart.ViolinController,
-      // Chart.ViolinDensity,
-      Chart.CategoryScale,
-      Chart.LinearScale,
-      Chart.Title,
-      Chart.Legend,
-      Chart.Tooltip
-    );
-  </script>
-
 
   <script>
     // exact-match helper
@@ -619,93 +590,70 @@
           return pal[i % pal.length];
         }
 
-        // ─── init + update your statsChart ────────────────────────────────────────────────
         let statsChart;
+
+        // init with an empty bar chart
         function initStatsChart(){
           const ctx = document.getElementById('stats-chart').getContext('2d');
           statsChart = new Chart(ctx, {
             type: 'bar',
-            data: { labels:[], datasets:[] },
-            options:{ responsive:true }
+            data: { labels: [], datasets: [] },
+            options: { responsive: true, scales: { y: { beginAtZero: true } } }
           });
         }
 
-        // this reads your statsTable *rows* and raw maps, then redraws
         function updateStatsChart(){
           buildRawMaps();
-          const type = document.querySelector('input[name="statsChartType"]:checked').value;
+
+          // which table are we charting?
           const statsType = document.querySelector('input[name="statsType"]:checked').value;
-          const rows = statsTable.getData(true); // filtered rows
-          let dataMap = statsType==='measurements'? measurementRaw : landmarkRaw;
+          const rows = statsTable.getData(true);   // filtered rows
+          const dataMap = (statsType === 'measurements') ? measurementRaw : landmarkRaw;
 
-          if (type === 'histogram') {
-            // one histogram per Name
-            let labels=[], sets=[];
-            rows.forEach((r,i)=>{
-              let vals = dataMap[r.Name]||[];
-              let {bins,counts} = histogramBins(vals,8);
-              if (!labels.length) labels=bins;
-              sets.push({
-                label: r.Name,
-                data: counts,
-                backgroundColor: pickColor(i)
-              });
+          // build one histogram per stat name
+          let labels = [], datasets = [];
+          rows.forEach((row, i) => {
+            const values = dataMap[row.Name] || [];
+            const { bins, counts } = histogramBins(values, 8);
+            if (labels.length === 0) labels = bins;
+            datasets.push({
+              label: row.Name,
+              data: counts,
+              backgroundColor: pickColor(i),
             });
-            statsChart.config.type='bar';
-            statsChart.config.data = { labels, datasets: sets };
-            statsChart.config.options = {
-              scales:{ x:{ stacked:false }, y:{ beginAtZero:true } }
-            };
-          } else {
-            // boxplot
-            let labels = rows.map(r=>r.Name);
-            let data   = rows.map(r=> dataMap[r.Name] || []);
-            statsChart.config.type='boxplot';
-            statsChart.config.data = {
-              labels,
-              datasets: [{
-                label: 'Distribution',
-                data,
-                backgroundColor: 'rgba(54,162,235,0.6)',
-                borderColor: 'black'
-              }]
-            };
-            statsChart.config.options = {};
-          }
+          });
 
+          // reconfigure chart
+          statsChart.config.type = 'bar';
+          statsChart.config.data = { labels, datasets };
+          statsChart.config.options = {
+            scales: {
+              x: { stacked: false },
+              y: { beginAtZero: true }
+            }
+          };
           statsChart.update();
         }
 
-        const toggleStatsBtn    = document.getElementById('toggle-stats-chart');
-        const statsChartDiv     = document.getElementById('stats-chart-container');
-        const statsChartOptions = document.getElementById('stats-chart-options');
-
-        toggleStatsBtn.addEventListener('click', () => {
-          const isHidden = getComputedStyle(statsChartDiv).display === 'none';
-
-          if (isHidden) {
-            statsChartDiv.style.display     = 'block';
-            statsChartOptions.style.display = 'block';
-            toggleStatsBtn.textContent      = 'Hide Stats Chart';
-            updateStatsChart();
-          } else {
-            statsChartDiv.style.display     = 'none';
-            statsChartOptions.style.display = 'none';
-            toggleStatsBtn.textContent      = 'Show Stats Chart';
-          }
+        // toggle show/hide
+        const toggleBtn = document.getElementById('toggle-stats-chart');
+        const chartDiv  = document.getElementById('stats-chart-container');
+        toggleBtn.addEventListener('click', () => {
+          const hidden = getComputedStyle(chartDiv).display === 'none';
+          chartDiv.style.display = hidden ? 'block' : 'none';
+          toggleBtn.textContent = hidden ? 'Hide Stats Chart' : 'Show Stats Chart';
+          if (hidden) updateStatsChart();
         });
 
 
         initStatsChart();
         updateStatsChart();
 
-        // redraw whenever statsTable changes or user flips radios
         statsTable.on('dataFiltered',  updateStatsChart);
         statsTable.on('renderComplete',updateStatsChart);
-        document.querySelectorAll('input[name="statsType"]').forEach(r=>r.addEventListener('change', updateStatsChart));
-        document.querySelectorAll('input[name="statsChartType"]').forEach(r=>r.addEventListener('change', updateStatsChart));
-
-
+        document.querySelectorAll('input[name="statsType"]').forEach(r => 
+          r.addEventListener('change', updateStatsChart)
+        );
 
 
 
