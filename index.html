@@ -159,10 +159,6 @@
     // exact-match helper
     function exactMatch(h, v) { return h === "All" || h === "Any" || v === h; }
 
-    function updateRowCount(table, countElementId) {
-      const count = table.getData(true).length; // true = only visible rows (filtered, sorted, paginated)
-      document.getElementById(countElementId).textContent = `Rows filtered: ${count}`;
-    }
 
     // dropdown checkbox header filter with “Select All” auto-checked
     function dropdownMultiCheck(cell, onRendered, success) {
@@ -645,9 +641,20 @@
           ],
         });
 
-        participantsTable.on("dataFiltered", () => updateRowCount(participantsTable, "participant-row-count"));
-        participantsTable.on("renderComplete", () => updateRowCount(participantsTable, "participant-row-count"));
-        updateRowCount(participantsTable, "participant-row-count");
+        // helper to update the count label
+      function updateParticipantCount() {
+        // get only the rows currently passing filters
+        const filteredRows = participantsTable.getData(true).length;
+        document.getElementById("participant-row-count").textContent =
+          `Showing ${filteredRows} participants`;
+      }
+
+      // fire on initial load
+      participantsTable.on("dataLoaded", updateParticipantCount);
+
+      // fire whenever filters change
+      participantsTable.on("dataFiltered", updateParticipantCount);
+
 
 
 
