@@ -141,8 +141,8 @@
   <div id="landmark-table"></div>
 
   <div class="stats-controls">
-  <fieldset id="stats-options">
-    <legend>Show stats for:</legend>
+    <fieldset id="stats-options">
+      <legend>Show stats for:</legend>
       <label><input type="radio" name="statsType" value="measurements" checked> Measurements</label>
       <label><input type="radio" name="statsType" value="landmarks"> Landmarks</label>
     </fieldset>
@@ -152,10 +152,13 @@
       <label><input type="radio" name="statsChartType" value="boxplot"> Box Plot</label>
     </fieldset>
   </div>
-
+  <button id="toggle-stats-chart">Show Stats Chart</button>
+  <div id="stats-chart-container" style="display: none; margin-top: 1em;">
+    <canvas id="stats-chart" width="800" height="400"></canvas>
+  </div>
 
   <div id="stats-table"></div>
-  <canvas id="stats-chart" width="800" height="400"></canvas>
+
 
 
   <!-- Libraries -->
@@ -527,7 +530,7 @@
               { title: "Min Y", field: "Min Y", hozAlign: "right" },
               { title: "Min Z", field: "Min Z", hozAlign: "right" },
               { title: "Max X", field: "Max X", hozAlign: "right" },
-              { title: "Max Y", field: "Max Y", hozAlign: "right" },
+              { title: "Max Y", field: "Max Y", hozAlign: "right" },updateStatsChart
               { title: "Max Z", field: "Max Z", hozAlign: "right" },
               { title: "Median X", field: "Median X", hozAlign: "right" },
               { title: "Median Y", field: "Median Y", hozAlign: "right" },
@@ -638,6 +641,24 @@
 
           statsChart.update();
         }
+
+        // toggle visibility of the stats chart
+        const statsToggleBtn = document.getElementById('toggle-stats-chart');
+        const statsContainer = document.getElementById('stats-chart-container');
+
+        statsToggleBtn.addEventListener('click', () => {
+          const isHidden = statsContainer.style.display === 'none' || statsContainer.style.display === '';
+          if (isHidden) {
+            statsContainer.style.display = 'block';
+            statsToggleBtn.textContent   = 'Hide Stats Chart';
+            // make sure chart is up-to-date
+            updateStatsChart();
+          } else {
+            statsContainer.style.display = 'none';
+            statsToggleBtn.textContent   = 'Show Stats Chart';
+          }
+        });
+
 
         // ─── wire it all up ────────────────────────────────────────────────────────────────
         initStatsChart();
