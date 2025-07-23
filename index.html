@@ -161,7 +161,7 @@
 
     function updateRowCount(table, countElementId) {
       const count = table.getData(true).length; // true = only visible rows (filtered, sorted, paginated)
-      document.getElementById(countElementId).textContent = `Rows shown: ${count}`;
+      document.getElementById(countElementId).textContent = `Rows filtered: ${count}`;
     }
 
     // dropdown checkbox header filter with “Select All” auto-checked
