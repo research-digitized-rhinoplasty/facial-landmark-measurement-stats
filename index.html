@@ -371,12 +371,9 @@
             { title: 'Value', field: 'value' },
           ],
         });
-        measurementTable.on("dataFiltered", () => updateRowCount(measurementTable, "measurement-row-count"));
-        measurementTable.on("renderComplete", () => updateRowCount(measurementTable, "measurement-row-count"));
-      
-
-
-
+        measurementTable.on("dataFiltered",    () => updateRowCount(measurementTable,  "measurement-row-count"));
+        measurementTable.on("renderComplete",  () => updateRowCount(measurementTable,  "measurement-row-count"));
+    
         landmarkTable = new Tabulator('#landmark-table', {
           data: allLandmarks,
           layout: 'fitColumns',
@@ -398,8 +395,8 @@
             { title: 'Z Value', field: 'zVal' },
           ],
         });
-        landmarkTable.on("dataFiltered", () => updateRowCount(landmarkTable, "landmark-row-count"));
-        landmarkTable.on("renderComplete", () => updateRowCount(landmarkTable, "landmark-row-count"));
+        landmarkTable.on("dataFiltered",       () => updateRowCount(landmarkTable,     "landmark-row-count"));
+        landmarkTable.on("renderComplete",     () => updateRowCount(landmarkTable,     "landmark-row-count"));
 
 
         const statsTable = new Tabulator("#stats-table", {
@@ -663,6 +660,10 @@
           measurementTable.clearHeaderFilter();
           landmarkTable.clearHeaderFilter();
 
+          updateRowCount(participantsTable, "participant-row-count");
+          updateRowCount(measurementTable,  "measurement-row-count");
+          updateRowCount(landmarkTable,     "landmark-row-count");
+
           // Restore original full data
           participantsTable.replaceData(participants);
           measurementTable.replaceData(allMeasurements);
@@ -744,14 +745,19 @@
             { title: "Age", field: "Age", visible: false, sorter: "number" },
           ],
         });
-        participantsTable.on("dataFiltered", () => updateRowCount(participantsTable, "participant-row-count"));
+        participantsTable.on("dataFiltered",   () => updateRowCount(participantsTable, "participant-row-count"));
         participantsTable.on("renderComplete", () => updateRowCount(participantsTable, "participant-row-count"));
-
 
         participantsTable.on('dataFiltered', (filters, rows) => {
           const ids = rows.map(r => r.getData().participantFileId);
-          measurementTable.replaceData(allMeasurements.filter(m => ids.includes(m.participantFileId)));
-          landmarkTable.replaceData(allLandmarks.filter(l => ids.includes(l.participantFileId)));
+          measurementTable
+            .replaceData(allMeasurements.filter(m => ids.includes(m.participantFileId)))
+            .then(() => updateRowCount(measurementTable, "measurement-row-count"));
+
+          landmarkTable
+            .replaceData(allLandmarks.filter(l => ids.includes(l.participantFileId)))
+            .then(() => updateRowCount(landmarkTable,    "landmark-row-count"));
+
           updateStats();
 
           // now rebuild the chart from `rows`
