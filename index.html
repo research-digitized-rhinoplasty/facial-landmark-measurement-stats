@@ -120,6 +120,7 @@
   </div>
 
   <h2>Participant Information</h2>
+  <div id="participant-row-count" class="row-count-label"></div>
   <div id="participants-table"></div>
 
   <!-- Chart container hidden until Chart button clicked -->
@@ -145,9 +146,11 @@
   </div>
 
   <h2>Measurements</h2>
+  <div id="measurement-row-count" class="row-count-label"></div>
   <div id="measurement-table"></div>
 
   <h2>Landmarks</h2>
+  <div id="landmark-row-count" class="row-count-label"></div>
   <div id="landmark-table"></div>
 
 
@@ -158,6 +161,7 @@
       <label><input type="radio" name="statsType" value="landmarks"> Landmarks</label>
     </fieldset>
   </div>
+  <div id="stats-row-count" class="row-count-label"></div>
 
   <div id="stats-table"></div>
 
@@ -171,6 +175,11 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <script>
+
+    function updateRowCount(table, countElementId) {
+      const count = table.getData(true).length; // true = filtered rows only
+      document.getElementById(countElementId).textContent = `Showing ${count} rows`;
+    }
     // exact-match helper
     function exactMatch(h, v) { return h === "All" || h === "Any" || v === h; }
 
@@ -376,6 +385,8 @@
             { title: 'Value', field: 'value' },
           ],
         });
+        measurementTable.on("dataFiltered", () => updateRowCount(measurementTable, "measurement-row-count"));
+        measurementTable.on("renderComplete", () => updateRowCount(measurementTable, "measurement-row-count"));
 
 
         landmarkTable = new Tabulator('#landmark-table', {
@@ -399,12 +410,17 @@
             { title: 'Z Value', field: 'zVal' },
           ],
         });
+        landmarkTable.on("dataFiltered", () => updateRowCount(landmarkTable, "landmark-row-count"));
+        landmarkTable.on("renderComplete", () => updateRowCount(landmarkTable, "landmark-row-count"));
 
 
         const statsTable = new Tabulator("#stats-table", {
           layout: "fitColumns",
           columns: [], // will be auto-detected from data keys
         });
+        statsTable.on("dataFiltered", () => updateRowCount(statsTable, "stats-row-count"));
+        statsTable.on("renderComplete", () => updateRowCount(statsTable, "stats-row-count"));
+
 
         // ─────────────── UTILITY FUNCTIONS ───────────────
         function mean(arr) {
@@ -740,6 +756,8 @@
             { title: "Age", field: "Age", visible: false, sorter: "number" },
           ],
         });
+        participantsTable.on("dataFiltered", () => updateRowCount(participantsTable, "participant-row-count"));
+        participantsTable.on("renderComplete", () => updateRowCount(participantsTable, "participant-row-count"));
 
 
         participantsTable.on('dataFiltered', (filters, rows) => {
