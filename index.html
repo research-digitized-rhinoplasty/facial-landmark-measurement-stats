@@ -335,25 +335,12 @@
         allMeasurements = participants.flatMap(p => (p.ParticipantMeasurements || []).map(m => ({ participantFileId: p.participantFileId, measurementName: m.MeasurementName, measurementType:  m.MeasurementType, value: m.Value})));
         allLandmarks = participants.flatMap(p => (p.ParticipantLandmarks || []).map(l => ({ participantFileId: p.participantFileId, landmarkName: l.LandmarkName, xVal: l.xVal,yVal: l.yVal, zVal: l.zVal})));
 
-        participantsTable
-          .setData(participants)                          
-          .then(() => updateRowCount(participantsTable, "participant-row-count"));
-
-        measurementTable
-          .setData(allMeasurements)                  
-          .then(() => updateRowCount(measurementTable,  "measurement-row-count"));
-
-        landmarkTable
-          .setData(allLandmarks)                     
-          .then(() => updateRowCount(landmarkTable,     "landmark-row-count"));
-      });
         const uniqueGenders = Array.from(new Set(participants.map(p => p.Gender).filter(Boolean))).sort();
         const uniqueEthnicities = Array.from(new Set(participants.map(p => p.Ethnicity).filter(Boolean))).sort();
         const uniqueFacialSurgeries = Array.from(new Set(participants.map(p => p.FacialSurgery).filter(Boolean))).sort();
         const uniqueMeasurementNames = Array.from(new Set(allMeasurements.map(m => m.measurementName).filter(Boolean))).sort();
         const measurementTypes = [...new Set(allMeasurements.map(m => m.measurementType).filter(Boolean))].sort();
         const uniqueLandmarkNames = Array.from(new Set(allLandmarks.map(l => l.landmarkName).filter(Boolean))).sort();
-
 
         measurementTable = new Tabulator('#measurement-table', {
           data: allMeasurements,
@@ -820,12 +807,12 @@
           landmarkTable.clearHeaderFilter();
 
         });
-        })
-        .catch(err => {
-          console.error(err);
-          document.querySelector('#participants-table').innerHTML = `<p style="color:red">${err}</p>`;
-        });
-
+    })  
+      .catch(err => {
+        console.error(err);
+        document.querySelector('#participants-table').innerHTML =
+          `<p style="color:red">${err}</p>`;
+      });
         
 
     function downloadAllFilteredData() {
