@@ -177,9 +177,10 @@
   <script>
 
     function updateRowCount(table, countElementId) {
-      const count = table.getData(true).length; // true = filtered rows only
+      const count = table.getRows(true).length; // only filtered rows
       document.getElementById(countElementId).textContent = `Showing ${count} rows`;
     }
+
     // exact-match helper
     function exactMatch(h, v) { return h === "All" || h === "Any" || v === h; }
 
@@ -331,23 +332,21 @@
     fetch('data.json')
       .then(r => r.ok ? r.json() : Promise.reject('data.json not found'))
       .then(participants => {
-        allMeasurements = participants.flatMap(p =>
-          (p.ParticipantMeasurements || []).map(m => ({
-            participantFileId: p.participantFileId,
-            measurementName: m.MeasurementName,
-            measurementType:  m.MeasurementType,
-            value: m.Value
-          }))
-        );
-         allLandmarks = participants.flatMap(p =>
-          (p.ParticipantLandmarks || []).map(l => ({
-            participantFileId: p.participantFileId,
-            landmarkName: l.LandmarkName,
-            xVal: l.xVal,
-            yVal: l.yVal,
-            zVal: l.zVal
-          }))
-        );
+        allMeasurements = participants.flatMap(p => (p.ParticipantMeasurements || []).map(m => ({ participantFileId: p.participantFileId, measurementName: m.MeasurementName, measurementType:  m.MeasurementType, value: m.Value})));
+        allLandmarks = participants.flatMap(p => (p.ParticipantLandmarks || []).map(l => ({ participantFileId: p.participantFileId, landmarkName: l.LandmarkName, xVal: l.xVal,yVal: l.yVal, zVal: l.zVal})));
+
+        participantsTable
+          .setData(participants)                          
+          .then(() => updateRowCount(participantsTable, "participant-row-count"));
+
+        measurementTable
+          .setData(allMeasurements)                  
+          .then(() => updateRowCount(measurementTable,  "measurement-row-count"));
+
+        landmarkTable
+          .setData(allLandmarks)                     
+          .then(() => updateRowCount(landmarkTable,     "landmark-row-count"));
+      });
         const uniqueGenders = Array.from(new Set(participants.map(p => p.Gender).filter(Boolean))).sort();
         const uniqueEthnicities = Array.from(new Set(participants.map(p => p.Ethnicity).filter(Boolean))).sort();
         const uniqueFacialSurgeries = Array.from(new Set(participants.map(p => p.FacialSurgery).filter(Boolean))).sort();
@@ -387,6 +386,8 @@
         });
         measurementTable.on("dataFiltered", () => updateRowCount(measurementTable, "measurement-row-count"));
         measurementTable.on("renderComplete", () => updateRowCount(measurementTable, "measurement-row-count"));
+      
+
 
 
         landmarkTable = new Tabulator('#landmark-table', {
