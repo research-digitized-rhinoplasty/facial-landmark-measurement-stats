@@ -403,6 +403,9 @@
           layout: "fitColumns",
           columns: [], // will be auto-detected from data keys
         });
+        statsTable.on("tableBuilt", () => {
+          updateStats(); // safe to run after table is fully built
+        });
         statsTable.on("dataFiltered", () => updateRowCount(statsTable, "stats-row-count"));
         statsTable.on("renderComplete", () => updateRowCount(statsTable, "stats-row-count"));
 
@@ -431,13 +434,12 @@
           let allowedNames = [];
           let allowedTypes = [];
 
-          if (type === "measurements") {
+          if (type === "measurements" && measurementTable) {
             allowedNames = measurementTable.getHeaderFilterValue("measurementName") || [];
             allowedTypes = measurementTable.getHeaderFilterValue("measurementType") || [];
-          } else {
+          } else if (landmarkTable) {
             allowedNames = landmarkTable.getHeaderFilterValue("landmarkName") || [];
           }
-
 
           if (!Array.isArray(allowedNames)) allowedNames = [allowedNames];
           if (allowedNames.length === 0) {
@@ -838,6 +840,19 @@
     if (!Array.isArray(landFilter)) landFilter = [landFilter];
     measFilter = measFilter.filter(v => v !== "Select All");
     landFilter = landFilter.filter(v => v !== "Select All");
+
+    measurementTable.on("tableBuilt", () => {
+      updateStats();
+    });
+
+    landmarkTable.on("tableBuilt", () => {
+      updateStats(); 
+    });
+
+    statsTable.on("tableBuilt", () => {
+      updateRowCount(statsTable, "stats-row-count");
+    });
+
 
     // 3) re-apply those filters to your full datasets
     const measRows = allMeasurements.filter(m =>
