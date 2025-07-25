@@ -159,10 +159,9 @@
     </fieldset>
   </div>
 
-  <button id="toggle-stats-chart">Show Stats Chart</button>
-
   <div id="stats-table"></div>
 
+  <h3 style="text-align:center; margin-bottom: 0.5rem;">Histogram Chart</h3>
   <div id="stats-chart-container">
     <canvas id="stats-chart" width="800" height="400"></canvas>
   </div>
@@ -634,17 +633,6 @@
           };
           statsChart.update();
         }
-
-        // toggle show/hide
-        const toggleBtn = document.getElementById('toggle-stats-chart');
-        const chartDiv  = document.getElementById('stats-chart-container');
-        toggleBtn.addEventListener('click', () => {
-          const hidden = getComputedStyle(chartDiv).display === 'none';
-          chartDiv.style.display = hidden ? 'block' : 'none';
-          toggleBtn.textContent = hidden ? 'Hide Stats Chart' : 'Show Stats Chart';
-          if (hidden) updateStatsChart();
-        });
-
 
         initStatsChart();
         updateStatsChart();
