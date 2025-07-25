@@ -831,32 +831,16 @@
         });
 
         function downloadAllFilteredData() {
-          // 1) grab visible participants & their IDs
           const visibleParts = participantsTable.getData("active");
           const partIds      = new Set(visibleParts.map(p => p.participantFileId));
 
-          // 2) grab header-filter selections
           let measFilter = measurementTable.getHeaderFilterValue("measurementName") || [];
-          let landFilter = landmarkTable   .getHeaderFilterValue("landmarkName")     || [];
+          let landFilter = landmarkTable.getHeaderFilterValue("landmarkName") || [];
           if (!Array.isArray(measFilter)) measFilter = [measFilter];
           if (!Array.isArray(landFilter)) landFilter = [landFilter];
           measFilter = measFilter.filter(v => v !== "Select All");
           landFilter = landFilter.filter(v => v !== "Select All");
 
-          measurementTable.on("tableBuilt", () => {
-            updateStats();
-          });
-
-          landmarkTable.on("tableBuilt", () => {
-            updateStats(); 
-          });
-
-          statsTable.on("tableBuilt", () => {
-            updateRowCount(statsTable, "stats-row-count");
-          });
-
-
-          // 3) re-apply those filters to your full datasets
           const measRows = allMeasurements.filter(m =>
             partIds.has(m.participantFileId) &&
             (measFilter.length === 0 || measFilter.includes(m.measurementName))
@@ -866,140 +850,38 @@
             (landFilter.length === 0 || landFilter.includes(l.landmarkName))
           );
 
-          // ─── utility stats fn ─────────────────────────
-          const mean = arr => arr.reduce((a,b)=>a+b,0)/arr.length || 0;
-          const stdDev = arr => {
-            const m = mean(arr);
-            return Math.sqrt(arr.reduce((s,x)=>s + (x-m)**2,0)/arr.length) || 0;
-          };
-          const median = arr => {
-            const s = [...arr].sort((a,b)=>a-b), mid = Math.floor(s.length/2);
-            return s.length%2 ? s[mid] : (s[mid-1]+s[mid])/2;
-          };
-
-          // 4) build measurement-stats and landmark-stats arrays
-          const measGroups = measRows.reduce((acc,r) => {
-            acc[r.measurementName] = acc[r.measurementName] || [];
-            const v = parseFloat(r.value);
-            if (!isNaN(v)) acc[r.measurementName].push(v);
-            return acc;
-          }, {});
-          const measurementStatsData = Object.entries(measGroups).map(
-            ([Name, vals]) => ({
-              Name,
-              Average:       mean(vals).toFixed(2),
-              "Std. Deviation": stdDev(vals).toFixed(2),
-              Minimum:       Math.min(...vals).toFixed(2),
-              Maximum:       Math.max(...vals).toFixed(2),
-              Median:        median(vals).toFixed(2),
-            })
-          );
-
-          const landGroups = landRows.reduce((acc,r) => {
-            acc[r.landmarkName] = acc[r.landmarkName] || { x:[], y:[], z:[] };
-            const x = parseFloat(r.xVal), y = parseFloat(r.yVal), z = parseFloat(r.zVal);
-            if (!isNaN(x)) acc[r.landmarkName].x.push(x);
-            if (!isNaN(y)) acc[r.landmarkName].y.push(y);
-            if (!isNaN(z)) acc[r.landmarkName].z.push(z);
-            return acc;
-          }, {});
-          const landmarkStatsData = Object.entries(landGroups).map(
-            ([Name, { x, y, z }]) => ({
-              Name,
-              "Average X":       mean(x).toFixed(2),
-              "Average Y":       mean(y).toFixed(2),
-              "Average Z":       mean(z).toFixed(2),
-              "Std. Deviation X": stdDev(x).toFixed(2),
-              "Std. Deviation Y": stdDev(y).toFixed(2),
-              "Std. Deviation Z": stdDev(z).toFixed(2),
-              "Minimum X":       Math.min(...x).toFixed(2),
-              "Minimum Y":       Math.min(...y).toFixed(2),
-              "Minimum Z":       Math.min(...z).toFixed(2),
-              "Maximum X":       Math.max(...x).toFixed(2),
-              "Maximum Y":       Math.max(...y).toFixed(2),
-              "Maximum Z":       Math.max(...z).toFixed(2),
-              "Median X":        median(x).toFixed(2),
-              "Median Y":        median(y).toFixed(2),
-              "Median Z":        median(z).toFixed(2),
-            })
-          );
-
-          // 5) assemble your four CSV sections
-          const sections = [
-            {
-              title: "Participant Information",
-              data: visibleParts,
-              fields: ["participantFileId","Gender","Age","Ethnicity","FacialSurgery"],
-            },
-            {
-              title: "Measurements",
-              data: measRows,
-              fields: ["participantFileId","measurementName","measurementType","value"],
-            },
-            {
-              title: "Landmarks",
-              data: landRows,
-              fields: ["participantFileId","landmarkName","xVal","yVal","zVal"],
-            },
-            {
-              title: "Measurement Statistics",
-              data: measurementStatsData,
-              fields: ["Name","Average","Std. Deviation","Minimum","Maximum","Median"],
-            },
-            {
-              title: "Landmark Statistics",
-              data: landmarkStatsData,
-              fields: [
-                "Name",
-                "Average X","Average Y","Average Z",
-                "Std. Deviation X","Std. Deviation Y","Std. Deviation Z",
-                "Minimum X","Minimum Y","Minimum Z",
-                "Maximum X","Maximum Y","Maximum Z",
-                "Median X","Median Y","Median Z"
-              ],
-            },
-          ];
-
-          // 6) build CSV lines
           const lines = [];
-          sections.forEach(({ title, data, fields }) => {
-            if (!data.length) return;
-            lines.push(title);
-            lines.push(fields.map(f => `"${f}"`).join(","));
-            data.forEach(row => {
-              lines.push(fields.map(f => `"${row[f] ?? ""}"`).join(","));
-            });
-            lines.push("");
+          lines.push("Participant Information");
+          lines.push(["participantFileId","Gender","Age","Ethnicity","FacialSurgery"].join(","));
+          visibleParts.forEach(row => {
+            lines.push([row.participantFileId,row.Gender,row.Age,row.Ethnicity,row.FacialSurgery].join(","));
           });
 
-          // 7) download with timestamped filename
-          const blob = new Blob([ lines.join("\r\n") ], { type: "text/csv;charset=utf-8;" });
+          lines.push("");
+          lines.push("Measurements");
+          lines.push(["participantFileId","measurementName","measurementType","value"].join(","));
+          measRows.forEach(row => {
+            lines.push([row.participantFileId,row.measurementName,row.measurementType,row.value].join(","));
+          });
 
-          // generate YYMMDD-HHMMSS timestamp
-          const now = new Date();
-          const pad2 = n => String(n).padStart(2, '0');
-          const YY = String(now.getFullYear()).slice(2);
-          const MM = pad2(now.getMonth() + 1);
-          const DD = pad2(now.getDate());
-          const hh = pad2(now.getHours());
-          const mm = pad2(now.getMinutes());
-          const ss = pad2(now.getSeconds());
-          const timestamp = `${YY}${MM}${DD}-${hh}${mm}${ss}`;
+          lines.push("");
+          lines.push("Landmarks");
+          lines.push(["participantFileId","landmarkName","xVal","yVal","zVal"].join(","));
+          landRows.forEach(row => {
+            lines.push([row.participantFileId,row.landmarkName,row.xVal,row.yVal,row.zVal].join(","));
+          });
 
-          // compose filename
-          const filename = `facial-landmark-measurement-stats-${timestamp}.csv`;
-
-          // create and click download link
+          const blob = new Blob([lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
           const link = document.createElement("a");
           link.href = URL.createObjectURL(blob);
-          link.download = filename;
+          link.download = "facial-landmark-data.csv";
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
-
         }
 
 
+        
 
 
     })  
