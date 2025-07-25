@@ -664,12 +664,15 @@
           updateRowCount(measurementTable,  "measurement-row-count");
           updateRowCount(landmarkTable,     "landmark-row-count");
 
-          // Restore original full data
-          participantsTable.replaceData(participants);
-          measurementTable.replaceData(allMeasurements);
-          landmarkTable.replaceData(allLandmarks);
+          // reset to the full datasets and update counters
+          participantsTable.replaceData(participants)
+            .then(() => updateRowCount(participantsTable, "participant-row-count"));
 
+          measurementTable.replaceData(allMeasurements)
+            .then(() => updateRowCount(measurementTable, "measurement-row-count"));
 
+          landmarkTable.replaceData(allLandmarks)
+            .then(() => updateRowCount(landmarkTable, "landmark-row-count"));
 
           // Reset dropdown labels (optional)
           document.querySelectorAll('.dropdown-toggle').forEach(el => {
@@ -757,6 +760,8 @@
           landmarkTable
             .replaceData(allLandmarks.filter(l => ids.includes(l.participantFileId)))
             .then(() => updateRowCount(landmarkTable,    "landmark-row-count"));
+
+          updateRowCount(participantsTable, "participant-row-count");
 
           updateStats();
 
