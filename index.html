@@ -109,6 +109,11 @@
       display: none;
     }
 
+    .histogram-title {
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+
   </style>
 </head>
 <body>
@@ -165,7 +170,7 @@
 
   <div id="stats-table"></div>
 
-  <h3 style="text-align:center; margin-bottom: 0.5rem;">Histogram Chart</h3>
+  <h3 class="histogram-title">Histogram Chart</h3>
   <div id="stats-chart-container">
     <canvas id="stats-chart" width="800" height="400"></canvas>
   </div>
@@ -823,10 +828,13 @@
     })  
       .catch(err => {
         console.error(err);
-        document.querySelector('#participants-table').innerHTML =
-          `<p style="color:red">${err}</p>`;
+        const errorMessageElement = document.querySelector('#error-message');
+        if (errorMessageElement) {
+          errorMessageElement.innerHTML = `<p style="color:red">${err}</p>`;
+        } else {
+          console.error("Error:", err);
+        }
       });
-        
 
     function downloadAllFilteredData() {
     // 1) grab visible participants & their IDs
