@@ -9,25 +9,24 @@
   <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet" />
 
   <style>
+    /* Page styling */
     body { font-family: Arial; padding: 20px; }
     #participants-table, #measurement-table, #landmark-table { margin-top: 20px; }
     .button-row { margin: 10px 0; }
 
     /* Hide chart container until 'Chart' is clicked */
     #chart-container {
-      display: none;            /* JS will toggle this to “grid” */
+      display: none;            /* Hidden with toggle */
       margin: 0 auto;
       padding: 10px;
       max-width: 700px;
       text-align: center;
-
-      /* ───── new grid settings ───── */
-      grid-template-columns: auto auto;  /* two columns for the fieldsets */
-      gap: 20px;                         /* space between them */
-      justify-content: center;          /* center them as a group */
+      grid-template-columns: auto auto; 
+      gap: 20px;                        
+      justify-content: center;        
     }
 
-    /* span the canvas under both columns and center it */
+    /* Span the canvas under both columns*/
     #chart-canvas {
       grid-column: 1 / -1;
       justify-self: center;
@@ -35,7 +34,7 @@
       max-height: 400px;
     }
 
-    /* Allow header filters to overflow */
+    /* Allow Tabulator header filters to overflow */
     .tabulator .tabulator-header { overflow: visible !important; }
     .tabulator .tabulator-header .tabulator-col { overflow: visible !important; position: relative !important; }
     .tabulator .tabulator-header .tabulator-col .tabulator-header-filter { overflow: visible !important; position: relative !important; }
@@ -56,6 +55,7 @@
     .checkbox-dropdown label { display: block; font-size: 12px; cursor: pointer; margin-bottom: 2px; }
     .checkbox-dropdown input { margin-right: 6px; }
 
+    /* Toggle for opening the dropdown */
     .dropdown-toggle {
       cursor: pointer;
       padding: 4px;
@@ -94,11 +94,11 @@
       margin-right: 10px;
     }
 
-
+     /* Stats chart container and size */
     #stats-chart-container {
       display: block;
       width: 100%;
-      max-width: 100%;       /* match table width */
+      max-width: 100%;      
       margin: 1em auto;
     }
 
@@ -118,20 +118,23 @@
   </style>
 </head>
 <body>
+   <!-- Header -->
   <h2>3D Facial Landmark Query Tool</h2>
+  <!-- Action buttons -->
   <div class="button-row">
     <button id="clearFilters">Clear All Filters</button>
     <button id="downloadCSV">Download Data</button>
     <button id="create-chart"> Show Chart</button>
   </div>
 
+  <!-- Participant table -->
   <h2>Participant Information</h2>
   <div id="participant-row-count" class="row-count-label"></div>
   <div id="participants-table"></div>
 
   <!-- Chart container hidden until Chart button clicked -->
   <div id="chart-container">
-    <!-- keep original fieldset for Category only -->
+    <!-- Category options -->
     <fieldset id="chart-options">
       <legend>Category</legend>
       <label><input type="radio" name="category" value="Gender" checked> Gender</label>
@@ -141,25 +144,28 @@
       
     </fieldset>
 
-    <!-- new, separate fieldset for chart type -->
+    <!-- Chart type options -->
     <fieldset id="chart-type-options">
       <legend>Chart Type</legend>
       <label><input type="radio" name="chartType" value="pie" checked> Pie</label>
       <label><input type="radio" name="chartType" value="bar"> Bar</label>
     </fieldset>
 
+    <!-- Chart canvas -->
     <canvas id="chart-canvas"></canvas>
   </div>
 
+  <!-- Measurement tables -->
   <h2>Measurements</h2>
   <div id="measurement-row-count" class="row-count-label"></div>
   <div id="measurement-table"></div>
 
+  <!-- Landmark tables -->
   <h2>Landmarks</h2>
   <div id="landmark-row-count" class="row-count-label"></div>
   <div id="landmark-table"></div>
 
-
+  <!-- Statistics table and chart -->
   <div class="stats-controls">
     <fieldset id="stats-options">
       <legend>Show stats for:</legend>
@@ -169,8 +175,10 @@
   </div>
   <div id="stats-row-count" class="row-count-label"></div>
 
+  <!-- Stats table -->
   <div id="stats-table"></div>
 
+  <!-- Histogram chart -->
   <h3 class="histogram-title">Histogram Chart</h3>
   <div id="stats-chart-container">
     <canvas id="stats-chart" width="800" height="400"></canvas>
@@ -182,15 +190,16 @@
 
   <script>
 
+    // Helper to update total row count display
     function updateRowCount(table, countElementId) {
       const count = table.getRows(true).length; // only filtered rows
       document.getElementById(countElementId).textContent = `Total rows: ${count}`;
     }
 
-    // exact-match helper
+    // Exact match helper for filters
     function exactMatch(h, v) { return h === "All" || h === "Any" || v === h; }
 
-    // dropdown checkbox header filter with “Select All” auto-checked
+    // Custom multi-select header filter with checkboxes and Select All
     function dropdownMultiCheck(cell, onRendered, success) {
       const column = cell.getColumn(),
             field  = column.getField(),
@@ -216,8 +225,10 @@
         toggle.title = current.join(", ");
       };
 
+      // initial label update
       let list;
 
+      // create the dropdown list with checkboxes
       function openDropdown() {
         if (list) return; // already open
         list = document.createElement("div");
@@ -225,26 +236,26 @@
 
         const current = table.getHeaderFilterValue(field) || [];
 
-        // 1) “Select All” checkbox
+        // Select All checkbox
         const saLabel = document.createElement("label");
         const saCb    = document.createElement("input");
         saCb.type     = "checkbox";
         saCb.value    = "Select All";
-        // checked if (on load) everything’s selected
+        // checked if everything’s selected
         saCb.checked  = current.length === values.length;
         saLabel.appendChild(saCb);
         saLabel.appendChild(document.createTextNode(" Select All"));
         list.appendChild(saLabel);
 
         saCb.addEventListener("change", () => {
-          // toggle every checkbox to match “Select All”
+          // toggle every checkbox to match Select All
           list.querySelectorAll("input[type=checkbox]").forEach(cb => {
             cb.checked = saCb.checked;
           });
           triggerUpdate();
         });
 
-        // 2) one checkbox per real value
+        // One checkbox per real value
         values
           .filter(v => v !== "Select All")
           .forEach(val => {
@@ -277,6 +288,7 @@
         document.addEventListener("click", outsideClick);
       }
 
+      // close the dropdown and remove it from the DOM
       function closeDropdown() {
         if (list) {
           list.remove();
@@ -284,7 +296,7 @@
         }
         document.removeEventListener("click", outsideClick);
       }
-
+      // close dropdown if clicked outside
       function outsideClick(e) {
         if (list && !toggle.contains(e.target) && !list.contains(e.target)) {
           closeDropdown();
@@ -299,12 +311,14 @@
         
         updateLabel();
 
+        // Redraw chart if visible
         const chartVisible = document.getElementById("chart-container").style.display !== "none";
         if (chartVisible) {
           drawChart();
         }
       }
 
+      // attach click handler to the toggle
       toggle.addEventListener("click", e => {
         e.stopPropagation();
         list ? closeDropdown() : openDropdown();
@@ -318,7 +332,7 @@
 
       return toggle;
     }
-
+    // Multi-select filter function: shows rows matching any selected value 
     function multiSelectFilterFunc(filterVals, cellVal) {
       // no filters selected → show all
       if (!filterVals || !filterVals.length) {
@@ -332,15 +346,18 @@
       return filterVals.includes(cellVal);
     }
 
+    // Declare global variables
     let participantsTable, measurementTable, landmarkTable;
     let currentChart;
 
+    // Fetch data from JSON file and initialize tables
     fetch('data.json')
       .then(r => r.ok ? r.json() : Promise.reject('data.json not found'))
       .then(participants => {
+        // Flatten measurements and landmarks
         allMeasurements = participants.flatMap(p => (p.ParticipantMeasurements || []).map(m => ({ participantFileId: p.participantFileId, measurementName: m.MeasurementName, measurementType:  m.MeasurementType, value: m.Value})));
         allLandmarks = participants.flatMap(p => (p.ParticipantLandmarks || []).map(l => ({ participantFileId: p.participantFileId, landmarkName: l.LandmarkName, xVal: l.xVal,yVal: l.yVal, zVal: l.zVal})));
-
+        // Initialize tables after data is fetched
         const uniqueGenders = Array.from(new Set(participants.map(p => p.Gender).filter(Boolean))).sort();
         const uniqueEthnicities = Array.from(new Set(participants.map(p => p.Ethnicity).filter(Boolean))).sort();
         const uniqueFacialSurgeries = Array.from(new Set(participants.map(p => p.FacialSurgery).filter(Boolean))).sort();
@@ -348,6 +365,7 @@
         const measurementTypes = [...new Set(allMeasurements.map(m => m.measurementType).filter(Boolean))].sort();
         const uniqueLandmarkNames = Array.from(new Set(allLandmarks.map(l => l.landmarkName).filter(Boolean))).sort();
 
+        // Initialize the participant table
         measurementTable = new Tabulator('#measurement-table', {
           data: allMeasurements,
           layout: 'fitColumns',
@@ -377,9 +395,11 @@
             { title: 'Value', field: 'value' },
           ],
         });
+        // Attach event listeners to update row count
         measurementTable.on("dataFiltered",    () => updateRowCount(measurementTable,  "measurement-row-count"));
         measurementTable.on("renderComplete",  () => updateRowCount(measurementTable,  "measurement-row-count"));
     
+        // Initialize the landmark table
         landmarkTable = new Tabulator('#landmark-table', {
           data: allLandmarks,
           layout: 'fitColumns',
@@ -401,10 +421,11 @@
             { title: 'Z Value', field: 'zVal' },
           ],
         });
+        // Attach event listeners to update row count
         landmarkTable.on("dataFiltered",       () => updateRowCount(landmarkTable,     "landmark-row-count"));
         landmarkTable.on("renderComplete",     () => updateRowCount(landmarkTable,     "landmark-row-count"));
 
-
+        // Initialize the participants table
         const statsTable = new Tabulator("#stats-table", {
           layout: "fitColumns",
           columns: [], // will be auto-detected from data keys
@@ -412,18 +433,23 @@
         statsTable.on("tableBuilt", () => {
           updateStats(); // safe to run after table is fully built
         });
+        // Attach event listeners to update row count
         statsTable.on("dataFiltered", () => updateRowCount(statsTable, "stats-row-count"));
         statsTable.on("renderComplete", () => updateRowCount(statsTable, "stats-row-count"));
 
 
-        // ─────────────── UTILITY FUNCTIONS ───────────────
+        // Calculate the mean of an array
         function mean(arr) {
           return arr.reduce((a, b) => a + b, 0) / arr.length;
         }
+
+        // Calculate the standard deviation of an array
         function stdDev(arr) {
           const m = mean(arr);
           return Math.sqrt(arr.reduce((sum, x) => sum + (x - m) ** 2, 0) / arr.length);
         }
+
+        // Calculate the median of an array
         function median(arr) {
           const s = arr.slice().sort((a, b) => a - b),
                 mid = Math.floor(s.length / 2);
@@ -431,15 +457,18 @@
         }
 
 
-        // ─────────────── UPDATE STATS ───────────────
+        // Update statistics table
         function updateStats() {
+          // Get the selected stats type
           const type = document.querySelector('input[name="statsType"]:checked').value;
+          // Choose which table to pull data from based on type
           const table = (type === "measurements") ? measurementTable : landmarkTable;
           const rows = table.getData(true); // only filtered rows
 
           let allowedNames = [];
           let allowedTypes = [];
 
+          // Get header filter values to know which names/types are selected
           if (type === "measurements" && measurementTable) {
             allowedNames = measurementTable.getHeaderFilterValue("measurementName") || [];
             allowedTypes = measurementTable.getHeaderFilterValue("measurementType") || [];
@@ -447,7 +476,9 @@
             allowedNames = landmarkTable.getHeaderFilterValue("landmarkName") || [];
           }
 
+          // Ensure allowedNames and allowedTypes are arrays
           if (!Array.isArray(allowedNames)) allowedNames = [allowedNames];
+          //// If no names are selected, clear the stats table and stop
           if (allowedNames.length === 0) {
             statsTable.clearData();
             statsTable.setColumns([]);
@@ -457,7 +488,7 @@
           if (!Array.isArray(allowedTypes)) allowedTypes = [allowedTypes];
 
           let filtered = rows;
-
+          // Further filter rows based on selected names/types
           if (type === "measurements") {
             if (allowedNames.length > 0) {
               filtered = filtered.filter(row => allowedNames.includes(row.measurementName));
@@ -471,7 +502,7 @@
             }
           }
 
-
+          //Group rows by measurement or landmark name and collect values
           const groups = filtered.reduce((acc, row) => {
             const name = type === "measurements" ? row.measurementName : row.landmarkName;
             if (!acc[name]) acc[name] = { x: [], y: [], z: [], v: [] };
@@ -494,6 +525,7 @@
           let columns = [];
 
           if (type === "measurements") {
+            // Build statistics rows for measurements: mean, stddev, min, max, median
             statsData = Object.entries(groups).map(([Name, { v }]) => ({
               Name,
               Average: mean(v).toFixed(2),
@@ -503,6 +535,7 @@
               Median: median(v).toFixed(2),
             }));
 
+            // Define table columns for measurement stats
             columns = [
               { title: "Name", field: "Name" },
               { title: "Average", field: "Average", hozAlign: "right" },
@@ -512,6 +545,7 @@
               { title: "Median", field: "Median", hozAlign: "right" },
             ];
           } else {
+            // Build statistics rows for landmarks: mean, stddev, min, max, median per axis
             statsData = Object.entries(groups).map(([Name, { x, y, z }]) => ({
               Name,
               "Average X": mean(x).toFixed(2),
@@ -531,6 +565,7 @@
               "Median Z": median(z).toFixed(2),
             }));
 
+            // Define table columns for landmark stats
             columns = [
               { title: "Name", field: "Name" },
               { title: "Average X", field: "Average X", hozAlign: "right" },
@@ -550,44 +585,57 @@
               { title: "Median Z", field: "Median Z", hozAlign: "right" },
             ];
           }
-
+          // Apply new columns and data to the stats table
           statsTable.setColumns(columns);
           statsTable.replaceData(statsData);
+
+          // Update the histogram chart to match new stats
           updateStatsChart();
         }
 
-        // ─── build raw arrays for each Name ─────────────────────────────────────────────────
+        // Build raw arrays for each Name
         let measurementRaw = {}, landmarkRaw = {};
         function buildRawMaps() {
           measurementRaw = {};
+          // Group measurement values by measurement name
           measurementTable.getData().forEach(r => {
             measurementRaw[r.measurementName] ??= [];
             measurementRaw[r.measurementName].push(+r.value);
           });
           landmarkRaw = {};
+
           landmarkTable.getData().forEach(r => {
+            //Group landmark values (X) by landmark name
             landmarkRaw[r.landmarkName] ??= [];
-            // if you want separate X/Y/Z, switch to xVal/yVal/zVal here
             landmarkRaw[r.landmarkName].push(+r.xVal); 
           });
         }
 
-        // ─── simple histogram helper ──────────────────────────────────────────────────────
+        // Creates histogram bin ranges and counts for numeric data
         function histogramBins(data, bins=10) {
+          // If there is no data, return empty arrays for bins and counts
           if (!data.length) return { bins:[], counts:[] };
+          
+          // Find minimum and maximum values in the data
           let min = Math.min(...data), max = Math.max(...data), w = (max-min)/bins;
+          
+          // Create bin edges (bins+1 to cover all ranges)
           let edges = Array.from({length:bins+1}, (_,i)=>min + i*w),
               counts = Array(bins).fill(0);
+
+           // For each data value, determine which bin it belongs to and increment count
           data.forEach(v => {
             let idx = Math.min(Math.floor((v-min)/w), bins-1);
             counts[idx]++;
           });
-          // midpoints as labels
+          // Compute midpoints of each bin to use as labels
           let mids = edges.slice(0,-1).map((e,i)=>((e+edges[i+1])/2).toFixed(1));
+          
+          // Return object containing bin labels and counts
           return { bins:mids, counts };
         }
 
-        // ─── color palette ────────────────────────────────────────────────────────────────
+        // Color palette
         function pickColor(i){
           let pal = [
             'rgba(54,162,235,0.6)',
@@ -598,28 +646,32 @@
           return pal[i % pal.length];
         }
 
+        // Will hold the Chart.js instance for the histogram
         let statsChart;
 
-        // init with an empty bar chart
+        // Initializes an empty bar chart in the stats-chart canvas
         function initStatsChart(){
           const ctx = document.getElementById('stats-chart').getContext('2d');
           statsChart = new Chart(ctx, {
             type: 'bar',
-            data: { labels: [], datasets: [] },
+            data: { labels: [], datasets: [] },  // Start with no labels or datasets
             options: { responsive: true, scales: { y: { beginAtZero: true } } }
           });
         }
 
+        // Updates the histogram chart based on current stats table data
         function updateStatsChart(){
-          buildRawMaps();
+          buildRawMaps(); // Build raw data arrays for each measurement/landmark
 
-          // which table are we charting?
+          // Determine which type of stats we are charting (measurements or landmarks)
           const statsType = document.querySelector('input[name="statsType"]:checked').value;
           const rows = statsTable.getData(true);   // filtered rows
           const dataMap = (statsType === 'measurements') ? measurementRaw : landmarkRaw;
 
-          // build one histogram per stat name
+          // Prepare chart labels and datasets
           let labels = [], datasets = [];
+
+          // Build one histogram dataset per measurement/landmark name
           rows.forEach((row, i) => {
             const values = dataMap[row.Name] || [];
             const { bins, counts } = histogramBins(values, 8);
@@ -631,7 +683,7 @@
             });
           });
 
-          // reconfigure chart
+          // Update the chart configuration with new data
           statsChart.config.type = 'bar';
           statsChart.config.data = { labels, datasets };
           statsChart.config.options = {
@@ -640,12 +692,15 @@
               y: { beginAtZero: true }
             }
           };
+          // Refresh the chart display
           statsChart.update();
         }
 
+        // Initialize the stats chart and render it for the first time
         initStatsChart();
         updateStatsChart();
 
+        // Attach event listeners to update chart when table changes or stats type changes
         statsTable.on('dataFiltered',  updateStatsChart);
         statsTable.on('renderComplete',updateStatsChart);
         document.querySelectorAll('input[name="statsType"]').forEach(r => 
@@ -654,7 +709,7 @@
 
 
 
-        // Auto-switch table + stats when Measurement/Landmark radio changes
+        // Find all radio buttons for stats type selection
         document.querySelectorAll('input[name="statsType"]').forEach(radio => {
           radio.addEventListener('change', () => {
             updateStats(); // update stats table
@@ -662,52 +717,59 @@
           });
         });
 
+        // Clear Filters Button
         document.getElementById('clearFilters').addEventListener('click', () => {
-          // Clear filters
+          // Clear all header filters from participants, measurements, and landmarks tables
           participantsTable.clearHeaderFilter();
           measurementTable.clearHeaderFilter();
           landmarkTable.clearHeaderFilter();
 
+          // Update row count labels for all tables to reflect cleared filters
           updateRowCount(participantsTable, "participant-row-count");
           updateRowCount(measurementTable,  "measurement-row-count");
           updateRowCount(landmarkTable,     "landmark-row-count");
 
-          // reset to the full datasets and update counters
+          // Reset participant table data to the full dataset
           participantsTable.replaceData(participants)
             .then(() => updateRowCount(participantsTable, "participant-row-count"));
 
+          // Reset measurement table data to all measurements
           measurementTable.replaceData(allMeasurements)
             .then(() => updateRowCount(measurementTable, "measurement-row-count"));
 
+          // Reset landmark table data to all landmarks
           landmarkTable.replaceData(allLandmarks)
             .then(() => updateRowCount(landmarkTable, "landmark-row-count"));
 
-          // Reset dropdown labels (optional)
+          // Reset all dropdown header filter labels
           document.querySelectorAll('.dropdown-toggle').forEach(el => {
             el.textContent = 'Select...';
           });
 
-          // Optionally redraw chart if visible
+          // If the chart is currently visible, redraw it to reflect unfiltered data
           if (document.getElementById("chart-container").style.display !== "none") {
             drawChart();
           }
         });
 
-
-
+        // This function can be used to filter participants based on min/max age inputs
         function customAgeFilter(data) {
+          // Get references to min and max age filter inputs using their tabulator-field attributes
           const minInput = document.querySelector('input[tabulator-field="AgeMinFilter"]');
           const maxInput = document.querySelector('input[tabulator-field="AgeMaxFilter"]');
-
+          // Parse integer values from the filter inputs
           const min = parseInt(minInput?.value);
           const max = parseInt(maxInput?.value);
-          const age = parseInt(data.Age);
+          const age = parseInt(data.Age); // Participant's age from the row data
 
+          // If a min is defined and the participant's age is less, exclude row
           if (!isNaN(min) && age < min) return false;
+          // If a max is defined and the participant's age is more, exclude row
           if (!isNaN(max) && age > max) return false;
-          return true;
+          return true; // Otherwise, include the row
         }
 
+        // Initialize the participants table with filters and columns
         participantsTable = new Tabulator('#participants-table', {
           data: participants,
           layout: 'fitColumns',
@@ -715,6 +777,7 @@
           paginationSize: 10,
           columns: [
             { title: 'Participant ID', field: 'participantFileId' },
+            // Multi-select dropdwon filter
             { title: 'Gender', field: 'Gender', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueGenders } },
             {
               title: "Age Min",
@@ -722,14 +785,15 @@
               headerFilter: "input",
               headerFilterLiveFilter: true,       
               headerFilterPlaceholder: "Min...",
+              // Custom header filter function for min age
               headerFilterFunc: function(fv, rv, row) {
-                if (!fv) return true;
-                return parseInt(row.Age, 10) >= parseInt(fv, 10);
+                if (!fv) return true; // If no filter value, include all rows
+                return parseInt(row.Age, 10) >= parseInt(fv, 10); 
               },
-              accessor: (v,d) => parseInt(d.Age, 10),
+              accessor: (v,d) => parseInt(d.Age, 10), // Accessor ensures Age is numeric for sorting
               sorter: "number",
               headerSort: true,
-              formatter: cell => cell.getData().Age,
+              formatter: cell => cell.getData().Age, // Display actual age value in cell
             },
               
             {
@@ -738,8 +802,9 @@
               headerFilter: "input",
               headerFilterLiveFilter: true,      
               headerFilterPlaceholder: "Max...",
+              // Custom header filter function for max age
               headerFilterFunc: function(fv, rv, row) {
-                if (!fv) return true;
+                if (!fv) return true; // If no filter value, include all rows
                 return parseInt(row.Age, 10) <= parseInt(fv, 10);
               },
               accessor: (v,d) => parseInt(d.Age, 10),
@@ -750,49 +815,56 @@
 
             { title: 'Ethnicity', field: 'Ethnicity', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueEthnicities } },
             { title: 'Facial Surgery', field: 'FacialSurgery', headerFilter: dropdownMultiCheck, headerFilterFunc: multiSelectFilterFunc, headerFilterParams: { values: uniqueFacialSurgeries } },
-
+            // Hidden column storing raw Age value for sorting/filtering
             { title: "Age", field: "Age", visible: false, sorter: "number" },
           ],
         });
+
+        // Update row count labels when table data is filtered or rendered
         participantsTable.on("dataFiltered",   () => updateRowCount(participantsTable, "participant-row-count"));
         participantsTable.on("renderComplete", () => updateRowCount(participantsTable, "participant-row-count"));
 
+        // Synchronize Measurements and Landmarks When Participant Filter Changes
         participantsTable.on('dataFiltered', (filters, rows) => {
+          // Collect participant IDs from currently filtered participant rows
           const ids = rows.map(r => r.getData().participantFileId);
+          // Filter measurements to only include rows matching visible participants
           measurementTable
             .replaceData(allMeasurements.filter(m => ids.includes(m.participantFileId)))
             .then(() => updateRowCount(measurementTable, "measurement-row-count"));
-
+          // Filter landmarks to only include rows matching visible participants
           landmarkTable
             .replaceData(allLandmarks.filter(l => ids.includes(l.participantFileId)))
-            .then(() => updateRowCount(landmarkTable,    "landmark-row-count"));
-
+            .then(() => updateRowCount(landmarkTable, "landmark-row-count"));
+          
+            // Update participant row count
           updateRowCount(participantsTable, "participant-row-count");
 
+          // Update the statistics table based on the filtered data
           updateStats();
 
-          // now rebuild the chart from `rows`
+          // Update Chart If Visible and Age Category Is Selected
           const chartVisible = document.getElementById('chart-container').style.display !== 'none';
           const category     = document.querySelector('input[name="category"]:checked').value;
 
           if (chartVisible && category === 'Age') {
-            // pull raw data objects out of the RowComponents:
+            // Extract raw data from filtered participant rows
             const data = rows.map(r => r.getData());
 
-            // count ages
+            // Count participants by age
             const counts = {};
             data.forEach(p => {
               const age = parseInt(p.Age, 10);
               if (!isNaN(age)) counts[age] = (counts[age] || 0) + 1;
             });
 
-            // sort & build labels + percent values
+            // Sort age labels and calculate percentages
             const labels     = Object.keys(counts).sort((a, b) => a - b);
             const rawCounts  = labels.map(l => counts[l]);
             const total      = rawCounts.reduce((a, b) => a + b, 0) || 1;
             const percentages= rawCounts.map(c => (c / total * 100).toFixed(2));
 
-            // overwrite Chart.js data & redraw
+            // Update the Chart.js dataset with new age distribution
             window.currentChart.data.labels           = labels;
             window.currentChart.data.datasets[0].data = percentages;
             window.currentChart.update();
@@ -801,16 +873,19 @@
 
         });
 
-        // Live updates from measurement & landmark tables
+        // Recalculate statistics whenever measurement table data is filtered
         measurementTable.on("dataFiltered", updateStats);
+        // Recalculate statistics whenever measurement table data changes
         measurementTable.on("dataChanged", updateStats);
+        // Recalculate statistics whenever a cell is edited in the measurement table
         measurementTable.on("cellEdited", updateStats);
 
+        // Same event bindings for the landmark table
         landmarkTable.on("dataFiltered", updateStats);
         landmarkTable.on("dataChanged", updateStats);
         landmarkTable.on("cellEdited", updateStats);
 
-        // Initial draw
+        // Run updateStats() once at the start to populate the stats table immediately
         updateStats();
 
         // whenever the user flips between Measurements / Landmarks, re-compute the stats
@@ -818,45 +893,60 @@
           radio.addEventListener('change', updateStats);
         });
 
+        // Clears all header filters from participants, measurements, and landmarks
         document.getElementById('clearFilters').addEventListener('click', () => {
           participantsTable.clearHeaderFilter();
           measurementTable.clearHeaderFilter();
           landmarkTable.clearHeaderFilter();
-        
-
         });
 
+        // When "Download Data" is clicked, export all currently filtered data
         document.getElementById('downloadCSV').addEventListener('click', () => {
           downloadAllFilteredData();
         });
 
+        // Export filtered data to CSV
         function downloadAllFilteredData() {
+          // Get currently visible participants
           const visibleParts = participantsTable.getData("active");
+          // Create a Set of their IDs for quick lookup
           const partIds      = new Set(visibleParts.map(p => p.participantFileId));
 
+          // Get active header filters for measurement and landmark names
           let measFilter = measurementTable.getHeaderFilterValue("measurementName") || [];
           let landFilter = landmarkTable.getHeaderFilterValue("landmarkName") || [];
+          
+           // Ensure filters are arrays
           if (!Array.isArray(measFilter)) measFilter = [measFilter];
           if (!Array.isArray(landFilter)) landFilter = [landFilter];
+
+          // Remove "Select All" placeholder values from filters
           measFilter = measFilter.filter(v => v !== "Select All");
           landFilter = landFilter.filter(v => v !== "Select All");
 
+          // Filter measurements to include only visible participants and selected measurement names
           const measRows = allMeasurements.filter(m =>
             partIds.has(m.participantFileId) &&
             (measFilter.length === 0 || measFilter.includes(m.measurementName))
           );
+
+          // Filter landmarks to include only visible participants and selected landmark names
           const landRows = allLandmarks.filter(l =>
             partIds.has(l.participantFileId) &&
             (landFilter.length === 0 || landFilter.includes(l.landmarkName))
           );
 
+          //Build CSV content
           const lines = [];
+
+          // Participant information section
           lines.push("Participant Information");
           lines.push(["participantFileId","Gender","Age","Ethnicity","FacialSurgery"].join(","));
           visibleParts.forEach(row => {
             lines.push([row.participantFileId,row.Gender,row.Age,row.Ethnicity,row.FacialSurgery].join(","));
           });
 
+          // Measurements section
           lines.push("");
           lines.push("Measurements");
           lines.push(["participantFileId","measurementName","measurementType","value"].join(","));
@@ -864,27 +954,25 @@
             lines.push([row.participantFileId,row.measurementName,row.measurementType,row.value].join(","));
           });
 
+          // Landmarks section
           lines.push("");
           lines.push("Landmarks");
           lines.push(["participantFileId","landmarkName","xVal","yVal","zVal"].join(","));
           landRows.forEach(row => {
             lines.push([row.participantFileId,row.landmarkName,row.xVal,row.yVal,row.zVal].join(","));
           });
-
+          // Trigger CSV download
           const blob = new Blob([lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
           const link = document.createElement("a");
           link.href = URL.createObjectURL(blob);
           link.download = "facial-landmark-data.csv";
           document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
+          link.click(); // Programmatically click link to start download
+          document.body.removeChild(link); // Clean up link element
         }
 
-
-        
-
-
     })  
+    // Handle errors when fetching data
       .catch(err => {
         console.error(err);
         const errorMessageElement = document.querySelector('#error-message');
@@ -895,16 +983,18 @@
         }
       });
 
-    
+    // Create chart button click event
     document.getElementById('create-chart').addEventListener('click', () => {
       const chartContainer = document.getElementById('chart-container');
       const chartButton = document.getElementById('create-chart');
 
+      // Toggle chart visibility
       if (chartContainer.style.display === 'none' || chartContainer.style.display === '') {
         chartContainer.style.display = 'grid';
         chartButton.textContent = 'Hide Chart';
         drawChart(); // draw chart only when showing
       } else {
+        // Hide chart and reset button text
         chartContainer.style.display = 'none';
         chartButton.textContent = 'Show Chart';
       }
@@ -916,48 +1006,62 @@
     drawChart();
   });
 
+  // Re-draw chart when category or chart type changes
   document.getElementById('chart-type-options').addEventListener('change', drawChart);
 
+  // Generates and updates the participant distribution chart
   function drawChart() {
+    // Get currently active (filtered) participant data from the table
     const data = participantsTable.getData("active");
 
+    // If there are no rows to display, exit the function early
     if (!data.length) return;
 
+    // Read selected category 
     const category = document.querySelector('input[name="category"]:checked').value;
+    // Read selected chart type
     const chartType = document.querySelector('input[name="chartType"]:checked').value;
 
-    let labels = [];
-    let values = [];
+    let labels = []; // labels for chart segments
+    let values = []; // raw counts for each label
 
+    // If category is Age, build a histogram of ages
     if (category === 'Age') {
       const ageCounts = {};
       data.forEach(p => {
         const age = parseInt(p.Age);
         if (!isNaN(age)) {
+          // Increment count for this age or initialize at 1
           ageCounts[age] = (ageCounts[age] || 0) + 1;
         }
       });
 
+      // Sort ages numerically and prepare labels and values
       labels = Object.keys(ageCounts).sort((a, b) => a - b);
       values = labels.map(l => ageCounts[l]);
     } else {
-      const counts = {};
+      const counts = {}; 
       data.forEach(p => {
+        // Use 'Unknown' if the value is missing
         const val = p[category] || 'Unknown';
         counts[val] = (counts[val] || 0) + 1;
       });
 
+      // Labels are category values, values are their counts
       labels = Object.keys(counts);
       values = labels.map(l => counts[l]);
     }
 
+    // Convert counts to percentages for chart display 
     const total = values.reduce((sum, val) => sum + val, 0) || 1;
     const percentages = values.map(val => (val / total * 100).toFixed(2));
 
+    // If an existing chart is rendered, destroy it before creating new
     if (window.currentChart) {
       window.currentChart.destroy();
     }
 
+    // Create a new Chart.js instance
     const ctx = document.getElementById('chart-canvas').getContext('2d');
     window.currentChart = new Chart(ctx, {
       type: chartType,
@@ -966,13 +1070,15 @@
         datasets: [{
           label: '% of Participants',
           data: percentages,
+          // Assign distinct HSL-based colors to each label dynamically
           backgroundColor: labels.map((_, i) => `hsl(${i * 360 / labels.length}, 70%, 60%)`)
         }]
       },
       options: {
-        responsive: true,
+        responsive: true, // Chart resizes with the window
         plugins: {
           tooltip: {
+            // Show percentage label in tooltips
             callbacks: {
               label: context => `${context.label}: ${context.formattedValue}%`
             }
