@@ -22,7 +22,6 @@ This resource is intended for exploratory facial analysis, education, and resear
 
 - `index.html` – main web interface
 - `data.json` – deidentified facial landmark and measurement data used by the interface
-- `Data Analysis of 3D Facial Measurements and Landmark Locations copy.html` – additional/legacy analysis page
 
 ## How to use
 
