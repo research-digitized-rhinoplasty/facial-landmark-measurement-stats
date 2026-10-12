@@ -528,6 +528,7 @@
             // Build statistics rows for measurements: mean, stddev, min, max, median
             statsData = Object.entries(groups).map(([Name, { v }]) => ({
               Name,
+              n: v.length,
               Average: mean(v).toFixed(2),
               StdDev: stdDev(v).toFixed(2),
               Min: Math.min(...v).toFixed(2),
@@ -538,6 +539,7 @@
             // Define table columns for measurement stats
             columns = [
               { title: "Name", field: "Name" },
+              { title: "n", field: "n", hozAlign: "right" },
               { title: "Average", field: "Average", hozAlign: "right" },
               { title: "Std. Deviation", field: "StdDev", hozAlign: "right" },
               { title: "Minimum", field: "Min", hozAlign: "right" },
@@ -548,6 +550,9 @@
             // Build statistics rows for landmarks: mean, stddev, min, max, median per axis
             statsData = Object.entries(groups).map(([Name, { x, y, z }]) => ({
               Name,
+              "n X": x.length,
+              "n Y": y.length,
+              "n Z": z.length,
               "Average X": mean(x).toFixed(2),
               "Average Y": mean(y).toFixed(2),
               "Average Z": mean(z).toFixed(2),
@@ -568,6 +573,9 @@
             // Define table columns for landmark stats
             columns = [
               { title: "Name", field: "Name" },
+              { title: "n X", field: "n X", hozAlign: "right" },
+              { title: "n Y", field: "n Y", hozAlign: "right" },
+              { title: "n Z", field: "n Z", hozAlign: "right" },
               { title: "Average X", field: "Average X", hozAlign: "right" },
               { title: "Average Y", field: "Average Y", hozAlign: "right" },
               { title: "Average Z", field: "Average Z", hozAlign: "right" },
